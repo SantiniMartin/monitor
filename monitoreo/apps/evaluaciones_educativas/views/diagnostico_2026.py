@@ -804,16 +804,13 @@ from openpyxl import Workbook
 
 def monitoreo_evaluaciones_educativas(request):
 	selected_dni = request.GET.get('dni')
+	alumnos_total=[]
 	# establecimientos_cueanexo = Establecimientos2026.objects.values_list('cueanexo', flat=True)
 	establecimientos_cueanexo = Establecimientos2026.objects.all()
 	#alumnos_total= Alumno2026.objects.values_list('dni','nombre','apellido','seccion__seccion','seccion__año__cueanexo')
 	if selected_dni:
 		alumnos_query=EvaluacionDiagnostica2026.objects.filter(alumno__dni__icontains=selected_dni)
-	else:
-		alumnos_query=EvaluacionDiagnostica2026.objects.all()
-
-	#print(alumnos_query)
-	alumnos_total = alumnos_query.values_list(
+		alumnos_total = alumnos_query.values_list(
 		'alumno__dni',
 		'alumno__nombre',
 		'alumno__apellido',
@@ -822,6 +819,19 @@ def monitoreo_evaluaciones_educativas(request):
 		'matematica2026',
 		'lengua2026'
 	)
+	# else:
+	# 	alumnos_query=EvaluacionDiagnostica2026.objects.all()
+
+	#print(alumnos_query)
+	# alumnos_total = alumnos_query.values_list(
+	# 	'alumno__dni',
+	# 	'alumno__nombre',
+	# 	'alumno__apellido',
+	# 	'alumno__seccion__seccion',
+	# 	'alumno__seccion__año__cueanexo',
+	# 	'matematica2026',
+	# 	'lengua2026'
+	# )
 	establecimientos_region= Establecimientos2026.objects.values_list('region', flat=True)
 	monitoreo_total = []
 	for i in establecimientos_cueanexo:
