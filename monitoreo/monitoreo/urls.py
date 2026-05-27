@@ -20,7 +20,7 @@ from apps.evaluaciones_educativas.views import diagnostico_2026
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('monitoreo_diagnostico/', diagnostico_2026.monitoreo_evaluaciones_educativas, name='monitoreo_diagnostico'),
+    path('', diagnostico_2026.monitoreo_evaluaciones_educativas, name='monitoreo_diagnostico'),
     path('descargar_excel/',diagnostico_2026.descargar_excel, name='excel'),
 
 ]
