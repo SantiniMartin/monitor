@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Título de la página</title>
+  </head>
+  <body>
+    <h1>INICIO DE SESION</h1>
+    <form method="post">
+      {% csrf_token %}
+
+      <label for="usuario">
+        <input type="text" name="username" />
+      </label>
+      <label for="contraseña">
+        <input type="text" name="password" />
+      </label>
+      <button type="submit" class="btn btn-primary">Iniciar sesion</button>
+    </form>
+  </body>
+</html>

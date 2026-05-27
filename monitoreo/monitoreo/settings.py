@@ -1,3 +1,9 @@
+import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
+
 """
 Django settings for monitoreo project.
 
@@ -20,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(473td)52cw5l!6384($r+48#k1w%@xh(lzz*g@v0foda$l3un'
+SECRET_KEY = os.environ.get('SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'apps.evaluaciones_educativas'
 ]
 
 MIDDLEWARE = [
@@ -74,12 +81,27 @@ WSGI_APPLICATION = 'monitoreo.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB_RENDER'),
+        'USER': os.environ.get('POSTGRES_USER_RENDER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD_RENDER'),
+        'HOST': os.environ.get('POSTGRES_HOST_RENDER'),
+        'PORT': os.environ.get('POSTGRES_PORT_RENDER'),
+    },   
+    'Evaluacion': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB_EVALUACION'),
+        'USER': os.environ.get('POSTGRES_USER_EVALUACION'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD_EVALUACION'),
+        'HOST': os.environ.get('POSTGRES_HOST_EVALUACION'),
+        'PORT': os.environ.get('POSTGRES_PORT_EVALUACION'),
+        'OPTIONS': {
+            'options': '-c search_path=evaluacion,public',
+        }
     }
 }
 
-
+DATABASE_ROUTERS = ['apps.evaluaciones_educativas.routers.SecondaryDBRouter']
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        .select-inline {
+            min-width: 170px;
+            max-width: 240px;
+            font-size: 0.82rem;
+            padding: 4px 10px 4px 8px;
+            padding-right: 2.5rem;
+        }
+
+        #cueanexo {
+            width: auto;
+            min-width: 170px;
+        }
+
+        th,
+        td {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <div class="container-fluid py-4">
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    <div>
+                        <h5 class="mb-1">Lista de datos personales</h5>
+                        <p class="mb-0 small">CUEANEXO seleccionado: <strong>{{ selected_cue|default:"-" }}</strong></p>
+                    </div>
+                    <form method="get" action="" id="cueanexo-form" class="d-flex align-items-center gap-2 mb-0">
+                        <label for="cueanexo" class="mb-0 small text-white">Cueanexo</label>
+                        {% if user_cueanexos %}
+                        <select name="cueanexo" id="cueanexo"
+                            class="form-select form-select-sm select-inline px-3 py-1">
+                            {% for cue in user_cueanexos %}
+                            <option value="{{ cue }}" {% if cue|stringformat:"s" == selected_cue %}selected{% endif %}>
+                                {{ cue }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">No hay cueanexos disponibles</span>
+                        {% endif %}
+                        <div class="input-group input-group-sm">
+                            <input type="search" name="search" value="{{ search_query }}" class="form-control"
+                                placeholder="Buscar alumno...">
+                            <button type="submit" class="btn btn-light" id="btn-buscar-alumno">Buscar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0 align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Apellido</th>
+                                <th>DNI</th>
+                                <th>Com. Indígena</th>
+                                <th>Discapacidad</th>
+                                <th>Año</th>
+                                <th>Sección</th>
+                                <th>Turno</th>
+                                <th class="text-center">Confirmar</th>
+                                <th class="text-center">Editar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumno in alumnos %}
+                            <tr>
+                                <form method="post"
+                                    action="{% url 'evaluaciones_educativas:diagnostico_2026:actualizar_seccion' alumno.objeto.public_id %}"
+                                    id="form-alumno-{{ forloop.counter }}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="cueanexo" value="{{ selected_cue }}">
+                                    <td>{{ alumno.objeto.nombre }}</td>
+                                    <td>{{ alumno.objeto.apellido }}</td>
+                                    <td>{{ alumno.objeto.dni }}</td>
+
+                                    <!-- Com. Indígena -->
+                                    <td>
+                                        <select name="comunidad_indigena" class="form-select form-select-sm select-inline">
+                                            <option value="" {% if not alumno.objeto.comunidad_indigena %}selected{% endif %}>
+                                                --- Seleccionar ---
+                                            </option>
+                                            {% for valor, etiqueta in opciones_comunidad_indigena %}
+                                                <option value="{{ valor }}" {% if alumno.objeto.comunidad_indigena == valor %}selected{% endif %}>
+                                                    {{ etiqueta }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <!-- Discapacidad -->
+                                    <td>
+                                        <select name="discapacidad" class="form-select form-select-sm select-inline">
+                                            <option value="" {% if not alumno.objeto.discapacidad %}selected{% endif %}>
+                                                --- Seleccionar ---
+                                            </option>
+                                            {% for valor, etiqueta in opciones_discapacidad %}
+                                                <option value="{{ valor }}" {% if alumno.objeto.discapacidad == valor %}selected{% endif %}>
+                                                    {{ etiqueta }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <td>{{ alumno.objeto.seccion.año.nombre_año|default:"2do Año/Grado" }}</td>
+
+                                    <!-- Sección -->
+                                    <td>
+                                        <select name="seccion" class="form-select form-select-sm select-inline">
+                                            <option value="" {% if not alumno.objeto.seccion.seccion %}selected{% endif %}>
+                                                --- Seleccionar ---
+                                            </option>
+                                            {% for valor in secciones_disponibles.secciones %}
+                                                <option value="{{ valor }}" {% if alumno.objeto.seccion.seccion == valor %}selected{% endif %}>
+                                                    {{ valor }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <!-- Turno -->
+                                    <td>
+                                        <select name="turno" class="form-select form-select-sm select-inline">
+                                            <option value="" {% if not alumno.objeto.seccion.turno %}selected{% endif %}>
+                                                --- Seleccionar ---
+                                            </option>
+                                            {% for valor in secciones_disponibles.turnos %}
+                                                <option value="{{ valor }}" {% if alumno.objeto.seccion.turno == valor %}selected{% endif %}>
+                                                    {{ valor|title }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+
+                                    <!-- Botón confirmar -->
+                                    <td class="text-center">
+                                        <button type="submit" class="btn btn-success btn-sm btn-confirmar" title="Confirmar datos">
+                                            ✔ Confirmar
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                    <a href="{% url 'evaluaciones_educativas:diagnostico_2026:editar_alumno' alumno.objeto.public_id %}{% if selected_cue %}?cueanexo={{ selected_cue }}{% endif %}"
+                                    class="btn btn-outline-secondary btn-sm" title="Editar datos del alumno">
+                                        ✏️
+                                    </a>
+                                </td>
+                                </form>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center py-3 text-muted">
+                                    No hay alumnos cargados para este establecimiento.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación del servidor -->
+                <div class="d-flex justify-content-between align-items-center px-3 py-2">
+                    <span class="text-muted small">
+                        {% if page_obj.paginator.count > 0 %}
+                            Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }} alumnos
+                        {% endif %}
+                    </span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+
+                            <!-- Ir a la primera página -->
+                            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                                <a class="page-link"
+                                   href="{% if page_obj.has_previous %}?cueanexo={{ selected_cue }}&search={{ search_query }}&pagina=1{% else %}#{% endif %}"
+                                   title="Primera página">
+                                   &laquo;&laquo;
+                                </a>
+                            </li>
+                        
+                            <!-- Página anterior -->
+                            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                                <a class="page-link"
+                                   href="{% if page_obj.has_previous %}?cueanexo={{ selected_cue }}&search={{ search_query }}&pagina={{ page_obj.previous_page_number }}{% else %}#{% endif %}"
+                                   title="Anterior página">
+                                   &laquo;
+                                </a>
+                            </li>
+                        
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="?cueanexo={{ selected_cue }}&search={{ search_query }}&pagina={{ num }}">
+                                           {{ num }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        
+                            <!-- Página siguiente -->
+                            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                                <a class="page-link"
+                                   href="{% if page_obj.has_next %}?cueanexo={{ selected_cue }}&search={{ search_query }}&pagina={{ page_obj.next_page_number }}{% else %}#{% endif %}"
+                                   title="Siguiente página">
+                                   &raquo;
+                                </a>
+                            </li>
+                        
+                            <!-- Ir a la última página -->
+                            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                                <a class="page-link"
+                                   href="{% if page_obj.has_next %}?cueanexo={{ selected_cue }}&search={{ search_query }}&pagina={{ page_obj.paginator.num_pages }}{% else %}#{% endif %}"
+                                   title="Última página">
+                                   &raquo;&raquo;
+                                </a>
+                            </li>
+                        
+                        </ul>
+                    </nav>
+                </div>
+
+            </div>
+            <div class="card-footer bg-light border-top">
+                <div class="d-flex flex-column flex-md-row justify-content-end gap-2 mb-0">
+                    <a href="{% url 'evaluaciones_educativas:diagnostico_2026:agregar_alumno' %}{% if selected_cue %}?cueanexo={{ selected_cue }}{% endif %}"
+                        class="btn btn-primary"
+                        id="agregar">
+                        + Agregar Alumno
+                    </a>
+                    <a href="{% url 'evaluaciones_educativas:diagnostico_2026:realizar_carga' %}{% if selected_cue %}?cueanexo={{ selected_cue }}{% endif %}"
+                        class="btn btn-success"
+                        id="btn-realizar-carga">
+                        Realizar Carga
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const btnRealizarCarga = document.getElementById('btn-realizar-carga');
+        if (btnRealizarCarga) {
+            btnRealizarCarga.addEventListener('click', function () {
+                // Cambiamos el texto inmediatamente al hacer clic
+                this.textContent = 'Cargando...';
+                
+                // Opcional: Le agregamos una clase de Bootstrap para que no se pueda volver a cliquear
+                this.classList.add('disabled'); 
+            });
+        }
+        const formBusqueda = document.getElementById('cueanexo-form');
+        if (formBusqueda) {
+            formBusqueda.addEventListener('submit', function () {
+                const btnBuscar = document.getElementById('btn-buscar-alumno');
+                if (btnBuscar) {
+                    btnBuscar.disabled = true;
+                    btnBuscar.textContent = 'Buscando...';
+                }
+            });
+        }
+        const btnAgregar = document.getElementById('agregar');
+        if (btnAgregar) {
+            btnAgregar.addEventListener('click', function () {
+                // Cambiamos el texto inmediatamente al hacer clic
+                this.textContent = 'Cargando...';
+                
+                // Opcional: Le agregamos una clase de Bootstrap para que no se pueda volver a cliquear
+                this.classList.add('disabled'); 
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+    
+    // Seleccionamos TODOS los botones que tengan la clase .btn-confirmar-alumno
+    const botonesConfirmar = document.querySelectorAll('.btn-confirmar');
+    
+    botonesConfirmar.forEach(function (boton) {
+        boton.addEventListener('click', function () {
+            // 'this' hace referencia exactamente al botón específico que fue cliqueado
+            this.textContent = 'Cargando...';
+            
+            // Añade el estado deshabilitado visual de Bootstrap
+            this.classList.add('disabled'); 
+            
+        });
+    });
+
+});
+    </script>
+    
+    
+</body>
+
+</html>

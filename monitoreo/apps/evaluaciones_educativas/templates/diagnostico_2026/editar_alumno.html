@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Alumno</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-5" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">✏️ Editar Alumno</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-secondary py-2">
+                <strong>Alumno:</strong> {{ alumno.nombre }} {{ alumno.apellido }} —
+                <strong>DNI:</strong> {{ alumno.dni }}
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                {% for field in form %}
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                        {{ field.label }}
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="text-danger small mt-1">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <input type="hidden" name="cueanexo" value="{{ return_cueanexo }}">
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-warning btn-guardar-cambios">Guardar cambios</button>
+                    <a href="{% url 'evaluaciones_educativas:diagnostico_2026:inicio' %}{% if return_cueanexo %}?cueanexo={{ return_cueanexo }}{% endif %}" class="btn btn-secondary btn-cancelar">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const inputDni = document.getElementById('id_dni') || document.querySelector('input[name="dni"]');
+
+    if (inputDni) {
+        // Nos aseguramos por código que tenga el atributo físico
+        inputDni.setAttribute('maxlength', '8');
+
+        inputDni.addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, '');
+
+            if (this.value.length > 8) {
+                this.value = this.value.slice(0, 8);
+            }
+        });
+    }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    // 1. Lógica para cuando se envía el formulario (Botón Guardar cambios)
+    document.querySelectorAll('form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            // Buscamos el botón específico de guardar cambios dentro de este formulario
+            const btnGuardar = form.querySelector('.btn-guardar-cambios');
+            if (btnGuardar) {
+                btnGuardar.disabled = true;
+                btnGuardar.textContent = 'Guardando...';
+            }
+        });
+    });
+});
+    // 2. Lógica para los enlaces de cancelar
+    document.querySelectorAll('.btn-cancelar').forEach(function (enlace) {
+        enlace.addEventListener('click', function () {
+            this.textContent = 'Cancelando...';
+            this.classList.add('disabled');
+        });
+    });
+</script>
+</body>
+</html>

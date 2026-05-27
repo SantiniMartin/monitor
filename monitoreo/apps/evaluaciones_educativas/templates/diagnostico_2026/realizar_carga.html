@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realizar Carga</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">Realizar carga de exámen</h3>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">CUEANEXO seleccionado: <strong>{{ selected_cue|default:"-" }}</strong></p>
+                <p class="h5 mb-4">¿Qué evaluación desea cargar?</p>
+                <div class="d-grid gap-3 mb-4">
+                    <a href="{% url 'evaluaciones_educativas:diagnostico_2026:examenes_lista' 'matematica' %}{% if selected_cue %}?cueanexo={{ selected_cue }}{% endif %}" class="btn btn-primary btn-lg btn-cargando">
+                        Exámen Matemática
+                    </a>
+                    <a href="{% url 'evaluaciones_educativas:diagnostico_2026:examenes_lista' 'lengua' %}{% if selected_cue %}?cueanexo={{ selected_cue }}{% endif %}" class="btn btn-primary btn-lg btn-cargando">
+                        Exámen Lengua
+                    </a>
+                </div>
+                <a href="{% url 'evaluaciones_educativas:diagnostico_2026:inicio' %}{% if selected_cue %}?cueanexo={{ selected_cue }}{% endif %}" class="btn btn-outline-secondary btn-cargando">
+                    Volver atrás
+                </a>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll('.btn-cargando, #btn-realizar-carga').forEach(function (enlace) {
+        enlace.addEventListener('click', function () {
+            this.textContent = 'Cargando...';
+            this.classList.add('disabled'); // Bloquea visualmente nuevos clics en Bootstrap
+        });
+    });
+    </script>
+</body>
+</html>

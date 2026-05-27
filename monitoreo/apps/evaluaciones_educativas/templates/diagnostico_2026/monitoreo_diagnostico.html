@@ -1,0 +1,236 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoreo Escolar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding-bottom: 50px; }
+        .table-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-logo { height: 60px; }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+    <div class="d-flex align-items-center mb-3">
+        <img src="{% static 'img/logo_escuela.png' %}" alt="Logo" class="header-logo me-3">
+        <h2 class="mb-0">Panel de Monitoreo Escolar</h2>
+    </div>
+
+    <div class="btn-group mb-4 w-100" role="group">
+        <button type="button" class="btn btn-outline-primary active" id="btnEstablecimientos" onclick="cambiarVista('establecimientos')">Ver Establecimientos</button>
+        <button type="button" class="btn btn-outline-primary" id="btnAlumnos" onclick="cambiarVista('alumnos')">Ver Alumnos</button>
+    </div>
+
+    <div id="vistaEstablecimientos">
+        <div class="row mb-4 g-2">
+            <div class="col-md-5"> 
+                <input type="text" id="buscadorEstablecimientos" class="form-control" placeholder="Buscar por CUE o Localidad..." onkeyup="filtrarEstablecimientos()">
+            </div>
+            <div class="col-md-3">
+                <select id="filtroRegion" class="form-select" onchange="filtrarEstablecimientos()">
+                    <option value="">Todas las Regiones</option>
+                    {% for reg in regiones %}
+                        <option value="{{ reg|lower }}">{{ reg }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" onclick="filtrarEstablecimientos()">Filtrar</button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-success w-100" onclick="exportarTablaAExcel()">📥 Excel</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover" id="tablaMonitoreo">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cueanexo</th>
+                        <th>Escuela</th>
+                        <th>Región</th>
+                        <th>Localidad</th>
+                        <th>Departamento</th>
+                        <th>Alumnos</th>
+                        <th>Matemática</th>
+                        <th>Lengua</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in lista %}
+                    <tr>
+                        <td>{{ item.cueanexo }}</td>
+                        <td>{{ item.escuela }}</td>
+                        <td>{{ item.region }}</td>
+                        <td>{{ item.localidad }}</td>
+                        <td>{{ item.departamento }}</td>
+                        <td>{{ item.alumnos }}</td>
+                        <td>{{ item.matematica }}</td>
+                        <td>{{ item.lengua }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">No hay datos de establecimientos para mostrar.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="vistaAlumnos" style="display: none;">
+        
+        <div class="row mb-4 g-2">
+            <div class="col-md-10">
+                <input type="text" id="buscadorAlumnos" class="form-control" 
+                       placeholder="Buscar alumno por DNI, Nombre o Apellido..." 
+                       onkeyup="filtrarAlumnos()">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-primary w-100" onclick="filtrarAlumnos()">Buscar</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover" id="tablaAlumnos">
+                <thead class="table-dark">
+                    <tr>
+                        <th>DNI</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Sección</th>
+                        <th>Cueanexo</th>
+                        <th>Matemática</th>
+                        <th>Lengua</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alumno in alumnos_total %}
+                    <tr>
+                        <td>{{ alumno.0 }}</td>
+                        <td>{{ alumno.1 }}</td>
+                        <td>{{ alumno.2 }}</td>
+                        <td>{{ alumno.3 }}</td>
+                        <td>{{ alumno.4 }}</td>
+                        <td>
+                            {% if alumno.5 %}
+                                <span class="badge bg-success">Tiene</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No tiene</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if alumno.6 %}
+                                <span class="badge bg-success">Tiene</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No tiene</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            No hay alumnos cargados en el sistema.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pestana = urlParams.get('pestana');
+        
+        if (pestana === 'alumnos') {
+            cambiarVista('alumnos');
+        } else {
+            cambiarVista('establecimientos');
+        }
+    };
+
+    function cambiarVista(vista) {
+        if (vista === 'establecimientos') {
+            document.getElementById('vistaEstablecimientos').style.display = 'block';
+            document.getElementById('vistaAlumnos').style.display = 'none';
+            document.getElementById('btnEstablecimientos').classList.add('active');
+            document.getElementById('btnAlumnos').classList.remove('active');
+        } else {
+            document.getElementById('vistaEstablecimientos').style.display = 'none';
+            document.getElementById('vistaAlumnos').style.display = 'block';
+            document.getElementById('btnAlumnos').classList.add('active');
+            document.getElementById('btnEstablecimientos').classList.remove('active');
+        }
+    }
+
+    // Filtro para Establecimientos
+    function filtrarEstablecimientos() {
+        const input = document.getElementById("buscadorEstablecimientos");
+        const filtroTexto = input.value.toLowerCase();
+        const filtroRegion = document.getElementById("filtroRegion").value.toLowerCase();
+        const tabla = document.getElementById("tablaMonitoreo");
+        const filas = tabla.getElementsByTagName("tr");
+
+        for (let i = 1; i < filas.length; i++) {
+            const celdas = filas[i].getElementsByTagName("td");
+            if (celdas.length === 0) continue;
+
+            const cue = celdas[0].textContent.toLowerCase();
+            const region = celdas[2].textContent.toLowerCase();
+            const localidad = celdas[3].textContent.toLowerCase();
+
+            const coincideTexto = (cue.includes(filtroTexto) || localidad.includes(filtroTexto));
+            const coincideRegion = (filtroRegion === "" || region === filtroRegion);
+
+            if (coincideTexto && coincideRegion) {
+                filas[i].style.display = "";
+            } else {
+                filas[i].style.display = "none";
+            }
+        }
+    }
+
+    // --- NUEVO: Filtro para Alumnos en Cliente ---
+    function filtrarAlumnos() {
+        const input = document.getElementById("buscadorAlumnos");
+        const filtroTexto = input.value.toLowerCase();
+        const tabla = document.getElementById("tablaAlumnos");
+        const filas = tabla.getElementsByTagName("tr");
+
+        for (let i = 1; i < filas.length; i++) {
+            const celdas = filas[i].getElementsByTagName("td");
+            if (celdas.length === 0) continue;
+
+            // Obtenemos los valores de DNI, Nombre y Apellido
+            const dni = celdas[0].textContent.toLowerCase();
+            const nombre = celdas[1].textContent.toLowerCase();
+            const apellido = celdas[2].textContent.toLowerCase();
+
+            // Verificamos si el texto ingresado coincide con alguno de los tres campos
+            if (dni.includes(filtroTexto) || nombre.includes(filtroTexto) || apellido.includes(filtroTexto)) {
+                filas[i].style.display = "";
+            } else {
+                filas[i].style.display = "none";
+            }
+        }
+    }
+
+    function exportarTablaAExcel() {
+        var tabla = document.getElementById('tablaMonitoreo');
+        var libro = XLSX.utils.table_to_book(tabla, { sheet: "Establecimientos" });
+        XLSX.writeFile(libro, "Reporte_Establecimientos.xlsx");
+    }
+</script>
+
+</body>
+</html>

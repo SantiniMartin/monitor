@@ -1,0 +1,43 @@
+body {
+  background: linear-gradient(135deg, #eef2ff, #ffffff);
+  min-height: 100vh;
+  padding: 30px;
+}
+
+.container-custom {
+  max-width: 900px;
+  margin: auto;
+}
+
+.card {
+  border-radius: 18px;
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  background: linear-gradient(90deg, #0066cc, #004a99);
+  color: white;
+  padding: 18px;
+  text-align: center;
+}
+
+h1,
+h2 {
+  font-weight: 600;
+}
+
+.list-group-item {
+  border-radius: 10px !important;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+table {
+  width: 100%;
+}
+
+.btn-custom {
+  border-radius: 10px;
+  font-weight: 600;
+}
