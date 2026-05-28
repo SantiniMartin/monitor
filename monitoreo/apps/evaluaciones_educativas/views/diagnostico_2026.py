@@ -802,27 +802,10 @@ from openpyxl import Workbook
 # 	return estado_carga,numero
 
 
-def monitoreo_evaluaciones_educativas(request):
-	selected_dni = request.GET.get('dni')
-	# establecimientos_cueanexo = Establecimientos2026.objects.values_list('cueanexo', flat=True)
+def monitoreo_evaluaciones_educativas_establecimientos(request):
+	alumnos_total=[]
 	establecimientos_cueanexo = Establecimientos2026.objects.all()
-	#alumnos_total= Alumno2026.objects.values_list('dni','nombre','apellido','seccion__seccion','seccion__año__cueanexo')
-	if selected_dni:
-		alumnos_query=EvaluacionDiagnostica2026.objects.filter(alumno__dni__icontains=selected_dni)
-	else:
-		alumnos_query=EvaluacionDiagnostica2026.objects.all()
-
-	#print(alumnos_query)
-	alumnos_total = alumnos_query.values_list(
-		'alumno__dni',
-		'alumno__nombre',
-		'alumno__apellido',
-		'alumno__seccion__seccion',
-		'alumno__seccion__año__cueanexo',
-		'matematica2026',
-		'lengua2026'
-	)
-	establecimientos_region= Establecimientos2026.objects.values_list('region', flat=True)
+	establecimientos_region= Establecimientos2026.objects.values_list('region', flat=True).distinct().order_by('region')
 	monitoreo_total = []
 	for i in establecimientos_cueanexo:
 		lista_dnis = list(
@@ -840,8 +823,6 @@ def monitoreo_evaluaciones_educativas(request):
 		alumnos=Alumno2026.objects.filter(seccion__año__cueanexo=i.cueanexo)
 		alumnos_conteo=len(lista_dnis)
 		alumno_examen_matematica=Matematica2026.objects.filter(alumno__in=alumnos).count()
-		# if alumno_examen_matematica>=1:
-		# 	print('--'*50)
 		alumno_examen_lengua= Lengua2026.objects.filter(alumno__in=alumnos).count()
 		monitoreo_total.append({
 					'cueanexo': i.cueanexo,
@@ -903,4 +884,74 @@ def descargar_excel(request):
 		except json.JSONDecodeError:
 			return JsonResponse({'error': 'JSON inválido'}, status=400)
 	return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+
+
+def monitoreo_evaluaciones_educativa_alumnos(request):
+	selected_dni = request.GET.get('dni')
+	print(selected_dni)
+	alumnos_total_lista=[]
+	evaluacion_matematica=[]
+	evaluacion_lengua=[]
+	if selected_dni:
+		alumnos_query=Alumno2026.objects.filter(dni__icontains=selected_dni)
+		alumnos_total = alumnos_query.values_list(
+			'dni',
+			'nombre',
+			'apellido',
+			'seccion__seccion',
+			'seccion__año__cueanexo',
+		)
+		alumnos_total_lista=list(alumnos_total)
+		evaluacion_matematica=Matematica2026.objects.filter(alumno__dni__icontains=selected_dni).exists()
+		evaluacion_lengua=Lengua2026.objects.filter(alumno__dni__icontains=selected_dni).exists()
+		print(alumnos_total_lista)
+	contexto = {'resultados': alumnos_total_lista,'matematica':evaluacion_matematica,'lengua':evaluacion_lengua, 'query': selected_dni}
+	return render(request, 'diagnostico_2026/monitoreo_diagnostico_alumno.html', contexto)
+
+def monitoreo_evaluaciones_educativa_seccion(request):
+	selected_cueanexo = request.GET.get('cueanexo')
+	print(selected_cueanexo)
+	establecimientos_total=[]
+	if selected_cueanexo:
+		establecimientos_query=Establecimientos2026.objects.filter(establecimiento__icontains=selected_cueanexo)
+		establecimientos_total = establecimientos_query.values_list(
+			'alumno__dni',
+			'alumno__nombre',
+			'alumno__apellido',
+			'alumno__seccion__seccion',
+			'alumno__seccion__año__cueanexo',
+			'matematica2026',
+			'lengua2026'
+		)
+	contexto = {'resultados': establecimientos_total, 'query': selected_cueanexo}
+	return render(request, 'diagnostico_2026/monitoreo_diagnostico_seccion.html', contexto)
+
+
+def borrar_alumno(request):
+	selected_dni = request.POST.get('dni_borrar')
+	matematica = request.POST.get('matematica_dni_borrar')
+	lengua = request.POST.get('lengua_dni_borrar')
+	if request.method == 'POST':
+		if matematica:
+			examen_matematica=Matematica2026.objects.get(alumno__dni=selected_dni)
+			examen_matematica.delete()
+			print('Entre a matematica')
+		if lengua:
+			examen_lengua=Lengua2026.objects.get(alumno__dni=selected_dni)
+			examen_lengua.delete()
+			print('Entre a Lengua')
+		if selected_dni:
+			alumno=Alumno2026.objects.filter(dni=selected_dni).first()
+			alumno_temporal=TablaTemporalAlumno.objects.filter(numero_de_documento=selected_dni).first()
+			if alumno:
+				alumno.delete()
+			if alumno_temporal:
+				alumno_temporal.delete()
+			print('Entre a borrar alumno de ambas tablas')
+			return redirect("monitoreo_diagnostico_alumno")
+	return redirect("monitoreo_diagnostico_alumno")
+		
+
 	

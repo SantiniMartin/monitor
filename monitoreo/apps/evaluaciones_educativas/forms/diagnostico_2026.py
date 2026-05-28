@@ -612,19 +612,19 @@ class LenguaForm(forms.ModelForm):
 # # 			self.fields['cueanexo_seleccionado'].choices = choices
 
 # # 			#ENTENDER ESTE CODIGO Y POR QUE NO FUNCION EL NUESTRO
-# # class Grado_select_Form(forms.Form):
-# # 	GRADOS_CHOICES = [
-# # 		('', '--- Seleccionar Grado ---'),  # Valor vacío para la opción neutra
-# # 		('2do Año/Grado', '2do Año/Grado'),
-# # 		('3er Año/Grado', '3er Año/Grado'),
-# # 	]
+# class Grado_select_Form(forms.Form):
+# 	GRADOS_CHOICES = [
+# 		('', '--- Seleccionar Grado ---'),  # Valor vacío para la opción neutra
+# 		('2do Año/Grado', '2do Año/Grado'),
+# 		('3er Año/Grado', '3er Año/Grado'),
+# 	]
 	
-# # 	grado_seleccion = forms.ChoiceField(
-# # 		choices=GRADOS_CHOICES,
-# # 		label="Seleccione un Grado",
-# # 		required=True,
-# # 		widget=forms.Select()
-# # 	)
+# 	grado_seleccion = forms.ChoiceField(
+# 		choices=GRADOS_CHOICES,
+# 		label="Seleccione un Grado",
+# 		required=True,
+# 		widget=forms.Select()
+# 	)
 # # class SeccionTurnoForm(forms.Form):
 # # 	# Definimos el campo vacío inicialmente
 # # 	seleccion = forms.ModelChoiceField(
