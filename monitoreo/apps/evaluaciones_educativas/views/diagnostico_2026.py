@@ -941,11 +941,13 @@ def borrar_alumno(request):
 	matematica = request.POST.get('matematica_dni_borrar')
 	lengua = request.POST.get('lengua_dni_borrar')
 	if request.method == 'POST':
-		if matematica:
+		print(matematica)
+		print(type(matematica))
+		if matematica != 'False':
 			examen_matematica=Matematica2026.objects.get(alumno__dni=selected_dni)
 			examen_matematica.delete()
 			print('Entre a matematica')
-		if lengua:
+		if lengua != 'False':
 			examen_lengua=Lengua2026.objects.get(alumno__dni=selected_dni)
 			examen_lengua.delete()
 			print('Entre a Lengua')
@@ -954,9 +956,10 @@ def borrar_alumno(request):
 			alumno_temporal=TablaTemporalAlumno.objects.filter(numero_de_documento=selected_dni).first()
 			if alumno:
 				alumno.delete()
+				print('Entre a borrar alumno de tabla ALUMNO')
 			if alumno_temporal:
 				alumno_temporal.delete()
-			print('Entre a borrar alumno de ambas tablas')
+				print('Entre a borrar alumno de tabla TEMPORAL')
 			return redirect("monitoreo_diagnostico_alumno")
 	return redirect("monitoreo_diagnostico_alumno")
 		

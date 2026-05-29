@@ -9,36 +9,34 @@
     <style>
         body { background-color: #f8f9fa; padding-bottom: 50px; }
         .table-container { 
-    width: 100%;
-    overflow-x: auto; /* Permite scroll horizontal si no entra en la pantalla */
-    background: white; 
-    padding: 20px; 
-    border-radius: 8px; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-}
-
-/* Fuerza a la tabla a ocupar todo el contenedor y evita que los textos se amontonen */
-.table-container table {
-    width: 100%;
-    min-width: 1000px; /* Al poner un mínimo, aseguras que se vea ancha y espaciosa */
-}.header-logo { height: 60px; }
+            width: 100%;
+            overflow-x: auto;
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .table-container table {
+            width: 100%;
+            min-width: 1000px;
+        }
+        .header-logo { height: 60px; }
     </style>
 </head>
 <body>
 <div class="container mt-4">
     <div class="d-flex align-items-center justify-content-between mb-4">
-    
-    <div class="d-flex align-items-center">
-        <img src="{% static 'evaluaciones_educativas\img\logo.png' %}" alt="Logo" class="header-logo me-3">
-        <h2 class="mb-0">Panel de Monitoreo Escolar - Alumnos</h2>
-    </div>
-
-    {% comment %} <a href="{% url 'monitoreo_diagnostico' %}" class="btn btn-info">
-        Establecimientos
-    </a> {% endcomment %}
-</div>
-
-    <form method="GET" action="" class="row mb-4 g-2">
+        <div class="d-flex align-items-center">
+            <img src="{% static 'evaluaciones_educativas\img\logo.png' %}" alt="Logo" class="header-logo me-3">
+            <h2 class="mb-0">Panel de Monitoreo Escolar - Alumnos</h2> 
+            
+            {% comment %} 
+            <a href="{% url 'monitoreo_diagnostico' %}" class="btn btn-info ms-3">
+                Establecimientos
+            </a> 
+            {% endcomment %}
+        </div>
+    </div> <form method="GET" action="" class="row mb-4 g-2">
         <div class="col-md-8">
             <input type="text" 
                    name="dni" 
@@ -53,83 +51,81 @@
         <div class="col-md-2">
             <a href="?" class="btn btn-outline-secondary w-100">Limpiar</a>
         </div>
-        
     </form>
        
     <div class="table-container table-responsive">
-    <table class="table table-hover align-middle" id="tablaAlumnos">
-        <thead class="table-dark">
-            <tr>
-                <th>DNI</th>
-                <th>Nombre</th>
-                <th>Apellido</th>
-                <th>Sección Cargada</th>
-                <th>Cueanexo Cargado</th>
-                <th>Establecimiento Cargado</th>
-                <th>Cueanexo Original</th>
-                <th>Establecimiento Original</th>
-                <th>Matemática</th>
-                <th>Lengua</th>
-                <th>Acciones</th> 
-            </tr>
-        </thead>
-        <tbody>
-            {% for alumno in resultados %}
-            <tr>
-                <td>{{ alumno.0 }}</td>
-                <td>{{ alumno.1 }}</td>
-                <td>{{ alumno.2 }}</td>
-                <td>{{ alumno.3 }}</td>
-                <td>{{ alumno.4 }}</td>
-                <td>{{ alumno.5 }}</td>
-                <td>
-                    {% if cueanexo_anterior%}
-                        <span class="badge bg-success">{{cueanexo_anterior}}</span>
-                    {% else %}
-                        <span class="badge bg-secondary">No tiene</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if establecimiento_anterior %}
-                        <span class="badge bg-success">{{ establecimiento_anterior }}</span>
-                    {% else %}
-                        <span class="badge bg-secondary">No tiene</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if matematica%}
-                        <span class="badge bg-success">Tiene</span>
-                    {% else %}
-                        <span class="badge bg-secondary">No tiene</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if lengua %}
-                        <span class="badge bg-success">Tiene</span>
-                    {% else %}
-                        <span class="badge bg-secondary">No tiene</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <form method="POST" action="{% url 'borrar_alumno' %}" class="m-0">
-                        {% csrf_token %}
-                        <input type="hidden" name="dni_borrar" value="{{ alumno.0 }}">
-                        <input type="hidden" name="matematica_dni_borrar" value="{{ alumno.5 }}">
-                        <input type="hidden" name="lengua_dni_borrar" value="{{ alumno.6 }}">
-                        
-                        <button type="submit" class="btn btn-warning btn-sm text-nowrap">Eliminar Alumno</button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="11" class="text-center">No hay alumnos cargados en el sistema o que coincidan con la búsqueda.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-        
+        <table class="table table-hover align-middle" id="tablaAlumnos">
+            <thead class="table-dark">
+                <tr>
+                    <th>DNI</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Sección Cargada</th>
+                    <th>Cueanexo Cargado</th>
+                    <th>Establecimiento Cargado</th>
+                    <th>Cueanexo Original</th>
+                    <th>Establecimiento Original</th>
+                    <th>Matemática</th>
+                    <th>Lengua</th>
+                    <th>Acciones</th> 
+                </tr>
+            </thead>
+            <tbody>
+                {% for alumno in resultados %}
+                <tr>
+                    <td>{{ alumno.0 }}</td>
+                    <td>{{ alumno.1 }}</td>
+                    <td>{{ alumno.2 }}</td>
+                    <td>{{ alumno.3 }}</td>
+                    <td>{{ alumno.4 }}</td>
+                    <td>{{ alumno.5 }}</td>
+                    <td>
+                        {% if cueanexo_anterior %}
+                            <span class="badge bg-success">{{ cueanexo_anterior }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No tiene</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if establecimiento_anterior %}
+                            <span class="badge bg-success">{{ establecimiento_anterior }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No tiene</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if matematica %}
+                            <span class="badge bg-success">Tiene</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No tiene</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if lengua %}
+                            <span class="badge bg-success">Tiene</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No tiene</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{% url 'borrar_alumno' %}" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="dni_borrar" value="{{ alumno.0 }}">
+                            <input type="hidden" name="matematica_dni_borrar" value="{{ matematica }}">
+                            <input type="hidden" name="lengua_dni_borrar" value="{{ lengua }}">
+                            
+                            <button type="submit" class="btn btn-warning btn-sm text-nowrap">Eliminar Alumno</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="text-center">No hay alumnos cargados en el sistema o que coincidan con la búsqueda.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
