@@ -802,46 +802,46 @@ from openpyxl import Workbook
 # 	return estado_carga,numero
 
 
-def monitoreo_evaluaciones_educativas_establecimientos(request):
-	alumnos_total=[]
-	establecimientos_cueanexo = Establecimientos2026.objects.all()
-	establecimientos_region= Establecimientos2026.objects.values_list('region', flat=True).distinct().order_by('region')
-	monitoreo_total = []
-	for i in establecimientos_cueanexo:
-		lista_dnis = list(
-			TablaTemporalAlumno.objects
-			.filter(cueanexo=i.cueanexo)
-			.values_list('numero_de_documento', flat=True)
-		)
-		lista = list(
-			Alumno2026.objects
-			.filter(~Q(dni__in=lista_dnis),seccion__año__Establecimiento__cueanexo=int(i.cueanexo))
-			.select_related('seccion__año', 'seccion__año__Establecimiento')
-			.values_list('dni', flat=True)
-		)
-		lista_dnis.extend(lista) 
-		alumnos=Alumno2026.objects.filter(seccion__año__cueanexo=i.cueanexo)
-		alumnos_conteo=len(lista_dnis)
-		alumno_examen_matematica=Matematica2026.objects.filter(alumno__in=alumnos).count()
-		alumno_examen_lengua= Lengua2026.objects.filter(alumno__in=alumnos).count()
-		monitoreo_total.append({
-					'cueanexo': i.cueanexo,
-					'escuela': i.escuela,
-					'region': i.region,
-					'localidad': i.localidad,
-					'departamento': i.departamento,
-					'ambito':i.ambito,
-					'sector': i.sector,
-					'alumnos': alumnos_conteo,
-					'matematica': alumno_examen_matematica,
-					'lengua': alumno_examen_lengua
-				})
-		#print(f'cueanexo{i.cueanexo},Escuela:{i.escuela},Region:{i.region},Localidad{i.localidad},Departamento:{i.departamento}alumnos{alumnos_conteo},matematica{alumno_examen_matematica},lengua{alumno_examen_lengua}')
-	contexto={'lista':monitoreo_total,
-		   'regiones':establecimientos_region,
-		   'alumnos_total':alumnos_total}
+# def monitoreo_evaluaciones_educativas_establecimientos(request):
+# 	alumnos_total=[]
+# 	establecimientos_cueanexo = Establecimientos2026.objects.all()
+# 	establecimientos_region= Establecimientos2026.objects.values_list('region', flat=True).distinct().order_by('region')
+# 	monitoreo_total = []
+# 	for i in establecimientos_cueanexo:
+# 		lista_dnis = list(
+# 			TablaTemporalAlumno.objects
+# 			.filter(cueanexo=i.cueanexo)
+# 			.values_list('numero_de_documento', flat=True)
+# 		)
+# 		lista = list(
+# 			Alumno2026.objects
+# 			.filter(~Q(dni__in=lista_dnis),seccion__año__Establecimiento__cueanexo=int(i.cueanexo))
+# 			.select_related('seccion__año', 'seccion__año__Establecimiento')
+# 			.values_list('dni', flat=True)
+# 		)
+# 		lista_dnis.extend(lista) 
+# 		alumnos=Alumno2026.objects.filter(seccion__año__cueanexo=i.cueanexo)
+# 		alumnos_conteo=len(lista_dnis)
+# 		alumno_examen_matematica=Matematica2026.objects.filter(alumno__in=alumnos).count()
+# 		alumno_examen_lengua= Lengua2026.objects.filter(alumno__in=alumnos).count()
+# 		monitoreo_total.append({
+# 					'cueanexo': i.cueanexo,
+# 					'escuela': i.escuela,
+# 					'region': i.region,
+# 					'localidad': i.localidad,
+# 					'departamento': i.departamento,
+# 					'ambito':i.ambito,
+# 					'sector': i.sector,
+# 					'alumnos': alumnos_conteo,
+# 					'matematica': alumno_examen_matematica,
+# 					'lengua': alumno_examen_lengua
+# 				})
+# 		#print(f'cueanexo{i.cueanexo},Escuela:{i.escuela},Region:{i.region},Localidad{i.localidad},Departamento:{i.departamento}alumnos{alumnos_conteo},matematica{alumno_examen_matematica},lengua{alumno_examen_lengua}')
+# 	contexto={'lista':monitoreo_total,
+# 		   'regiones':establecimientos_region,
+# 		   'alumnos_total':alumnos_total}
 	
-	return render(request, 'diagnostico_2026/monitoreo_diagnostico.html', contexto)
+# 	return render(request, 'diagnostico_2026/monitoreo_diagnostico.html', contexto)
 
 
 @login_required
