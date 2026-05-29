@@ -894,6 +894,8 @@ def monitoreo_evaluaciones_educativa_alumnos(request):
 	alumnos_total_lista=[]
 	evaluacion_matematica=[]
 	evaluacion_lengua=[]
+	cueanexo_anterior=None
+	establecimiento_anterior=None
 	if selected_dni:
 		alumnos_query=Alumno2026.objects.filter(dni__icontains=selected_dni)
 		alumnos_total = alumnos_query.values_list(
@@ -902,12 +904,17 @@ def monitoreo_evaluaciones_educativa_alumnos(request):
 			'apellido',
 			'seccion__seccion',
 			'seccion__año__cueanexo',
+			'seccion__año__Establecimiento__escuela',
 		)
 		alumnos_total_lista=list(alumnos_total)
 		evaluacion_matematica=Matematica2026.objects.filter(alumno__dni__icontains=selected_dni).exists()
 		evaluacion_lengua=Lengua2026.objects.filter(alumno__dni__icontains=selected_dni).exists()
 		print(alumnos_total_lista)
-	contexto = {'resultados': alumnos_total_lista,'matematica':evaluacion_matematica,'lengua':evaluacion_lengua, 'query': selected_dni}
+		establecimiento_original=TablaTemporalAlumno.objects.filter(numero_de_documento__icontains=selected_dni).values_list('cueanexo','nombre_institucion')
+		if establecimiento_original:
+			cueanexo_anterior=establecimiento_original[0][0]
+			establecimiento_anterior=establecimiento_original[0][1]
+	contexto = {'resultados': alumnos_total_lista,'cueanexo_anterior':cueanexo_anterior,'establecimiento_anterior':establecimiento_anterior,'matematica':evaluacion_matematica,'lengua':evaluacion_lengua, 'query': selected_dni}
 	return render(request, 'diagnostico_2026/monitoreo_diagnostico_alumno.html', contexto)
 
 def monitoreo_evaluaciones_educativa_seccion(request):

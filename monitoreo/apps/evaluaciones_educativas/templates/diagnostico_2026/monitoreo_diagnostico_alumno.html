@@ -53,6 +53,9 @@
                     <th>Apellido</th>
                     <th>Sección</th>
                     <th>Cueanexo</th>
+                    <th>Establecimiento</th>
+                    <th>Cueanexo Original</th>
+                    <th>Establecimiento Original</th>
                     <th>Matemática</th>
                     <th>Lengua</th>
                     <th>Acciones</th> </tr>
@@ -65,6 +68,21 @@
                     <td>{{ alumno.2 }}</td>
                     <td>{{ alumno.3 }}</td>
                     <td>{{ alumno.4 }}</td>
+                    <td>{{ alumno.5 }}</td>
+                    <td>
+                        {% if cueanexo_anterior%}
+                            <span class="badge bg-success">{{cueanexo_anterior}}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No tiene</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if establecimiento_anterior %}
+                            <span class="badge bg-success">{{ establecimiento_anterior }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No tiene</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if matematica%}
                             <span class="badge bg-success">Tiene</span>
