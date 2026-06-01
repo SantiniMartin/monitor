@@ -21,8 +21,9 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder', # Busca dentro de cada app
+    'django.contrib.staticfiles.finders.FileSystemFinder',
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
