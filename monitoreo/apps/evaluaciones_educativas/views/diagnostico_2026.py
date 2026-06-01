@@ -13,7 +13,7 @@ from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from ..forms import MatematicaForm, LenguaForm, AlumnoForm
+from ..forms import MatematicaForm, LenguaForm, AlumnoForm, SeccionForm
 from ..models import Alumno2026, Matematica2026, Lengua2026, Seccion2026, TablaTemporalAlumno
 from ..utils import utilidades
 from django.core.paginator import Paginator
@@ -21,6 +21,7 @@ from django.core.paginator import Paginator
 #from django.core.exceptions import PermissionDenied
 from datetime import date, datetime
 from openpyxl import Workbook
+from django.db import transaction
 
 # def _orden_pregunta_field(field):
 # 	numeros = re.findall(r'\d+', field.name)
@@ -922,18 +923,48 @@ def monitoreo_evaluaciones_educativa_seccion(request):
 	print(selected_cueanexo)
 	establecimientos_total=[]
 	if selected_cueanexo:
-		establecimientos_query=Establecimientos2026.objects.filter(establecimiento__icontains=selected_cueanexo)
+		establecimientos_query=Seccion2026.objects.filter(año__cueanexo__icontains=selected_cueanexo).order_by('seccion')
 		establecimientos_total = establecimientos_query.values_list(
-			'alumno__dni',
-			'alumno__nombre',
-			'alumno__apellido',
-			'alumno__seccion__seccion',
-			'alumno__seccion__año__cueanexo',
-			'matematica2026',
-			'lengua2026'
+			'año__cueanexo',
+			'año__Establecimiento__escuela',
+			'año__nombre_año',
+			'seccion',
+			'turno',
 		)
+		# establecimientos_total_lista=list(establecimientos_total)
+		# print(establecimientos_total)
 	contexto = {'resultados': establecimientos_total, 'query': selected_cueanexo}
 	return render(request, 'diagnostico_2026/monitoreo_diagnostico_seccion.html', contexto)
+
+def agregar_seccion(request):
+	seccion_form = SeccionForm()
+	selected_cueanexo = request.POST.get('cueanexo')
+	año = None
+	if selected_cueanexo:
+		año=Año2026.objects.filter(cueanexo__icontains=selected_cueanexo).first()
+	if request.method == 'POST':
+		seccion_form = SeccionForm(request.POST)
+		if seccion_form.is_valid():
+			with transaction.atomic():
+				turno_seccion=seccion_form.cleaned_data["turno"]
+				nombre_seccion=seccion_form.cleaned_data["seccion"]
+				instancia_seccion, creado_seccion = Seccion2026.objects.get_or_create(
+				seccion=nombre_seccion,
+				turno=turno_seccion,
+				año=año
+				)
+				if creado_seccion:
+					print("¡Éxito! Se creó una NUEVA sección en la base de datos.")
+					# Opcional: Para mostrarle el mensaje al usuario en el navegador
+					messages.success(request, f'La sección {nombre_seccion} ({turno_seccion}) del Establecimiento: {año.Establecimiento} Cueanexo: {año.cueanexo} se guardó correctamente.')
+					seccion_form = SeccionForm()
+				else:
+					print("Atención: Esta sección YA EXISTÍA en la base de datos.")
+					# Opcional: Para avisarle al usuario
+					messages.info(request, 'Esta sección ya existía, no se crearon duplicados.')
+			# return redirect("monitoreo_diagnostico_seccion")
+	contexto={'seccion_form':seccion_form}
+	return render(request, 'diagnostico_2026/monitoreo_diagnostico_creacion_seccion.html',contexto)
 
 
 def borrar_alumno(request):

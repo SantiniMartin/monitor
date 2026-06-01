@@ -29,7 +29,9 @@
         <div class="d-flex align-items-center">
             <img src="{% static 'evaluaciones_educativas\img\logo.png' %}" alt="Logo" class="header-logo me-3">
             <h2 class="mb-0">Panel de Monitoreo Escolar - Alumnos</h2> 
-            
+        <a href="{% url 'monitoreo_diagnostico_seccion' %}" class="btn btn-outline-primary ms-3">
+                Ver Secciones
+            </a> 
             {% comment %} 
             <a href="{% url 'monitoreo_diagnostico' %}" class="btn btn-info ms-3">
                 Establecimientos

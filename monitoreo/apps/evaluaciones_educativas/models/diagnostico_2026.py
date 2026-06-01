@@ -44,9 +44,11 @@ class Año2026(models.Model):
     
 class Seccion2026(models.Model):
     OPCIONES_TURNO = [
-    ('MAÑANA', 'Mañana'),
-    ('TARDE', 'Tarde'),
-    ('NOCTURNO', 'Nocturno'),
+    ('Mañana', 'Mañana'),
+    ('Tarde', 'Tarde'),
+    ('Nocturno', 'Nocturno'),
+    ('Vespertino', 'Vespertino'),
+	('Doble', 'Doble'),
     ]
     OPCIONES_SECCION = [
     ('1', '1'),
