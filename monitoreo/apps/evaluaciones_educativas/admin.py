@@ -1,13 +1,13 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models.diagnostico_2026 import *
+from .models.fluidez_2025 import *
 
 
-admin.site.register(Alumno2026)
+admin.site.register(Alumno)
 
-admin.site.register(Año2026)
+admin.site.register(Grado)
 
-admin.site.register(EvaluacionDiagnostica2026)
+admin.site.register(EvaluacionFluidezLectora)
 
-admin.site.register(Seccion2026)
+admin.site.register(Seccion)

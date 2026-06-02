@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asistencia</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        background: linear-gradient(135deg, #f0f4ff, #ffffff);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .card {
+        width: 450px;
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-header {
+        background: linear-gradient(90deg, #4a6cf7, #2244c7);
+        color: white;
+        text-align: center;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+        margin: 0;
+      }
+
+      .btn-custom {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+
+      input,
+      select {
+        width: 100% !important;
+        min-height: 45px;
+        font-size: 1rem;
+      }
+
+      .card-body p input,
+      .card-body p select {
+        width: 100% !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <div class="card-header">
+        <h1>📝PASO 2:</h2>
+        <h2>¿El alumno estuvo presente?</h2>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="POST">
+          {% csrf_token %}
+          <div class="mb-3">
+            <div style="display: flex; justify-content: center;">
+          {% for eleccion in form.asistencia %}
+        <div class="form-check form-check-inline">
+            {{ eleccion.tag }}  <label class="form-check-label" for="{{ eleccion.id_for_label }}">
+                {{ eleccion.choice_label }} </label>
+        </div>
+    {% endfor %}
+      </div>
+    </div>
+          <button id="btn-siguiente" type="submit" class="btn btn-primary btn-custom" disabled>
+  Ir al siguiente paso
+</button>
+        </form>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const radios = document.querySelectorAll('input[type="radio"]');
+    const btn = document.getElementById("btn-siguiente");
+
+    radios.forEach(radio => {
+      radio.addEventListener("change", () => {
+        btn.disabled = false;
+      });
+    });
+  });
+</script>
+  </body>
+</html>

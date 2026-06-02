@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MONITOREO</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="evaluaciones_educativas/css/style.css" />
+
+    <style>
+      body {
+        background: linear-gradient(135deg, #eef2ff, #ffffff);
+        min-height: 100vh;
+        padding: 30px;
+      }
+
+      .container-custom {
+        max-width: 1400px;
+        margin: auto;
+      }
+
+      .card {
+        border-radius: 18px;
+        border: none;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-header {
+        background: linear-gradient(90deg, #0066cc, #004a99);
+        color: white;
+        padding: 18px;
+        text-align: center;
+      }
+
+      table {
+        width: 100%;
+      }
+
+      .btn-custom {
+        border-radius: 10px;
+        font-weight: 600;
+      }
+
+      /* Encabezados */
+      .bg-alumno {
+        background-color: #007bff !important;
+      }
+      .bg-comprension {
+        background-color: #28a745 !important;
+      }
+
+      /* ------- SIDEBAR HOVER AJUSTADO -------- */
+      #sidebar-wrapper {
+        width: 70px;
+        transition: width 0.35s ease;
+        overflow: hidden;
+        background: #0a58ca;
+        color: white;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 1030;
+        padding-top: 20px;
+      }
+
+      #sidebar-wrapper:hover {
+        /* AUMENTADO A 280PX para acomodar el texto completo */
+        width: 280px;
+      }
+
+      #sidebar-wrapper .nav-link {
+        color: white;
+        padding: 12px 16px;
+        white-space: nowrap;
+        transition: background 0.25s;
+      }
+
+      #sidebar-wrapper .nav-link:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      #sidebar-wrapper i {
+        font-size: 1.3rem;
+        margin-right: 10px;
+      }
+
+      /* Para que el contenido no quede tapado */
+      #content-area {
+        margin-left: 90px;
+        transition: margin-left 0.35s ease;
+      }
+
+      #sidebar-wrapper:hover + #content-area {
+        /* Aumentado a 300px */
+        margin-left: 300px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="sidebar-wrapper">
+      <ul class="nav flex-column px-2">
+        <li class="nav-item">
+          <a href="https://visoreducativochaco.com.ar/" class="nav-link">
+            <i class="bi bi-house"></i> <span>Home</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'lista_grado' grado='SEGUNDO'%}" class="nav-link">
+            <i class="bi bi-book"></i>
+            <span>Examen Fluidez Segundo</span>
+          </a>
+        </li>
+        {% comment %} TRAER TODOS LOS CUEANEXOS QUE PARTICIPAN like '%Común - Primaria de 7 años%' {% endcomment %}
+        <li class="nav-item">
+          <a href="{% url 'lista_grado' grado='TERCERO'%}" class="nav-link">
+            <i class="bi bi-book"></i>
+            <span>Examen Fluidez Tercero</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div id="content-area">
+      <div class="container container-custom">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h1>Evaluación de Fluidez Lectora</h1>
+          </div>
+
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                  <tr>
+                    <th>CUEANEXO</th>
+                    <th>GRADO</th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th class="text-center bg-alumno">CARGA</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {% for g in grados %}
+                  <tr>
+                    <td><strong>{{g.cueanexo}}</strong></td>
+                    <td><strong>{{g.nombre_grado}}</strong></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-center">
+                    <div class="d-inline-flex flex-nowrap gap-1">
+                        {{ eval.pregunta_1|default:'SI' }}
+                    {% comment %}
+                    <td>{{ eval.alumno.apellido }}</td>
+                    <td>{{ eval.alumno.dni }}</td>
+                    <td>{{ eval.alumno.seccion.grado.nombre_grado }}</td>
+
+                    <td>{{ eval.asistencia }}</td>
+                    <td>{{ eval.cantidad_palabras_leidas|default:'-' }}</td>
+
+                    <td class="text-center">
+                      {{ eval.pregunta_1|default:'-' }}
+                    </td>
+                    <td class="text-center">
+                      {{ eval.pregunta_2|default:'-' }}
+                    </td>
+                    <td class="text-center">
+                      {{ eval.pregunta_3|default:'-' }}
+                    </td>
+                    <td class="text-center">
+                      {{ eval.pregunta_4|default:'-' }}
+                    </td>
+                    <td class="text-center">
+                      {{ eval.pregunta_5|default:'-' }}
+                    </td>
+                    <td class="text-center">
+                      {{ eval.pregunta_6|default:'-' }}
+                    </td>
+                    {% endcomment %} {% comment %}
+                    <td class="text-center">
+                      <div class="d-inline-flex flex-nowrap gap-1">
+                        <a
+                          href="{% url 'editar_alumno' alumno_public_id=eval.alumno.public_id %}"
+                          class="btn btn-sm btn-outline-primary btn-custom"
+                          title="Editar Datos del Alumno"
+                        >
+                          <i class="bi bi-person-fill"></i> Editar
+                        </a>
+
+                        <a
+                          href="{% url 'editar_evaluacion' alumno_public_id=eval.alumno.public_id %}"
+                          class="btn btn-sm btn-outline-success btn-custom"
+                          title="Editar Evaluación de Fluidez"
+                        >
+                          <i class="bi bi-journal-check"></i> Eval.
+                        </a>
+
+                        <a
+                          href="{% url 'borrar_registro_alumno' alumno_public_id=eval.alumno.public_id %}"
+                          class="btn btn-sm btn-outline-danger btn-custom"
+                          title="Borrar Registro del Alumno"
+                        >
+                          <i class="bi bi-x-circle-fill"></i> Borrar
+                          {%endcomment %}
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between">
+          {% comment %} <a href="{% url 'grados' %}" class="btn btn-primary btn-custom"
+            >Añadir Alumno</a
+          > {% endcomment %}
+          <a href="{% url 'salir' %}" class="btn btn-danger btn-custom"
+            >Cerrar Sesión</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

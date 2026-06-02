@@ -14,6 +14,5 @@ urlpatterns = [
 	path('editar_examen/<uuid:alumno_uuid>/<str:materia>/', diagnostico_2026.editar_examen, name='editar_examen'),
 	path('eliminar_examen/<uuid:alumno_uuid>/<str:materia>/', diagnostico_2026.eliminar_examen, name='eliminar_examen'),
 	path('descargar_examenes/<str:materia>/', diagnostico_2026.descargar_examenes, name='descargar_examenes'),
-    path('monitoreo_diagnostico/', diagnostico_2026.monitoreo_evaluaciones_educativas, name='monitoreo_diagnostico'),
-    path('descargar_excel/',diagnostico_2026.descargar_excel, name='excel'),
+    #path('monitoreo_diagnostico/', diagnostico_2026.monitoreo_evaluaciones_educativas, name='monitoreo_diagnostico')
 ]

@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoreo Escolar - Establecimientos</title>
+    <title>Monitoreo Escolar</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; padding-bottom: 50px; }
@@ -13,81 +14,187 @@
     </style>
 </head>
 <body>
+
 <div class="container mt-4">
-    <div class="container mt-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-    
-    <div class="d-flex align-items-center">
-        <img src="{% static 'evaluaciones_educativas\img\logo.png' %}" alt="Logo" class="header-logo me-3">
-        <h2 class="mb-0">Panel de Monitoreo Escolar - Establecimientos</h2>
+    <!-- Cabecera con Logo -->
+    <div class="d-flex align-items-center mb-3">
+        <img src="{% static 'img/logo_escuela.png' %}" alt="Logo" class="header-logo me-3">
+        <h2 class="mb-0">Panel de Monitoreo Escolar</h2>
     </div>
 
-    <a href="{% url 'monitoreo_diagnostico_alumno' %}" class="btn btn-info">
-        Alumnos
-    </a>
+    <!-- Botones para alternar vistas -->
+    <div class="btn-group mb-4 w-100" role="group">
+        <button type="button" class="btn btn-outline-primary active" id="btnEstablecimientos" onclick="cambiarVista('establecimientos')">Ver Establecimientos</button>
+        <button type="button" class="btn btn-outline-primary" id="btnAlumnos" onclick="cambiarVista('alumnos')">Ver Alumnos</button>
+    </div>
+
+    <!-- ==========================================
+         VISTA ESTABLECIMIENTOS (Filtros en el cliente con JS)
+         ========================================== -->
+    <div id="vistaEstablecimientos">
+        <!-- Filtros Establecimientos -->
+        <div class="row mb-4 g-2">
+            <div class="col-md-6">
+                <input type="text" id="buscadorEstablecimientos" class="form-control" placeholder="Buscar por CUE o Localidad..." onkeyup="filtrarEstablecimientos()">
+            </div>
+            <div class="col-md-4">
+                <select id="filtroRegion" class="form-select" onchange="filtrarEstablecimientos()">
+                    <option value="">Todas las Regiones</option>
+                    {% for reg in regiones %}
+                        <option value="{{ reg|lower }}">{{ reg }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" onclick="filtrarEstablecimientos()">Filtrar</button>
+            </div>
+        </div>
+
+        <!-- Tabla Establecimientos -->
+        <div class="table-container">
+            <table class="table table-hover" id="tablaMonitoreo">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cueanexo</th>
+                        <th>Escuela</th>
+                        <th>Región</th>
+                        <th>Localidad</th>
+                        <th>Departamento</th>
+                        <th>Alumnos</th>
+                        <th>Matemática</th>
+                        <th>Lengua</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in lista %}
+                    <tr>
+                        <td>{{ item.cueanexo }}</td>
+                        <td>{{ item.escuela }}</td>
+                        <td>{{ item.region }}</td>
+                        <td>{{ item.localidad }}</td>
+                        <td>{{ item.departamento }}</td>
+                        <td>{{ item.alumnos }}</td>
+                        <td>{{ item.matematica }}</td>
+                        <td>{{ item.lengua }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">No hay datos de establecimientos para mostrar.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         VISTA ALUMNOS (Búsqueda en servidor con Django)
+         ========================================== -->
+    <div id="vistaAlumnos" style="display: none;">
+        
+        <!-- Formulario GET conectado a Django -->
+        <form method="GET" action="." class="row mb-4 g-2">
+            <!-- Indicador para mantener la pestaña activa -->
+            <input type="hidden" name="pestana" value="alumnos">
+            
+            <div class="col-md-10">
+                <!-- El name="dni" permite a request.GET.get('dni') capturarlo -->
+                <!-- El value="{{ request.GET.dni }}" mantiene el texto después de buscar -->
+                <input type="text" name="dni" id="buscadorAlumnos" class="form-control" 
+                       placeholder="Buscar alumno por DNI..." 
+                       value="{{ request.GET.dni|default:'' }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Buscar DNI</button>
+            </div>
+        </form>
+
+        <!-- Tabla Alumnos -->
+        <div class="table-container">
+            <table class="table table-hover" id="tablaAlumnos">
+                <thead class="table-dark">
+                    <tr>
+                        <th>DNI</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Sección</th>
+                        <th>Cueanexo</th>
+                        <th>Matemática</th>
+                        <th>Lengua</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alumno in alumnos_total %}
+                    <tr>
+                        <td>{{ alumno.0 }}</td>
+                        <td>{{ alumno.1 }}</td>
+                        <td>{{ alumno.2 }}</td>
+                        <td>{{ alumno.3 }}</td>
+                        <td>{{ alumno.4 }}</td>
+                        <td>
+                            {% if alumno.5 %}
+                                <span class="badge bg-success">Tiene</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No tiene</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Verificación para alumno.6 (ej: Evaluación de Lengua) -->
+                        <td>
+                            {% if alumno.6 %}
+                                <span class="badge bg-success">Tiene</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No tiene</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            {% if request.GET.dni %}
+                                No se encontró ningún alumno con el DNI ingresado.
+                            {% else %}
+                                Utiliza el buscador para encontrar un alumno.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
-
-    <div class="row mb-4 g-2">
-        <div class="col-md-5"> 
-            <input type="text" id="buscadorEstablecimientos" class="form-control" placeholder="Buscar por CUE o Localidad..." onkeyup="filtrarEstablecimientos()">
-        </div>
-        <div class="col-md-3">
-            <select id="filtroRegion" class="form-select" onchange="filtrarEstablecimientos()">
-                <option value="">Todas las Regiones</option>
-                {% for reg in regiones %}
-                    <option value="{{ reg|lower }}">{{ reg }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-primary w-100" onclick="filtrarEstablecimientos()">Filtrar</button>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-success w-100" onclick="exportarTablaAExcel()">📥 Excel</button>
-        </div>
-    </div>
-
-    <div class="table-container">
-        <table class="table table-hover" id="tablaMonitoreo">
-            <thead class="table-dark">
-                <tr>
-                    <th>Cueanexo</th>
-                    <th>Escuela</th>
-                    <th>Región</th>
-                    <th>Localidad</th>
-                    <th>Departamento</th>
-                    <th>Alumnos</th>
-                    <th>Matemática</th>
-                    <th>Lengua</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in lista %}
-                <tr>
-                    <td>{{ item.cueanexo }}</td>
-                    <td>{{ item.escuela }}</td>
-                    <td>{{ item.region }}</td>
-                    <td>{{ item.localidad }}</td>
-                    <td>{{ item.departamento }}</td>
-                    <td>{{ item.alumnos }}</td>
-                    <td>{{ item.matematica }}</td>
-                    <td>{{ item.lengua }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="text-center">No hay datos de establecimientos para mostrar.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
-    // Filtro para Establecimientos
+    // --- MANTENER PESTAÑA ACTIVA DESPUÉS DE BUSCAR EN EL SERVIDOR ---
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pestana = urlParams.get('pestana');
+        
+        if (pestana === 'alumnos') {
+            cambiarVista('alumnos');
+        } else {
+            cambiarVista('establecimientos');
+        }
+    };
+
+    // --- FUNCIÓN PARA ALTERNAR ENTRE VISTAS ---
+    function cambiarVista(vista) {
+        if (vista === 'establecimientos') {
+            document.getElementById('vistaEstablecimientos').style.display = 'block';
+            document.getElementById('vistaAlumnos').style.display = 'none';
+            document.getElementById('btnEstablecimientos').classList.add('active');
+            document.getElementById('btnAlumnos').classList.remove('active');
+        } else {
+            document.getElementById('vistaEstablecimientos').style.display = 'none';
+            document.getElementById('vistaAlumnos').style.display = 'block';
+            document.getElementById('btnAlumnos').classList.add('active');
+            document.getElementById('btnEstablecimientos').classList.remove('active');
+        }
+    }
+
+    // --- FILTRADO DE ESTABLECIMIENTOS (Client-side / JS) ---
     function filtrarEstablecimientos() {
         const input = document.getElementById("buscadorEstablecimientos");
         const filtroTexto = input.value.toLowerCase();
@@ -113,14 +220,10 @@
             }
         }
     }
-
-    // Exportación a Excel
-    function exportarTablaAExcel() {
-        var tabla = document.getElementById('tablaMonitoreo');
-        var libro = XLSX.utils.table_to_book(tabla, { sheet: "Establecimientos" });
-        XLSX.writeFile(libro, "Reporte_Establecimientos.xlsx");
-    }
 </script>
+
+<!-- Bootstrap JS (opcional, por si necesitas modales o dropdowns en el futuro) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
