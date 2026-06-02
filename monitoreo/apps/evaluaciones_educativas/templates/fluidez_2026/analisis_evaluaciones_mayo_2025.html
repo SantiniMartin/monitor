@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluaciones Educativas</title>
+    {% extends 'dashboard/bodydirector.html' %}
+    {% load static %}
+</head>
+
+{% block content %}
+<style>
+    /* Estilos base Layout - INTACTOS */
+    .layout-container { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    
+    /* SIDEBAR - INTACTO */
+    .sidebar { background-color: #2c3e50; color: white; padding: 20px; position: sticky; top: 0; height: 100vh; overflow-y: auto; border-right: 4px solid #3498db; }
+    .sidebar h3 { font-size: 1rem; margin: 25px 0 10px; border-bottom: 1px solid #3e5871; padding-bottom: 5px; color: #3498db; text-transform: uppercase; }
+    
+    .sidebar-form-container { background: #34495e; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .sidebar-form-container label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: #bdc3c7; }
+    .sidebar-form-container select { width: 100%; padding: 8px; border-radius: 4px; border: none; margin-bottom: 10px; background: #fff; color: #333; }
+    
+    .btn-sidebar { width: 100%; padding: 10px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .btn-primary { background: #3498db; color: white; }
+
+    .filter-header { padding: 10px; cursor: pointer; background: #3e5871; margin-top: 5px; border-radius: 4px; display: flex; justify-content: space-between; font-size: 0.85rem; }
+    .filter-list { display: none; list-style: none; padding: 10px 0 10px 15px; background: #243342; border-radius: 0 0 4px 4px; }
+    .active { display: block; }
+    .filter-list li a { color: #ecf0f1; text-decoration: none; font-size: 0.9rem; display: block; padding: 5px 0; }
+
+    /* Panel Principal - INTACTO */
+    .dashboard-main { padding: 30px; background-color: #f4f7f6; }
+    .section-title { color: #2c3e50; margin: 0 0 20px; padding-bottom: 10px; border-bottom: 2px solid #3498db; font-size: 1.4rem; }
+
+    /* Gráficos y Cards - INTACTO */
+    .summary-container { display: flex; gap: 20px; margin-bottom: 30px; }
+    .info-card { background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 25px; border-radius: 12px; min-width: 250px; text-align: center; }
+    .charts-grid { display: flex; flex-wrap: wrap; gap: 25px; }
+    .chart-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); flex: 1; min-width: 400px; text-align: center; }
+    .chart-card canvas { width: 100% !important; max-height: 350px !important; }
+
+    /* Tablas - INTACTO */
+    .listado-container { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-size: 0.85rem; }
+    .data-table td { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; color: white; }
+</style>
+
+<div class="layout-container">
+    <aside class="sidebar">
+        <h2>Reportes</h2>
+        <h3>Seleccionar CUEANEXO</h3>
+        <div class="sidebar-form-container">
+            <form method="POST" id="form-cueanexo">
+                {% csrf_token %}
+                {{ form_cueanexo.cueanexo_seleccionado }}
+            </form>
+        </div>
+
+        <h3>Seleccionar Grado</h3>
+        <div class="sidebar-form-container">
+            <form method="POST" id="form-grado">
+                {% csrf_token %}
+                <input type="hidden" name="cueanexo_seleccionado" value="{{ form_cueanexo.cueanexo_seleccionado.value }}">
+                {{ form_grado.grado_seleccion }}
+            </form>
+        </div>
+
+        {% if form_seccion %}
+        <h3>Filtrar Sección</h3>
+        <div class="sidebar-form-container">
+            <form method="POST" id="form-seccion">
+                {% csrf_token %}
+                <input type="hidden" name="cueanexo_seleccionado" value="{{ form_cueanexo.cueanexo_seleccionado.value }}">
+                <input type="hidden" name="grado_seleccion" value="{{ form_grado.grado_seleccion.value }}">
+                <label>Sección y Turno:</label>
+                <select name="{{ form_seccion.seleccion.name }}" id="{{ form_seccion.seleccion.id_for_label }}">
+                    {% for value, label in form_seccion.seleccion.field.choices %}
+                        <option value="{{ value }}" {% if form_seccion.seleccion.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        {% endif %}
+
+        <h3>Visualización</h3>
+        <div class="filter-header" onclick="toggleFilter('grafico_view')">CAMBIAR VISTA <span>▼</span></div>
+        <ul id="grafico_view" class="filter-list active">
+            <li><a href="javascript:void(0)" onclick="cambiarVista('grafico')">📊 Ver Gráficos</a></li>
+            <li><a href="javascript:void(0)" onclick="cambiarVista('listado')">📋 Ver Listado</a></li>
+        </ul>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="dashboard-header">
+            <h1>Panel de Gestión - Departamento de Evaluación Educativa</h1>
+            <h4>Mayo - 2025</h4>
+            <p class="text-muted">
+                {% if grado %}
+                    Mostrando resultados para: <strong>{{ grado|title }} </strong>
+                        {% if seccion %}| Sección: <strong>{{seccion}}</strong> {% else %} <strong>| Todas las secciones</strong>{% endif %}
+                {% else %}
+                    <span style="color: #e67e22; font-weight: bold;">⚠️ Por favor, elija un Cueanexo y, a continuación, seleccione el grado para empezar.</span>
+                {% endif %}
+            </p>
+        </header>
+
+        <div id="vista_graficos" style="display: block;">
+            {% if datos %}
+                <h3 class="section-title">Análisis {{grado}}: 
+                    {% if seccion %}Sección {{seccion}}{% else %}Todas las secciones{% endif %}</h3>
+                    <div class="summary-container">
+                        <div class="info-card">
+                            <p>Promedio de Palabras Leídas Correctamente por Minuto</p>
+                            <h2><span id="promedio_dinamico">0</span> <small>palabras</small></h2>
+                        </div>
+                    </div>
+                    <div class="charts-grid">
+                    <div class="chart-card">
+                        <h4>Niveles de Velocidad</h4>
+                        <canvas id="chart_velocidad"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h4>Niveles de Precisión</h4>
+                        <canvas id="chart_precision"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h4>Niveles de Prosodia</h4>
+                        <canvas id="chart_prosodia"></canvas>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div id="vista_listado" class="listado-container" style="display: none;">
+            <h3 class="section-title">Detalle de Alumnos</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>DNI</th><th>Alumno</th><th>Sección</th><th>Velocidad</th><th>Desempeño Velocidad</th>
+                        <th>Precisión</th><th>Desempeño Precisión</th><th>Prosodia</th><th>Desempeño Prosodia</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla_alumnos_body">
+                    {% for registro in datos %}
+                    <tr>
+                        <td>{{ registro.dni }}</td>
+                        <td>{{ registro.apellidos }}, {{ registro.nombres }}</td>
+                        <td>{{ registro.division }}</td>
+                        <td class="val-velocidad">{{ registro.velocidad }}</td>
+                        <td>
+                            <span class="badge" style="color: 
+                                {% if registro.Desempeño_Velocidad == 'Por debajo del básico' %}#e74c3c
+                                {% elif registro.Desempeño_Velocidad == 'Básico' %}#e67e22
+                                {% elif registro.Desempeño_Velocidad == 'Satisfactorio' %}#f1c40f
+                                {% elif registro.Desempeño_Velocidad == 'Avanzado' %}#2ecc71
+                                {% else %}#95a5a6{% endif %};">
+                                {{ registro.Desempeño_Velocidad }}
+                            </span>
+                        </td>
+                        <td>{{ registro.precision }}</td>
+                        <td>
+                            <span class="badge" style="color: 
+                                {% if registro.Desempeño_Precisión == 'Por debajo del básico' %}#e74c3c
+                                {% elif registro.Desempeño_Precisión == 'Básico' %}#e67e22
+                                {% elif registro.Desempeño_Precisión == 'Satisfactorio' %}#f1c40f
+                                {% elif registro.Desempeño_Precisión == 'Avanzado' %}#2ecc71
+                                {% else %}#95a5a6{% endif %};">
+                                {{ registro.Desempeño_Precisión }}
+                            </span>
+                        </td>
+                        <td>{{ registro.prosodia }}</td>
+                        <td>
+                            <span class="badge" style="color: 
+                                {% if registro.Desempeño_prosodia == 'Por debajo del básico' %}#e74c3c
+                                {% elif registro.Desempeño_prosodia == 'Básico' %}#e67e22
+                                {% elif registro.Desempeño_prosodia == 'Satisfactorio' %}#f1c40f
+                                {% elif registro.Desempeño_prosodia == 'Avanzado' %}#2ecc71
+                                {% else %}#95a5a6{% endif %};">
+                                {{ registro.Desempeño_prosodia }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9">No hay datos disponibles.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+{{ datos|json_script:"data-json" }}
+
+<script>
+    Chart.register(ChartDataLabels);
+
+    function toggleFilter(id) { document.getElementById(id).classList.toggle('active'); }
+    function cambiarVista(tipo) {
+        document.getElementById('vista_graficos').style.display = (tipo === 'grafico') ? 'block' : 'none';
+        document.getElementById('vista_listado').style.display = (tipo === 'listado') ? 'block' : 'none';
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        function calcularPromedio() {
+            const valores = document.querySelectorAll('.val-velocidad');
+            let suma = 0;
+            let contador = 0;
+            valores.forEach(celda => {
+                let valor = parseFloat(celda.innerText);
+                if (!isNaN(valor) && valor !== null) {
+                    suma += valor;
+                    contador++;
+                }
+            });
+            const promedio = contador > 0 ? (suma / contador).toFixed(0) : 0;
+            const target = document.getElementById('promedio_dinamico');
+            if(target) target.innerText = promedio;
+        }
+
+        calcularPromedio();
+
+        const setupSubmit = (id) => {
+            const el = document.querySelector(`#${id} select`);
+            if(el) el.addEventListener("change", () => document.getElementById(id).submit());
+        };
+        ['form-cueanexo', 'form-grado', 'form-seccion'].forEach(setupSubmit);
+
+        const rawData = JSON.parse(document.getElementById('data-json').textContent);
+        
+        const conteos = {
+            velocidad: { 'Por debajo del básico': 0, 'Básico': 0, 'Satisfactorio': 0, 'Avanzado': 0 },
+            precision: { 'Por debajo del básico': 0, 'Básico': 0, 'Satisfactorio': 0, 'Avanzado': 0 },
+            prosodia: { 'Por debajo del básico': 0, 'Básico': 0, 'Satisfactorio': 0, 'Avanzado': 0 }
+        };
+
+        rawData.forEach(r => {
+            if(r.Desempeño_Velocidad && conteos.velocidad.hasOwnProperty(r.Desempeño_Velocidad)) conteos.velocidad[r.Desempeño_Velocidad]++;
+            if(r.Desempeño_Precisión && conteos.precision.hasOwnProperty(r.Desempeño_Precisión)) conteos.precision[r.Desempeño_Precisión]++;
+            if(r.Desempeño_prosodia && conteos.prosodia.hasOwnProperty(r.Desempeño_prosodia)) conteos.prosodia[r.Desempeño_prosodia]++;
+        });
+
+        const formatterPorcentaje = (value, ctx) => {
+            let sum = 0;
+            let dataArr = ctx.chart.data.datasets[0].data;
+            dataArr.map(data => { sum += data; });
+            return value > 0 ? (value * 100 / sum).toFixed(1) + "%" : "";
+        };
+
+        const coloresDesempeno = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71'];
+
+        const barOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: { anchor: 'end', align: 'top', color: '#444', font: { weight: 'bold' }, formatter: formatterPorcentaje }
+            },
+            scales: { y: { beginAtZero: true, grace: '15%' } }
+        };
+
+        new Chart(document.getElementById('chart_velocidad'), {
+            type: 'bar',
+            data: { labels: Object.keys(conteos.velocidad), datasets: [{ data: Object.values(conteos.velocidad), backgroundColor: coloresDesempeno }] },
+            options: barOptions
+        });
+
+        new Chart(document.getElementById('chart_precision'), {
+            type: 'bar',
+            data: { labels: Object.keys(conteos.precision), datasets: [{ data: Object.values(conteos.precision), backgroundColor: coloresDesempeno }] },
+            options: barOptions
+        });
+
+        new Chart(document.getElementById('chart_prosodia'), {
+            type: 'bar',
+            data: { labels: Object.keys(conteos.prosodia), datasets: [{ data: Object.values(conteos.prosodia), backgroundColor: coloresDesempeno }] },
+            options: barOptions
+        });
+    });
+</script>
+{% endblock %}
