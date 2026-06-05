@@ -1,20 +1,20 @@
-# from apps.evaluaciones_educativas.models.fluidez_2025 import *
-# from apps.evaluaciones_educativas.forms.fluidez_2025 import *
+from apps.evaluaciones_educativas.models.fluidez_2026 import *
+from apps.evaluaciones_educativas.forms.fluidez_2026 import *
 from django.shortcuts import render, redirect, get_object_or_404
-# from django.http import HttpResponse
-# from django.core.paginator import Paginator
-# from django.db import transaction
-# from django.contrib.auth.decorators import login_required
-# from django.templatetags.static import static
-# from django.db.models import Count,Q,Avg
-# from datetime import date, datetime
-# import psycopg2
-# from psycopg2 import extras
-# import os
-# from openpyxl import Workbook
-# from apps.consultasge.models import CapaUnicaOfertas
-# from django.core.exceptions import PermissionDenied
-# from django.contrib import messages
+from django.http import HttpResponse
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.contrib.auth.decorators import login_required
+from django.templatetags.static import static
+from django.db.models import Count,Q,Avg
+from datetime import date, datetime
+import psycopg2
+from psycopg2 import extras
+import os
+from openpyxl import Workbook
+#from apps.consultasge.models import CapaUnicaOfertas
+from django.core.exceptions import PermissionDenied
+from django.contrib import messages
 
 # listaCueanexoPermitidos = [220002601, 220002901, 220010500, 220011100, 220011400, 220012000, 220012900, 220013400, 220017100, 220017200, 220018003, 220020500, 220021000, 220021200, 220021501, 220021800, 220022000, 220022700, 220025800, 220025901, 220026602, 220026603, 220026604, 220030700, 220031301, 220033201, 220034102, 220034104, 220034400, 220035100, 220037600, 220041900, 220046500, 220047200, 220050001, 220051400, 220051500, 220051502, 220052101, 220058400, 220058500, 220058800, 220058900, 220059000, 220059700, 220065400, 220065600, 220066500, 220069000, 220070200, 220071600, 220073301, 220074400, 220074501, 220078600, 220079500, 220091301, 220091302, 220091600, 220104800, 220105700, 220105701, 220109300, 220111101, 220111300, 220124700, 220126500, 220126700, 220129300, 220142100, 220183900, 220184100, 220184601, 220184602, 220206000, 220209200, 220220600, 220235804, 220260600, 220273100, 220006500, 220012800, 220020101, 220020300, 220021500, 220023800, 220024102, 220025902, 220034200, 220035301, 220035800, 220042601, 220047300, 220048300, 220049600, 220051503, 220053201, 220063901, 220065601, 220070201, 220075201, 220077100, 220078900, 220081700, 220084600, 220084601, 220085500, 220102802, 220104302, 220116101, 220117600, 220123000, 220124101, 220125201, 220131900, 220137101, 220139300, 220142201, 220144001, 220203900, 220204001, 220226700]
 
@@ -23,40 +23,45 @@ from django.shortcuts import render, redirect, get_object_or_404
 def inicio(request):
     return render(request, "fluidez_2026/inicio.html")
 # @login_required
-# def carga_alumno(request,grado_public_id):
-# 	grado=get_object_or_404(Grado,public_id= grado_public_id)
-# 	alumno_form = AlumnoForm()
-# 	grado_form = GradoForm(instance=grado)
-# 	seccion_form = SeccionForm()
-# 	if request.method == 'POST':
-# 		alumno_form = AlumnoForm(request.POST)
-# 		grado_form = GradoForm(request.POST)
-# 		seccion_form = SeccionForm(request.POST)
-# 		if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
-# 		   #una instancia a la vez
-# 			with transaction.atomic():
-# 				turno_seccion=seccion_form.cleaned_data["turno"]
-# 				nombre_seccion=seccion_form.cleaned_data["seccion"]
-# 				instancia_seccion, creado_seccion = Seccion.objects.get_or_create(
-# 				seccion=nombre_seccion,
-# 				turno=turno_seccion,
-# 				grado=grado
-# 				)
+def carga_alumno(request):
+	#grado=get_object_or_404(GradoFluidez2026)
+	alumno_form = AlumnoFluidez2026Form()
+	# grado_form = GradoFluidez2026Form(instance=grado)
+	grado_form = None
+	seccion_form = SeccionFluidez2026Form()
+	if request.method == 'POST':
+		alumno_form = AlumnoFluidez2026Form(request.POST)
+		grado_form = GradoFluidez2026Form(request.POST)
+		seccion_form = SeccionFluidez2026Form(request.POST)
+		if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
+		   #una instancia a la vez
+			with transaction.atomic():
+				turno_seccion=seccion_form.cleaned_data["turno"]
+				nombre_seccion=seccion_form.cleaned_data["seccion"]
+				instancia_seccion, creado_seccion = SeccionFluidez2026.objects.get_or_create(
+				seccion=nombre_seccion,
+				turno=turno_seccion
+				)
+				# instancia_seccion, creado_seccion = SeccionFluidez2026.objects.get_or_create(
+				# seccion=nombre_seccion,
+				# turno=turno_seccion,
+				# grado=grado
+				# )
 				
-# 				alumno = alumno_form.save(commit=False)
-# 				alumno.seccion = instancia_seccion
-# 				alumno.save()
-# 				instancia_evaluacion, creando_evaluacion=EvaluacionFluidezLectora.objects.get_or_create(
-# 				alumno_id=alumno.id,cantidad_palabras_leidas=None, pregunta_1=None, pregunta_2=None, pregunta_3=None, pregunta_4=None, pregunta_5=None, pregunta_6=None, asistencia='AUSENTE',encargado_carga='DIRECTOR')
-# 			return redirect("evaluaciones_educativas:fluidez_2025:asistencia", alumno_public_id=alumno.public_id)
+				alumno = alumno_form.save(commit=False)
+				alumno.seccion = instancia_seccion
+				alumno.save()
+				instancia_evaluacion, creando_evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.get_or_create(
+				alumno_id=alumno.id,cantidad_palabras_leidas=None, pregunta_1=None, pregunta_2=None, pregunta_3=None, pregunta_4=None, pregunta_5=None, pregunta_6=None, asistencia='AUSENTE',encargado_carga='DIRECTOR')
+			#return redirect("evaluaciones_educativas:fluidez_2025:asistencia", alumno_public_id=alumno.public_id)
 			
-# 	context = {
-# 		'alumno_form': alumno_form,
-# 		'grado_form': grado_form,
-# 		'seccion_form': seccion_form,
-# 		'grado_public':grado_public_id,
-# 			   }
-# 	return render(request, "fluidez_2025/alumno.html", context)
+	context = {
+		'alumno_form': alumno_form,
+		'grado_form': grado_form,
+		'seccion_form': seccion_form,
+		# 'grado_public':grado_public_id,
+			   }
+	return render(request, "fluidez_2026/alumno.html", context)
 
 # @login_required
 # def editar_alumno(request,alumno_public_id):

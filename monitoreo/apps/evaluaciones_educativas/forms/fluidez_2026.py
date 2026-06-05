@@ -1,12 +1,12 @@
-# from django import forms
-# from apps.evaluaciones_educativas.models.fluidez_2025 import *
+from django import forms
+from apps.evaluaciones_educativas.models.fluidez_2026 import *
 # from apps.consultasge.models import CapaUnicaOfertas
-# import psycopg2
-# import os
-# from psycopg2 import extras
+import psycopg2
+import os
+from psycopg2 import extras
 
 
-# class GradoViewForm(forms.Form):
+# class GradoFluidez2026ViewForm(forms.Form):
 # 	# OPCIONES_CUEANEXO = [
 #     #     ('', '---'),
 #     # ]
@@ -18,132 +18,132 @@
 #         required=False,
 #         widget=forms.Select
 #     )
-# 	def __init__(self, *args, **kwargs):
-# 		# Extraemos el CUIL de los argumentos
-# 		cuil = kwargs.pop('cuil', None)
-# 		super().__init__(*args, **kwargs)
-# 		if cuil:
-# 			cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
-# 			qs =CapaUnicaOfertas.objects.filter(resploc_cuitcuil=cuil_con_caracter,oferta__icontains='Común - Primaria de 7 años').only('cueanexo')
-# 			#print(qs)
-# 			choices = [
-# 					('', '---SELECCIONE UN CUEANEXO-----'),
-# 					]
-# 			for i in qs:
-# 				# label = f'{i.cueanexo}'
-# 				choices.append((i.cueanexo, i.cueanexo))
-# 				#print(i.cueanexo)
-# 			self.fields['cueanexo'].choices = choices
+	# def __init__(self, *args, **kwargs):
+	# 	# Extraemos el CUIL de los argumentos
+	# 	cuil = kwargs.pop('cuil', None)
+	# 	super().__init__(*args, **kwargs)
+	# 	if cuil:
+	# 		cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
+	# 		qs =CapaUnicaOfertas.objects.filter(resploc_cuitcuil=cuil_con_caracter,oferta__icontains='Común - Primaria de 7 años').only('cueanexo')
+	# 		#print(qs)
+	# 		choices = [
+	# 				('', '---SELECCIONE UN CUEANEXO-----'),
+	# 				]
+	# 		for i in qs:
+	# 			# label = f'{i.cueanexo}'
+	# 			choices.append((i.cueanexo, i.cueanexo))
+	# 			#print(i.cueanexo)
+	# 		self.fields['cueanexo'].choices = choices
 	
 
-# class SeccionViewForm(forms.Form):
-# 	seccion= forms.ChoiceField(label='secciones', required=False)
+class SeccionFluidez2026ViewForm(forms.Form):
+	seccion= forms.ChoiceField(label='secciones', required=False)
 
 
-# class AlumnoForm(forms.ModelForm):
+class AlumnoFluidez2026Form(forms.ModelForm):
 
-# 	class Meta:
-# 		model = Alumno
-# 		fields = ['dni','nombre','apellido','comunidad_indigena' ,'discapacidad']
-# 		#widget  para cambiar tipo de campo
-# 		widgets = {
-# 			'dni': forms.TextInput(attrs={
-# 				'required': 'true',         
-# 				'minlength': '8',
-# 				'maxlength':'8',
-# 				'placeholder': 'INGRESA EL DNI DEL ALUMNO',
-# 				'pattern': '[0-9]*'
-# 			}),
-# 			'nombre': forms.TextInput(attrs={
-# 				'required': 'true', 
-# 				'placeholder': 'NOMBRE DEL ALUMNO EN MAYUSCULA',
-# 				'pattern': '[A-ZÑÁÉÍÓÚ ]*'
-# 			}),
-# 			'apellido': forms.TextInput(attrs={
-# 				'required': 'true', 
-# 				'placeholder': 'APELLIDO DEL ALUMNO EN MAYUSCULA',
-# 				'pattern': '[A-ZÑÁÉÍÓÚ ]*'
-# 			}),
-# 			'comunidad_indigena': forms.Select(
-# 				attrs={'required': 'true'}),
-# 			'discapacidad': forms.Select(
-# 				attrs={'required': 'true'})
-# 			}
-# 		#label para cambiar nombre de campo
+	class Meta:
+		model = AlumnoFluidez2026
+		fields = ['dni','nombre','apellido','comunidad_indigena' ,'discapacidad']
+		#widget  para cambiar tipo de campo
+		widgets = {
+			'dni': forms.TextInput(attrs={
+				'required': 'true',         
+				'minlength': '8',
+				'maxlength':'8',
+				'placeholder': 'INGRESA EL DNI DEL ALUMNO',
+				'pattern': '[0-9]*'
+			}),
+			'nombre': forms.TextInput(attrs={
+				'required': 'true', 
+				'placeholder': 'NOMBRE DEL ALUMNO EN MAYUSCULA',
+				'pattern': '[A-ZÑÁÉÍÓÚ ]*'
+			}),
+			'apellido': forms.TextInput(attrs={
+				'required': 'true', 
+				'placeholder': 'APELLIDO DEL ALUMNO EN MAYUSCULA',
+				'pattern': '[A-ZÑÁÉÍÓÚ ]*'
+			}),
+			'comunidad_indigena': forms.Select(
+				attrs={'required': 'true'}),
+			'discapacidad': forms.Select(
+				attrs={'required': 'true'})
+			}
+		#label para cambiar nombre de campo
 
-# class AsistenciaForm(forms.Form):
-# 	asistencia= forms.BooleanField(label='ASISTENCIA', required=False,
-# 		widget=forms.RadioSelect(
-# 			choices=[
-# 				(True,'✅ ASISTIO'), 
-# 				(False, '❌ NO ASISTIO ')
-# 			]
-# 		)
-# 	)
+class AsistenciaFluidez2026Form(forms.Form):
+	asistencia= forms.BooleanField(label='ASISTENCIA', required=False,
+		widget=forms.RadioSelect(
+			choices=[
+				(True,'✅ ASISTIO'), 
+				(False, '❌ NO ASISTIO ')
+			]
+		)
+	)
 
-# class EvaluacionFluidezForm(forms.ModelForm):
-# 	class Meta:
-# 		model= EvaluacionFluidezLectora
-# 		fields=['cantidad_palabras_leidas','pregunta_1','pregunta_2','pregunta_3','pregunta_4' ,'pregunta_5','pregunta_6']
-# 		widgets = {
-# 			'cantidad_palabras_leidas': forms.NumberInput(attrs={
-# 			'min':'0',
-# 			'placeholder':'INGRESA LA CANTIDAD DE PALABRAS LEIDAS'
-# 			}),
-# 			'pregunta_1': forms.Select(
-# 				attrs={'required': 'true'}),
-# 			'pregunta_2': forms.Select(
-# 				attrs={'required': 'true'})
-# 				,'pregunta_3': forms.Select(
-# 				attrs={'required': 'true'}),
-# 			'pregunta_4': forms.Select(
-# 				attrs={'required': 'true'})
-# 				,'pregunta_5': forms.Select(
-# 				attrs={'required': 'true'}),
-# 			'pregunta_6': forms.Select(
-# 				attrs={'required': 'true'})
-# 			}
+class EvaluacionFluidez2026Form(forms.ModelForm):
+	class Meta:
+		model= EvaluacionFluidezLectoraFluidez2026
+		fields=['cantidad_palabras_leidas','pregunta_1','pregunta_2','pregunta_3','pregunta_4' ,'pregunta_5','pregunta_6']
+		widgets = {
+			'cantidad_palabras_leidas': forms.NumberInput(attrs={
+			'min':'0',
+			'placeholder':'INGRESA LA CANTIDAD DE PALABRAS LEIDAS'
+			}),
+			'pregunta_1': forms.Select(
+				attrs={'required': 'true'}),
+			'pregunta_2': forms.Select(
+				attrs={'required': 'true'})
+				,'pregunta_3': forms.Select(
+				attrs={'required': 'true'}),
+			'pregunta_4': forms.Select(
+				attrs={'required': 'true'})
+				,'pregunta_5': forms.Select(
+				attrs={'required': 'true'}),
+			'pregunta_6': forms.Select(
+				attrs={'required': 'true'})
+			}
 		
-# 	def __init__(self, *args, max_cantidad_palabra=None, **kwargs):
-# 		super().__init__(*args, **kwargs)
-# 		if max_cantidad_palabra is not None:
-# 			# Establece el tope de validación en el nivel del formulario
-# 			self.fields['cantidad_palabras_leidas'].max_value = max_cantidad_palabra 
+	def __init__(self, *args, max_cantidad_palabra=None, **kwargs):
+		super().__init__(*args, **kwargs)
+		if max_cantidad_palabra is not None:
+			# Establece el tope de validación en el nivel del formulario
+			self.fields['cantidad_palabras_leidas'].max_value = max_cantidad_palabra 
 			
-# 			# **Importante:** Establece el atributo HTML 'max' para el frontend
-# 			self.fields['cantidad_palabras_leidas'].widget.attrs['max'] = max_cantidad_palabra
-# 			self.fields['cantidad_palabras_leidas'].widget.attrs['placeholder'] = f'Máx. {max_cantidad_palabra}'
+			# **Importante:** Establece el atributo HTML 'max' para el frontend
+			self.fields['cantidad_palabras_leidas'].widget.attrs['max'] = max_cantidad_palabra
+			self.fields['cantidad_palabras_leidas'].widget.attrs['placeholder'] = f'Máx. {max_cantidad_palabra}'
 
-# class GradoForm(forms.ModelForm):
-# 	class Meta:
-# 		model = Grado
-# 		fields=['nombre_grado','cueanexo']
-# 		#ocultamos cueanexo
-# 		widgets = {
-# 			'cueanexo': forms.NumberInput(
-# 				attrs={
-# 					'readonly':'readonly'
-# 				}
-# 			),
-# 			'nombre_grado': forms.TextInput(
-# 				attrs={
-# 					'readonly':'readonly'
-# 				}
-# 			),
-# 			}
-# 	#solucion para evitar no seleccionar un unique desde el form	
+class GradoFluidez2026Form(forms.ModelForm):
+	class Meta:
+		model = GradoFluidez2026
+		fields=['nombre_grado','cueanexo']
+		#ocultamos cueanexo
+		widgets = {
+			'cueanexo': forms.NumberInput(
+				attrs={
+					'readonly':'readonly'
+				}
+			),
+			'nombre_grado': forms.TextInput(
+				attrs={
+					'readonly':'readonly'
+				}
+			),
+			}
+	#solucion para evitar no seleccionar un unique desde el form	
 
 
-# class SeccionForm(forms.ModelForm):
-# 	class Meta:
-# 		model = Seccion
-# 		fields=['seccion','turno']
-# 		widgets = {
-# 			'seccion': forms.Select(
-# 				attrs={'required': 'true'}),
-# 				'turno': forms.Select(
-# 				attrs={'required': 'true'})
-# 				}
+class SeccionFluidez2026Form(forms.ModelForm):
+	class Meta:
+		model = SeccionFluidez2026
+		fields=['seccion','turno']
+		widgets = {
+			'seccion': forms.Select(
+				attrs={'required': 'true'}),
+				'turno': forms.Select(
+				attrs={'required': 'true'})
+				}
 	
 	
 # class BorrarRegistroAlumnoForm(forms.Form):
