@@ -16,13 +16,64 @@ from openpyxl import Workbook
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 
-# listaCueanexoPermitidos = [220002601, 220002901, 220010500, 220011100, 220011400, 220012000, 220012900, 220013400, 220017100, 220017200, 220018003, 220020500, 220021000, 220021200, 220021501, 220021800, 220022000, 220022700, 220025800, 220025901, 220026602, 220026603, 220026604, 220030700, 220031301, 220033201, 220034102, 220034104, 220034400, 220035100, 220037600, 220041900, 220046500, 220047200, 220050001, 220051400, 220051500, 220051502, 220052101, 220058400, 220058500, 220058800, 220058900, 220059000, 220059700, 220065400, 220065600, 220066500, 220069000, 220070200, 220071600, 220073301, 220074400, 220074501, 220078600, 220079500, 220091301, 220091302, 220091600, 220104800, 220105700, 220105701, 220109300, 220111101, 220111300, 220124700, 220126500, 220126700, 220129300, 220142100, 220183900, 220184100, 220184601, 220184602, 220206000, 220209200, 220220600, 220235804, 220260600, 220273100, 220006500, 220012800, 220020101, 220020300, 220021500, 220023800, 220024102, 220025902, 220034200, 220035301, 220035800, 220042601, 220047300, 220048300, 220049600, 220051503, 220053201, 220063901, 220065601, 220070201, 220075201, 220077100, 220078900, 220081700, 220084600, 220084601, 220085500, 220102802, 220104302, 220116101, 220117600, 220123000, 220124101, 220125201, 220131900, 220137101, 220139300, 220142201, 220144001, 220203900, 220204001, 220226700]
 
-
-#@login_required
-def inicio(request):
-    return render(request, "fluidez_2026/inicio.html")
 # @login_required
+# def inicio(request):
+# 	#-------------OBTENER USERNAME------------
+# 	# print(request.user)
+# 	# print(request.name)
+# 		#-------------OBTENER USERNAME------------
+# 	cuil=27308542489
+# 	grado=None
+# 	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
+# 	grado_form=GradoFluidez2026ViewForm()
+# 	if request.method == 'POST':
+# 		with transaction.atomic():
+# 			if cueanexo_form.is_valid():
+# 				cueanexo=cueanexo_form.cleaned_data["cueanexo"]
+# 				grado_form=GradoFluidez2026ViewForm(request.POST, cueanexo=cueanexo)
+# 				if grado_form.is_valid():
+# 					grado=grado_form.cleaned_data["grado"]
+# 					print(grado)
+# 					return redirect("evaluaciones_educativas:fluidez_2026:lista",grado_public_id=grado)
+# 	contexto={'cueanexo_form':cueanexo_form,
+# 		   'grado_form':grado_form,
+# 		   'grado':grado
+# 		   }
+# 	return render(request, "fluidez_2026/inicio.html",contexto)
+
+
+#TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
+# @login_required
+def lista(request):
+	cuil=27308542489
+	grado=None
+	evaluacion=None
+	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
+	grado_form=GradoFluidez2026ViewForm()
+	if request.method == 'POST':
+		with transaction.atomic():
+			if cueanexo_form.is_valid():
+				cueanexo=cueanexo_form.cleaned_data["cueanexo"]
+				grado_form=GradoFluidez2026ViewForm(request.POST, cueanexo=cueanexo)
+				if grado_form.is_valid():
+					grado_public_id=grado_form.cleaned_data["grado"]
+					if grado_public_id:
+						grado=GradoFluidez2026.objects.get(public_id=grado_public_id)
+						alumnos=AlumnoFluidez2026.objects.filter(seccion__grado=grado)
+						print(f'ACA{alumnos}')
+						evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos)
+						
+					#return redirect("evaluaciones_educativas:fluidez_2026:lista",grado_public_id=grado)
+	contexto={'cueanexo_form':cueanexo_form,
+		   'grado_form':grado_form,
+		   'grado':grado,
+		   'evaluaciones':evaluacion
+		   }
+	print(evaluacion)
+	return render(request, "fluidez_2026/lista.html",contexto)
+
+#TODO MEJORAR LOGICA
 def carga_alumno(request):
 	#grado=get_object_or_404(GradoFluidez2026)
 	alumno_form = AlumnoFluidez2026Form()
@@ -53,7 +104,7 @@ def carga_alumno(request):
 				alumno.save()
 				instancia_evaluacion, creando_evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.get_or_create(
 				alumno_id=alumno.id,cantidad_palabras_leidas=None, pregunta_1=None, pregunta_2=None, pregunta_3=None, pregunta_4=None, pregunta_5=None, pregunta_6=None, asistencia='AUSENTE',encargado_carga='DIRECTOR')
-			#return redirect("evaluaciones_educativas:fluidez_2025:asistencia", alumno_public_id=alumno.public_id)
+			#return redirect("evaluaciones_educativas:fluidez_2026:asistencia", alumno_public_id=alumno.public_id)
 			
 	context = {
 		'alumno_form': alumno_form,
@@ -64,43 +115,43 @@ def carga_alumno(request):
 	return render(request, "fluidez_2026/alumno.html", context)
 
 # @login_required
-# def editar_alumno(request,alumno_public_id):
-# 	instancia_alumno=get_object_or_404(Alumno,public_id=alumno_public_id)
-# 	instancia_seccion=get_object_or_404(Seccion,id=instancia_alumno.seccion_id)
-# 	instancia_grado=get_object_or_404(Grado,id=instancia_seccion.grado_id)
-# 	alumno_form = AlumnoForm(instance=instancia_alumno)
-# 	seccion_form = SeccionForm(instance=instancia_seccion)
-# 	grado_form = GradoForm(instance=instancia_grado)
-# 	if request.method == 'POST':
-# 		alumno_form = AlumnoForm(request.POST, instance=instancia_alumno)
-# 		grado_form = GradoForm(request.POST, instance=instancia_grado)
-# 		seccion_form = SeccionForm(request.POST, instance=instancia_seccion)
-# 		if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
-# 			with transaction.atomic():
-# 				nombre_grado=grado_form.cleaned_data["nombre_grado"]
-# 				cueanexo_grado=grado_form.cleaned_data["cueanexo"]
-# 				instancia_grado, creado_grado=Grado.objects.get_or_create(
-# 					nombre_grado=nombre_grado,
-# 					cueanexo=cueanexo_grado
-# 					)
-# 				turno_seccion=seccion_form.cleaned_data["turno"]
-# 				nombre_seccion=seccion_form.cleaned_data["seccion"]
-# 				instancia_seccion, creado_seccion = Seccion.objects.get_or_create(
-# 				seccion=nombre_seccion,
-# 				turno=turno_seccion,
-# 				grado=instancia_grado
-# 				)
-# 				alumno = alumno_form.save(commit=False)
-# 				alumno.seccion = instancia_seccion
-# 				alumno.save()
-# 			return redirect("evaluaciones_educativas:fluidez_2025:editar_asistencia", alumno_public_id=alumno.public_id)
-# 	context = {
-# 		'alumno_form': alumno_form,
-# 		 'grado_form': grado_form,
-# 		'seccion_form': seccion_form,
-# 		'grado_public':instancia_grado.public_id,
-# 			   }
-# 	return render(request, "fluidez_2025/alumno.html", context)
+def editar_alumno(request,alumno_public_id):
+	instancia_alumno=get_object_or_404(AlumnoFluidez2026,public_id=alumno_public_id)
+	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=instancia_alumno.seccion_id)
+	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
+	alumno_form = AlumnoFluidez2026Form(instance=instancia_alumno)
+	seccion_form = SeccionFluidez2026Form(instance=instancia_seccion)
+	grado_form = GradoFluidez2026Form(instance=instancia_grado)
+	if request.method == 'POST':
+		alumno_form = AlumnoFluidez2026Form(request.POST, instance=instancia_alumno)
+		grado_form = GradoFluidez2026Form(request.POST, instance=instancia_grado)
+		seccion_form = SeccionFluidez2026Form(request.POST, instance=instancia_seccion)
+		if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
+			with transaction.atomic():
+				nombre_grado=grado_form.cleaned_data["nombre_grado"]
+				cueanexo_grado=grado_form.cleaned_data["cueanexo"]
+				instancia_grado, creado_grado=GradoFluidez2026.objects.get_or_create(
+					nombre_grado=nombre_grado,
+					cueanexo=cueanexo_grado
+					)
+				turno_seccion=seccion_form.cleaned_data["turno"]
+				nombre_seccion=seccion_form.cleaned_data["seccion"]
+				instancia_seccion, creado_seccion = SeccionFluidez2026.objects.get_or_create(
+				seccion=nombre_seccion,
+				turno=turno_seccion,
+				grado=instancia_grado
+				)
+				alumno = alumno_form.save(commit=False)
+				alumno.seccion = instancia_seccion
+				alumno.save()
+			return redirect("evaluaciones_educativas:fluidez_2026:editar_asistencia", alumno_public_id=alumno.public_id)
+	context = {
+		'alumno_form': alumno_form,
+		 'grado_form': grado_form,
+		'seccion_form': seccion_form,
+		'grado_public':instancia_grado.public_id,
+			   }
+	return render(request, "fluidez_2026/alumno.html", context)
 
 # @login_required
 # def lista(request,grado_public_id):
@@ -134,7 +185,7 @@ def carga_alumno(request):
 # 				else:
 # 					try:
 # 						instancia_grado=Grado.objects.get(cueanexo=cueanexo, nombre_grado=grado)
-# 						return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=instancia_grado.public_id)
+# 						return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=instancia_grado.public_id)
 # 					except Grado.DoesNotExist:
 # 						messages.error(request, "No tiene un grado disponible para los datos ingresados.")
 	
@@ -157,7 +208,7 @@ def carga_alumno(request):
 # 			contexto["grado_public_id"] = instancia_grado.public_id
 # 		except Grado.DoesNotExist:
 # 			raise PermissionDenied("No tiene grado disponible.")
-# 	return render(request,"fluidez_2025/lista.html", contexto)
+# 	return render(request,"fluidez_2026/lista.html", contexto)
 # #-----------------lista para grados------------------
 # @login_required
 # def lista_grado(request,grado): 
@@ -184,15 +235,15 @@ def carga_alumno(request):
 # 					try:
 # 						#print(f'{cueanexo}{grado}')
 # 						instancia_grado=Grado.objects.get(cueanexo=cueanexo, nombre_grado=grado)
-# 						return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=instancia_grado.public_id)
+# 						return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=instancia_grado.public_id)
 # 					except Grado.DoesNotExist:
-# 						return render(request,"fluidez_2025/lista.html",contexto)
+# 						return render(request,"fluidez_2026/lista.html",contexto)
 # 	else:
 # 		grado_form_data.fields['grado'].choices = opciones_grado
 # 	contexto = {
 # 		'grado_form_data': grado_form_data
 # 	}
-# 	return render(request,"fluidez_2025/lista.html",contexto)
+# 	return render(request,"fluidez_2026/lista.html",contexto)
 	
 # @login_required
 # def grado(request):
@@ -231,13 +282,13 @@ def carga_alumno(request):
 # 					cueanexo=cueanexo
 # 					)
 # 				grado_public=instancia_grado.public_id
-# 			return redirect("evaluaciones_educativas:fluidez_2025:carga_alumno", grado_public_id=grado_public)
+# 			return redirect("evaluaciones_educativas:fluidez_2026:carga_alumno", grado_public_id=grado_public)
 # 	else:
 # 		grado_form_data.fields['grado'].choices = opciones_grado
 # 	contexto = {
 # 		'grado_form_data': grado_form_data
 # 	}
-# 	return render(request,"fluidez_2025/grados.html", contexto)
+# 	return render(request,"fluidez_2026/grados.html", contexto)
 
 	
 # @login_required
@@ -272,42 +323,42 @@ def carga_alumno(request):
 # 				evaluacion.asistencia ='PRESENTE'
 # 				evaluacion.encargado_carga='DIRECTOR'
 # 				evaluacion.save()
-# 			return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=grado_public)
+# 			return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=grado_public)
 # 	else:
 # 		#Instancia vacia para metodo get
 # 		form = EvaluacionFluidezForm(max_cantidad_palabra=cantidad_palabra_maxima)
 # 		#Creacion de diccionario para el Post
 # 	context = {'form': form,
 # 			   'alumno':alumno_id}
-# 	return render(request, "fluidez_2025/evaluacion.html", context)
+# 	return render(request, "fluidez_2026/evaluacion.html", context)
 
 # @login_required
-# def editar_evaluacion(request, alumno_public_id):
-# 	alumno_id=get_object_or_404(Alumno,public_id=alumno_public_id)
-# 	instancia_seccion=get_object_or_404(Seccion,id=alumno_id.seccion_id)
-# 	instancia_grado=get_object_or_404(Grado,id=instancia_seccion.grado_id)
-# 	grado_public=instancia_grado.public_id
-# 	instancia_evaluacion=get_object_or_404(EvaluacionFluidezLectora,alumno_id=alumno_id.id)
-# 	if instancia_grado.nombre_grado =='SEGUNDO':
-# 		cantidad_palabra_maxima=170
-# 	else:
-# 		cantidad_palabra_maxima=211
-# 	form=EvaluacionFluidezForm(instance=instancia_evaluacion, max_cantidad_palabra=cantidad_palabra_maxima)
-# 	if request.method == 'POST':
-# 		form=EvaluacionFluidezForm(request.POST,instance=instancia_evaluacion,max_cantidad_palabra=cantidad_palabra_maxima)
-# 		if form.is_valid():
-# 			with transaction.atomic():
-# 				evaluacion=form.save(commit=False)
-# 				evaluacion.alumno_id = alumno_id
-# 				evaluacion.asistencia='PRESENTE'
-# 				evaluacion.encargado_carga='DIRECTOR'
-# 				evaluacion.save()
-# 			return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=grado_public)
-# 	context = {
-# 		'form': form,
-# 		'alumno':alumno_id
-# 		}
-# 	return render(request, "fluidez_2025/evaluacion.html", context)
+def editar_evaluacion(request, alumno_public_id):
+	alumno_id=get_object_or_404(AlumnoFluidez2026,public_id=alumno_public_id)
+	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=alumno_id.seccion_id)
+	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
+	grado_public=instancia_grado.public_id
+	instancia_evaluacion=get_object_or_404(EvaluacionFluidezLectoraFluidez2026,alumno_id=alumno_id.id)
+	if instancia_grado.nombre_grado =='SEGUNDO':
+		cantidad_palabra_maxima=170
+	else:
+		cantidad_palabra_maxima=211
+	form=EvaluacionFluidez2026Form(instance=instancia_evaluacion, max_cantidad_palabra=cantidad_palabra_maxima)
+	if request.method == 'POST':
+		form=EvaluacionFluidez2026Form(request.POST,instance=instancia_evaluacion,max_cantidad_palabra=cantidad_palabra_maxima)
+		if form.is_valid():
+			with transaction.atomic():
+				evaluacion=form.save(commit=False)
+				evaluacion.alumno_id = alumno_id
+				evaluacion.asistencia='PRESENTE'
+				evaluacion.encargado_carga='DIRECTOR'
+				evaluacion.save()
+			return redirect("evaluaciones_educativas:fluidez_2026:lista")
+	context = {
+		'form': form,
+		'alumno':alumno_id
+		}
+	return render(request, "fluidez_2026/evaluacion.html", context)
 
 # @login_required
 # def asistencia(request,alumno_public_id):
@@ -323,121 +374,123 @@ def carga_alumno(request):
 # 				with transaction.atomic():
 # 					asistencia= form.cleaned_data["asistencia"]
 # 					if asistencia: 
-# 						return redirect("evaluaciones_educativas:fluidez_2025:carga_evaluacion", alumno_public_id=alumno_id.public_id)
+# 						return redirect("evaluaciones_educativas:fluidez_2026:carga_evaluacion", alumno_public_id=alumno_id.public_id)
 # 					else:
 # 						#llamamos a funcion ausentismo
 # 						evaluacion=ausentismo_evaluacion(instancia_evaluacion)
 # 						evaluacion.save()
-# 						return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=grado_public)
+# 						return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=grado_public)
 # 	else:
 # 		form = AsistenciaForm()
 # 	context = {'form': form,
 # 			   'alumno':alumno_id
 # 			   }
-# 	return render(request,"fluidez_2025/asistencia.html",context)
+# 	return render(request,"fluidez_2026/asistencia.html",context)
 
 # @login_required
-# def editar_asistencia(request,alumno_public_id):
-# 	#INSTANCIAS
-# 	alumno_id=get_object_or_404(Alumno, public_id=alumno_public_id)
-# 	instancia_seccion=get_object_or_404(Seccion,id=alumno_id.seccion_id)
-# 	instancia_grado=get_object_or_404(Grado,id=instancia_seccion.grado_id)
-# 	grado_public=instancia_grado.public_id
-# 	if request.method == 'POST':
-# 		form = AsistenciaForm(request.POST)
-# 		#Campos de tabla evaluacion
-# 		if form.is_valid():
-# 			with transaction.atomic():
-# 				asistencia = form.cleaned_data["asistencia"]
-# 				#verificamos alumno presente
-# 				if asistencia: 
-# 					return redirect("evaluaciones_educativas:fluidez_2025:editar_evaluacion", alumno_public_id=alumno_id.public_id)
-# 				else:
-# 					#Recien instanciamos en el ELSE 
-# 					instancia_evaluacion=get_object_or_404(EvaluacionFluidezLectora, alumno_id=alumno_id.id)
-# 					evaluacion=ausentismo_evaluacion(instancia_evaluacion)
-# 					evaluacion.save()
-# 					return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=grado_public)
-# 	else:
-# 		asistencia_form = AsistenciaForm()
-# 	context = {'form': asistencia_form}
-# 	return render(request,"fluidez_2025/asistencia.html",context)
+def editar_asistencia(request,alumno_public_id):
+	#INSTANCIAS
+	alumno_id=get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
+	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=alumno_id.seccion_id)
+	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
+	grado_public=instancia_grado.public_id
+	if request.method == 'POST':
+		form = AsistenciaFluidez2026Form(request.POST)
+		#Campos de tabla evaluacion
+		if form.is_valid():
+			with transaction.atomic():
+				asistencia = form.cleaned_data["asistencia"]
+				#verificamos alumno presente
+				if asistencia: 
+					return redirect("evaluaciones_educativas:fluidez_2026:editar_evaluacion", alumno_public_id=alumno_id.public_id)
+				else:
+					#Recien instanciamos en el ELSE 
+					instancia_evaluacion=get_object_or_404(EvaluacionFluidezLectoraFluidez2026, alumno_id=alumno_id.id)
+					evaluacion=ausentismo_evaluacion(instancia_evaluacion)
+					evaluacion.save()
+					return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=grado_public)
+	else:
+		asistencia_form = AsistenciaFluidez2026Form()
+	context = {'form': asistencia_form}
+	return render(request,"fluidez_2026/asistencia.html",context)
 
 # @login_required
-# def borrar_registro_alumno(request,alumno_public_id):
-# 	alumno_id=get_object_or_404(Alumno, public_id=alumno_public_id)
-# 	instancia_seccion=get_object_or_404(Seccion,id=alumno_id.seccion_id)
-# 	instancia_grado=get_object_or_404(Grado,id=instancia_seccion.grado_id)
-# 	grado_public=instancia_grado.public_id
-# 	if request.method == 'POST':
-# 		form = BorrarRegistroAlumnoForm(request.POST)
-# 		if form.is_valid():
-# 			with transaction.atomic():
-# 				eleccion= form.cleaned_data["borrar"]
-# 				if eleccion:
-# 					alumno_id.delete()
-# 					return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=grado_public)
-# 				else:
-# 					return redirect("evaluaciones_educativas:fluidez_2025:lista", grado_public_id=grado_public)
-# 	else:
-# 		form = BorrarRegistroAlumnoForm()
-# 	context = {'form': form,
-# 			   'alumno':alumno_id
-# 			   }
-# 	return render(request,"fluidez_2025/borrar_registro_alumno.html",context)
-# #DESCARGAR EXCEL
-# @login_required
-# def descargar_excel(request,grado_public_id):
-# 	instancia_grado=get_object_or_404(Grado,public_id=grado_public_id)
-# 	instancia_seccion=Seccion.objects.filter(grado_id=instancia_grado)
-# 	alumnos = Alumno.objects.filter(seccion_id__in=instancia_seccion).order_by('nombre')
-# 	evaluacion = EvaluacionFluidezLectora.objects.filter(alumno__in=alumnos)
-# 	# 1. Configurar la respuesta HTTP para un archivo Excel
-# 	# El 'mimetype' (o Content-Type) es crucial para que el navegador sepa que es un archivo .xlsx
-# 	response = HttpResponse(
-# 		content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-# 	)
+def borrar_registro_alumno(request,alumno_public_id):
+	alumno_id=get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
+	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=alumno_id.seccion_id)
+	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
+	grado_public=instancia_grado.public_id
+	if request.method == 'POST':
+		form = BorrarRegistroAlumnoForm(request.POST)
+		if form.is_valid():
+			with transaction.atomic():
+				eleccion= form.cleaned_data["borrar"]
+				if eleccion:
+					alumno_id.delete()
+					return redirect("evaluaciones_educativas:fluidez_2026:lista")
+					#return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=grado_public)
+				else:
+					return redirect("evaluaciones_educativas:fluidez_2026:lista")
+					#return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=grado_public)
+	else:
+		form = BorrarRegistroAlumnoForm()
+	context = {'form': form,
+			   'alumno':alumno_id
+			   }
+	return render(request,"fluidez_2026/borrar_registro_alumno.html",context)
+#DESCARGAR EXCEL
+@login_required
+def descargar_excel(request,grado_public_id):
+	instancia_grado=get_object_or_404(GradoFluidez2026,public_id=grado_public_id)
+	instancia_seccion=SeccionFluidez2026.objects.filter(grado_id=instancia_grado)
+	alumnos = AlumnoFluidez2026.objects.filter(seccion_id__in=instancia_seccion).order_by('nombre')
+	evaluacion = EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos)
+	# 1. Configurar la respuesta HTTP para un archivo Excel
+	# El 'mimetype' (o Content-Type) es crucial para que el navegador sepa que es un archivo .xlsx
+	response = HttpResponse(
+		content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+	)
 	
-# 	# 2. Configurar el encabezado Content-Disposition
-# 	# Esto le dice al navegador que DEBE descargar el contenido y le asigna un nombre de archivo.
-# 	if instancia_grado.nombre_grado=='2do Año/Grado':
-# 		nombre_grado='2do_Grado_'
-# 	elif instancia_grado.nombre_grado=='3er Año/Grado':
-# 		nombre_grado='3er_Grado_'
-# 	else:
-# 		nombre_grado='_'
-# 	response['Content-Disposition'] = f'attachment; filename="reporte_fluidez_{nombre_grado}noviembre_2025.xlsx"'
+	# 2. Configurar el encabezado Content-Disposition
+	# Esto le dice al navegador que DEBE descargar el contenido y le asigna un nombre de archivo.
+	if instancia_grado.nombre_grado=='2do Año/Grado':
+		nombre_grado='2do_Grado_'
+	elif instancia_grado.nombre_grado=='3er Año/Grado':
+		nombre_grado='3er_Grado_'
+	else:
+		nombre_grado='_'
+	response['Content-Disposition'] = f'attachment; filename="reporte_fluidez_{nombre_grado}noviembre_2026.xlsx"'
 
-# 	# 3. Generar el contenido del Excel (lo mismo que tenías)
-# 	wb = Workbook()
-# 	ws = wb.active
-# 	fecha_hora_actual = datetime.now()
-# 	ws['A1'] = f'CUEANEXO: {instancia_grado.cueanexo}'
-# 	ws['G1'] = f'FECHA Y HORA:  {fecha_hora_actual.strftime("%d/%m/%Y %I:%M:%S %p")}'
-# 	lista=['NOMBRE','APELLIDO','DNI','COMUNIDAD INDíGENA','DISCAPACIDAD','GRADO','SECCIÓN','TURNO','ASISTENCIA','FLUIDEZ','P1','P2','P3','P4','P5','P6']
-# 	#print(alumnos)
-# 	ws.append(lista)
-# 	for i,v in enumerate(evaluacion):
-# 		ws[f'A{i + 3}']=v.alumno.nombre
-# 		ws[f'B{i + 3}']=v.alumno.apellido
-# 		ws[f'C{i + 3}']=v.alumno.dni
-# 		ws[f'D{i + 3}']=v.alumno.comunidad_indigena
-# 		ws[f'E{i + 3}']=v.alumno.discapacidad
-# 		ws[f'F{i + 3}']=v.alumno.seccion.grado.nombre_grado
-# 		ws[f'G{i + 3}']=v.alumno.seccion.seccion
-# 		ws[f'H{i + 3}']=v.alumno.seccion.turno
-# 		ws[f'I{i + 3}']=v.asistencia
-# 		ws[f'J{i + 3}']=v.cantidad_palabras_leidas
-# 		ws[f'K{i + 3}']=v.pregunta_1
-# 		ws[f'L{i + 3}']=v.pregunta_2
-# 		ws[f'M{i + 3}']=v.pregunta_3
-# 		ws[f'N{i + 3}']=v.pregunta_4
-# 		ws[f'O{i + 3}']=v.pregunta_5
-# 		ws[f'P{i + 3}']=v.pregunta_6
+	# 3. Generar el contenido del Excel (lo mismo que tenías)
+	wb = Workbook()
+	ws = wb.active
+	fecha_hora_actual = datetime.now()
+	ws['A1'] = f'CUEANEXO: {instancia_grado.cueanexo}'
+	ws['G1'] = f'FECHA Y HORA:  {fecha_hora_actual.strftime("%d/%m/%Y %I:%M:%S %p")}'
+	lista=['NOMBRE','APELLIDO','DNI','COMUNIDAD INDíGENA','DISCAPACIDAD','GRADO','SECCIÓN','TURNO','ASISTENCIA','FLUIDEZ','P1','P2','P3','P4','P5','P6']
+	#print(alumnos)
+	ws.append(lista)
+	for i,v in enumerate(evaluacion):
+		ws[f'A{i + 3}']=v.alumno.nombre
+		ws[f'B{i + 3}']=v.alumno.apellido
+		ws[f'C{i + 3}']=v.alumno.dni
+		ws[f'D{i + 3}']=v.alumno.comunidad_indigena
+		ws[f'E{i + 3}']=v.alumno.discapacidad
+		ws[f'F{i + 3}']=v.alumno.seccion.grado.nombre_grado
+		ws[f'G{i + 3}']=v.alumno.seccion.seccion
+		ws[f'H{i + 3}']=v.alumno.seccion.turno
+		ws[f'I{i + 3}']=v.asistencia
+		ws[f'J{i + 3}']=v.cantidad_palabras_leidas
+		ws[f'K{i + 3}']=v.pregunta_1
+		ws[f'L{i + 3}']=v.pregunta_2
+		ws[f'M{i + 3}']=v.pregunta_3
+		ws[f'N{i + 3}']=v.pregunta_4
+		ws[f'O{i + 3}']=v.pregunta_5
+		ws[f'P{i + 3}']=v.pregunta_6
 
-# 	wb.save(response)
-# 	# 5. Retornar la respuesta al navegador
-# 	return response
+	wb.save(response)
+	# 5. Retornar la respuesta al navegador
+	return response
 
 # # @login_required
 # # def monitoreo(request):
@@ -446,12 +499,12 @@ def carga_alumno(request):
 # #     # # for i in instancia_grado:
 # #     # #     print(i)
 # #     contexto={'grados':instancia_grado_cueanexo}
-# #     return render(request,"fluidez_2025/monitoreo.html", contexto)
+# #     return render(request,"fluidez_2026/monitoreo.html", contexto)
 
 # #-----------------------LOGICA PARA VISUALIZAR DATOS ---------------------------
 
 # @login_required
-# def analisis_evaluaciones_noviembre_2025(request):
+# def analisis_evaluaciones_noviembre_2026(request):
 # 	contexto = {
 # 		'alumnos_evaluados_segundo': [],
 # 		'alumnos_evaluados_tercero': [],
@@ -522,13 +575,13 @@ def carga_alumno(request):
 # 						contexto["turno"] = turno
 # 				else:
 # 					contexto['grado'] = None
-# 	nombre_archivo = 'evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2025.pdf'
+# 	nombre_archivo = 'evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2026.pdf'
 # # Generamos la URL y le pegamos los parámetros del visor
 # 	contexto["material_pdf"] = static(nombre_archivo)
-# 	return render(request, "fluidez_2025/analisis_evaluaciones_noviembre_2025.html", contexto)
+# 	return render(request, "fluidez_2026/analisis_evaluaciones_noviembre_2026.html", contexto)
 # #------------------logica para regional---------------------------
 # @login_required
-# def analisis_evaluaciones_regional_noviembre_2025(request):
+# def analisis_evaluaciones_regional_noviembre_2026(request):
 # 	contexto = {
 # 		'alumnos_evaluados_segundo': [],
 # 		'alumnos_evaluados_tercero': [],
@@ -612,14 +665,14 @@ def carga_alumno(request):
 # 						contexto['grado'] = None
 
 # 	contexto["form_director_regional"] = form_director_regional
-# 	nombre_archivo = 'evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2025.pdf'
+# 	nombre_archivo = 'evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2026.pdf'
 # # Generamos la URL y le pegamos los parámetros del visor
 # 	contexto["material_pdf"] = static(nombre_archivo)
-# 	return render(request, "fluidez_2025/analisis_evaluaciones_noviembre_2025.html", contexto)
+# 	return render(request, "fluidez_2026/analisis_evaluaciones_noviembre_2026.html", contexto)
 # #--------------------fin de logica para regional----------------
 # #---------------------logica para SUBSE Y MINISTRO---------------------------
 # @login_required
-# def analisis_evaluaciones_ministros_noviembre_2025(request):
+# def analisis_evaluaciones_ministros_noviembre_2026(request):
 # 	contexto = {
 # 		'alumnos_evaluados_segundo': [],
 # 		'alumnos_evaluados_tercero': [],
@@ -707,23 +760,23 @@ def carga_alumno(request):
 							
 # 	contexto['form_director_nivel']=form_director_nivel
 # 	#contexto["form_cueanexo"] = form_cueanexo
-# 	nombre_archivo = 'evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2025.pdf'
+# 	nombre_archivo = 'evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2026.pdf'
 # # Generamos la URL y le pegamos los parámetros del visor
 # 	contexto["material_pdf"] = static(nombre_archivo)
-# 	return render(request, "fluidez_2025/analisis_evaluaciones_noviembre_2025.html", contexto)
+# 	return render(request, "fluidez_2026/analisis_evaluaciones_noviembre_2026.html", contexto)
 # #----------------------FIN SUBSE Y MINISTRO--------------------------------
 # #-----------------------FIN LOGICA PARA VISUALIZAR DATOS ---------------------------
 
-# def ausentismo_evaluacion(instancia_evaluacion):
-# 	evaluacion_campos=instancia_evaluacion._meta.fields
-# 	for i in evaluacion_campos:
-# 		if i.name == 'asistencia':
-# 			#FUNCION DE PYTHON para estabalecer valores a campos de un objeto
-# 			setattr(instancia_evaluacion, i.name, 'AUSENTE')
-# 			#verificamos campos PK y NOT NULL
-# 		if not i.primary_key and i.null:
-# 			setattr(instancia_evaluacion, i.name, None)
-# 	return instancia_evaluacion
+def ausentismo_evaluacion(instancia_evaluacion):
+	evaluacion_campos=instancia_evaluacion._meta.fields
+	for i in evaluacion_campos:
+		if i.name == 'asistencia':
+			#FUNCION DE PYTHON para estabalecer valores a campos de un objeto
+			setattr(instancia_evaluacion, i.name, 'AUSENTE')
+			#verificamos campos PK y NOT NULL
+		if not i.primary_key and i.null:
+			setattr(instancia_evaluacion, i.name, None)
+	return instancia_evaluacion
 
 # #---------LOGICA PARA ANALISIS DE LAS EVALUACIONES EDUCATIVAS--------------------------
 
@@ -922,7 +975,7 @@ def carga_alumno(request):
 # #-----------------------LOGICA PARA VISUALIZAR DATOS ---------------------------
 
 # @login_required
-# def analisis_evaluaciones_mayo_2025(request):
+# def analisis_evaluaciones_mayo_2026(request):
 # 	contexto = {
 # 		'alumnos_evaluados_segundo': [],
 # 		'alumnos_evaluados_tercero': [],
@@ -1006,12 +1059,12 @@ def carga_alumno(request):
 # 								#print(secciones)
 # 								# CARGA DE DATOS: Se ejecuta si hay grado_obj, independientemente de la sección
 # 								if nombre_grado == 'Segundo':
-# 									obtener_consulta = analisis_segundo_grado_mayo_2025_grafico(cueanexo, secciones)
+# 									obtener_consulta = analisis_segundo_grado_mayo_2026_grafico(cueanexo, secciones)
 # 									cur.execute(obtener_consulta['consulta'])
 # 									datos = cur.fetchall()
 # 									contexto["grado"] = "Segundo Grado"
 # 								else:
-# 									obtener_consulta = analisis_tercer_grado_mayo_2025_grafico(cueanexo, secciones)
+# 									obtener_consulta = analisis_tercer_grado_mayo_2026_grafico(cueanexo, secciones)
 # 									cur.execute(obtener_consulta['consulta'])
 # 									datos = cur.fetchall()
 # 									contexto["grado"] = "Tercer Grado"
@@ -1031,10 +1084,10 @@ def carga_alumno(request):
 # 			print("Conexión cerrada.")            
 # 	#------------------------CERRAR psycopg2-----------------
 # 	#print(contexto)
-# 	return render(request, "fluidez_2025/analisis_evaluaciones_mayo_2025.html", contexto)
+# 	return render(request, "fluidez_2026/analisis_evaluaciones_mayo_2026.html", contexto)
 
 
-# def analisis_segundo_grado_mayo_2025_grafico(cueanexo,secciones):
+# def analisis_segundo_grado_mayo_2026_grafico(cueanexo,secciones):
 # 	# print('entreee')
 # 	contexto={}
 # 	query = f"""
@@ -1072,7 +1125,7 @@ def carga_alumno(request):
 
 
 
-# def analisis_tercer_grado_mayo_2025_grafico(cueanexo,secciones):
+# def analisis_tercer_grado_mayo_2026_grafico(cueanexo,secciones):
 # 	contexto={}
 
 # 	query = f"""

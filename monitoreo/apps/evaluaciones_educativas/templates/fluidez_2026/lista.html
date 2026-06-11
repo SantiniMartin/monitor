@@ -152,9 +152,9 @@
     <div id="sidebar-wrapper">
       <ul class="nav flex-column px-2">
         <li class="nav-item">
-          <a href="{% url 'directores:institucional'%}" class="nav-link text-white">
+          {% comment %} <a href="{% url 'directores:institucional'%}" class="nav-link text-white">
             <i class="bi bi-house-door"></i> <span class="ms-2"></span>
-          </a>
+          </a> {% endcomment %}
         </li>
       </ul>
     </div>
@@ -172,25 +172,29 @@
                     <!-- SELECT CUEANEXO -->
                     <div class="filter-group">
                         <label class="section-title">Cueanexo:</label>
-                        {{ grado_form_data.cueanexo }}
+                        <select name="cueanexo" id="cueanexo-select"  onchange="this.form.submit()" required>
+                        {% for eleccion in cueanexo_form.cueanexo %}
+                          {{ eleccion }}
+                        {% endfor %}
+                      </select>
                     </div>
 
                     <div class="divider-vertical d-none d-md-block"></div>
 
                     <!-- RADIOS GRADO -->
                     <div class="filter-group">
-                        <label class="section-title">Grado:</label>
-                        <div class="d-flex gap-3">
-                            {% for eleccion in grado_form_data.grado %}
-                            <div class="form-check m-0">
-                                {{ eleccion.tag }}
-                                <label class="form-check-label ms-1" for="{{ eleccion.id_for_label }}">
-                                    {{ eleccion.choice_label }}
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                    
+            <label class="section-title">Grado</label>
+            <div class="radio-list text-center">
+              {% if grado_form %}
+                {% for eleccion in grado_form.grado %}
+                  {{ eleccion }}
+                {% endfor %}
+              {% else %}
+                <p class="text-muted small">Selecciona un Cueanexo para ver los grados.</p>
+              {% endif %}
+            </div>
+          </div> 
 
                     <div class="divider-vertical d-none d-md-block"></div>
 
@@ -206,7 +210,7 @@
             <div class="table-responsive">
               <table class="table table-striped table-hover align-middle table-fixed">
                 <h4 class="text-center bg-alumno py-2 mb-0" style="font-size: 1rem;">
-                  <i class="bi bi-eye"></i> VISUALIZANDO| CUEANEXO: {{ cueanexo }}  GRADO:{{ nombre_grado }}
+                  <i class="bi bi-eye"></i> VISUALIZANDO| CUEANEXO: {{ grado.cueanexo }}  GRADO:{{ grado.nombre_grado }}
                 </h4>  
                 <thead class="table-dark">
                   <tr>
@@ -220,7 +224,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for eval in evaluciones %}
+                  {% for eval in evaluaciones %}
                   <tr>
                     <td><strong>{{ eval.alumno.nombre }}</strong></td>
                     <td>{{ eval.alumno.apellido }}</td>
@@ -236,11 +240,11 @@
                     <td class="text-center">{{ eval.pregunta_5|default:'-' }}</td>
                     <td class="text-center">{{ eval.pregunta_6|default:'-' }}</td>
                     <td class="text-center">
-                      <div class="d-inline-flex gap-1">
-                        <a href="{% url 'evaluaciones_educativas:fluidez_2025:editar_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-primary btn-custom" title="Editar"><i class="bi bi-person"></i></a>
-                        <a href="{% url 'evaluaciones_educativas:fluidez_2025:editar_evaluacion' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-success btn-custom" title="Evaluar"><i class="bi bi-pencil"></i></a>
-                        <a href="{% url 'evaluaciones_educativas:fluidez_2025:borrar_registro_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-danger btn-custom" title="Borrar"><i class="bi bi-trash"></i></a>
-                      </div>
+                       <div class="d-inline-flex gap-1">
+                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-primary btn-custom" title="Editar"><i class="bi bi-person"></i></a>
+                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_evaluacion' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-success btn-custom" title="Evaluar"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:borrar_registro_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-danger btn-custom" title="Borrar"><i class="bi bi-trash"></i></a>
+                      </div> 
                     </td>
                   </tr>
                   {% empty %}
@@ -252,36 +256,50 @@
           </div>
         </div>
 
-        <div class="d-flex justify-content-between">
+        {% comment %} <div class="d-flex justify-content-between">
           <a href="{% url 'evaluaciones_educativas:fluidez_2025:grados' %}" class="btn btn-primary px-4 fw-bold shadow-sm" style="border-radius: 10px;">
             <i class="bi bi-person-plus-fill me-2"></i>Añadir Alumno
           </a>
-          
-          {% if grado_public_id %}
-            <a href="{% url 'evaluaciones_educativas:fluidez_2025:excel' grado_public_id=grado_public_id %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+          {% endcomment %}
+          {% if grado.public_id %}
+           <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno' %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+              <i class="bi bi-file-me-2"></i>carga alumno
+            </a>
+            <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
               <i class="bi bi-file-earmark-excel me-2"></i>Exportar Excel
             </a>
           {% endif %}
-        </div>
+        </div> 
       </div>
     </div>
 
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const filterForm = document.getElementById("filter-form");
-        const selectCueanexo = filterForm.querySelector("select");
-        const radiosGrado = filterForm.querySelectorAll('input[type="radio"]');
-        const btnSubmit = document.getElementById("btn-submit-filter");
+  document.addEventListener("DOMContentLoaded", function () {
+    const filterForm = document.getElementById("filter-form");
+    
+    // CORRECCIÓN: Usamos getElementById que es más seguro y directo
+    const selectCueanexo = document.getElementById("cueanexo-select");
+    const radiosGrado = filterForm.querySelectorAll('input[type="radio"]');
+    const btnSubmit = document.getElementById("btn-submit-filter");
 
-        function validarFiltros() {
-            const cueOk = selectCueanexo.value !== "" && selectCueanexo.value !== "None";
-            const gradoOk = Array.from(radiosGrado).some(r => r.checked);
-            btnSubmit.disabled = !(cueOk && gradoOk);
-        }
+    function validarFiltros() {
+        if (!selectCueanexo) return; // Evita errores si no existe el elemento
+        
+        const cueOk = selectCueanexo.value.trim() !== "" && selectCueanexo.value !== "None";
+        const gradoOk = Array.from(radiosGrado).some(r => r.checked);
+        
+        btnSubmit.disabled = !(cueOk && gradoOk);
+    }
 
+    if (selectCueanexo) {
         selectCueanexo.addEventListener("change", validarFiltros);
-        radiosGrado.forEach(r => r.addEventListener("change", validarFiltros));
-      });
-    </script>
+    }
+    
+    radiosGrado.forEach(r => r.addEventListener("change", validarFiltros));
+    
+    // CORRECCIÓN: Ejecutamos apenas carga por si el backend ya devolvió opciones marcadas
+    validarFiltros();
+  });
+</script>
   </body>
 </html>

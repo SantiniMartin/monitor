@@ -1,43 +1,71 @@
 from django import forms
+# from apps.evaluaciones_educativas.models.fluidez_2026 import *
 from apps.evaluaciones_educativas.models.fluidez_2026 import *
-# from apps.consultasge.models import CapaUnicaOfertas
 import psycopg2
 import os
 from psycopg2 import extras
 
 
-# class GradoFluidez2026ViewForm(forms.Form):
-# 	# OPCIONES_CUEANEXO = [
-#     #     ('', '---'),
-#     # ]
-# 	grado= forms.ChoiceField(label='SELECCIONE UN GRADO', required=False, widget=forms.RadioSelect(
-# 		))
-# 	cueanexo = forms.ChoiceField(
-#         choices=[('', '--- Seleccionar ---')], # Aquí asignas las opciones
-#         label='SELECCIONE UN CUEANEXO', 
-#         required=False,
-#         widget=forms.Select
-#     )
-	# def __init__(self, *args, **kwargs):
-	# 	# Extraemos el CUIL de los argumentos
-	# 	cuil = kwargs.pop('cuil', None)
-	# 	super().__init__(*args, **kwargs)
-	# 	if cuil:
-	# 		cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
-	# 		qs =CapaUnicaOfertas.objects.filter(resploc_cuitcuil=cuil_con_caracter,oferta__icontains='Común - Primaria de 7 años').only('cueanexo')
-	# 		#print(qs)
-	# 		choices = [
-	# 				('', '---SELECCIONE UN CUEANEXO-----'),
-	# 				]
-	# 		for i in qs:
-	# 			# label = f'{i.cueanexo}'
-	# 			choices.append((i.cueanexo, i.cueanexo))
-	# 			#print(i.cueanexo)
-	# 		self.fields['cueanexo'].choices = choices
-	
+class CueanexoFluidez2026ViewForm(forms.Form):
+	cueanexo = forms.ChoiceField(
+        choices=[('', '--- Seleccionar ---')], # Aquí asignas las opciones
+        label='SELECCIONE UN CUEANEXO', 
+        required=False,
+        widget=forms.Select
+    )
+	def __init__(self, *args, **kwargs):
+		# Extraemos el CUIL de los argumentos
+		cuil = kwargs.pop('cuil', None)
+		super().__init__(*args, **kwargs)
+		if cuil:
+			#cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
+			qs =TablaTemporalAplicadores.objects.filter(cuil=cuil).only('cueanexo').distinct()
+			#print(qs)
+			choices_cueanexo = [
+					('', '---SELECCIONE UN CUEANEXO-----'),
+					]
+			for i in qs:
+				choices_cueanexo.append((i.cueanexo, i.cueanexo))
+				print(choices_cueanexo)
+			self.fields['cueanexo'].choices = choices_cueanexo
+
+class GradoFluidez2026ViewForm(forms.Form):
+	# OPCIONES_CUEANEXO = [
+    #     ('', '---'),
+    # ]
+	grado= forms.ChoiceField(label='SELECCIONE UN GRADO', required=False, widget=forms.RadioSelect(
+		))
+	def __init__(self, *args, **kwargs):
+		# Extraemos el CUIL de los argumentos
+		cueanexo = kwargs.pop('cueanexo', None)
+		super().__init__(*args, **kwargs)
+		if cueanexo:
+			qs =GradoFluidez2026.objects.filter(Establecimiento__cueanexo=cueanexo)
+			choices_grado = [
+					]
+			for i in qs:
+				choices_grado.append((i.public_id, i.nombre_grado))
+			self.fields['grado'].choices = choices_grado
+			print(f'aca2{choices_grado}')
 
 class SeccionFluidez2026ViewForm(forms.Form):
-	seccion= forms.ChoiceField(label='secciones', required=False)
+	seccion = forms.ChoiceField(label='secciones', required=False)
+
+	# def __init__(self, *args, **kwargs):
+	# 	secciones = kwargs.pop('cuil', None)
+	# 	super().__init__(*args, **kwargs)
+	# 	if secciones:
+	# 		#cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
+	# 		#qs =TablaTemporalAplicadores.objects.filter(cuil=cuil).only('cueanexo')
+	# 		#print(qs)
+	# 		choices = [
+	# 				('', '---SELECCIONE UNA SECCION-----'),
+	# 				]
+	# 		for i in secciones:
+	# 			# label = f'{i.cueanexo}'
+	# 			choices.append((i.seccion, i.seccion))
+	# 			#print(i.cueanexo)
+	# 		self.fields['cueanexo'].choices = choices
 
 
 class AlumnoFluidez2026Form(forms.ModelForm):
@@ -146,15 +174,15 @@ class SeccionFluidez2026Form(forms.ModelForm):
 				}
 	
 	
-# class BorrarRegistroAlumnoForm(forms.Form):
-# 		borrar= forms.BooleanField(label='borrar',required=False,
-# 		widget=forms.RadioSelect(
-# 			choices=[
-# 				(True,'Eliminar registro'), 
-# 				(False, 'NO eliminar registro ')
-# 			]
-# 		)
-# 	)
+class BorrarRegistroAlumnoForm(forms.Form):
+		borrar= forms.BooleanField(label='borrar',required=False,
+		widget=forms.RadioSelect(
+			choices=[
+				(True,'Eliminar registro'), 
+				(False, 'NO eliminar registro ')
+			]
+		)
+	)
 # #----------------------VISUALIZACION---------------------
 # class DirectorForm(forms.Form):
 # 		SECTORES = [
@@ -332,19 +360,19 @@ class SeccionFluidez2026Form(forms.ModelForm):
 # 			self.fields['cueanexo_seleccionado'].choices = choices
 
 # 			#ENTENDER ESTE CODIGO Y POR QUE NO FUNCION EL NUESTRO
-# class Grado_select_Form(forms.Form):
-# 	GRADOS_CHOICES = [
-# 		('', '--- Seleccionar Grado ---'),  # Valor vacío para la opción neutra
-# 		('2do Año/Grado', '2do Año/Grado'),
-# 		('3er Año/Grado', '3er Año/Grado'),
-# 	]
+class Grado_selec_2026_Form(forms.Form):
+	GRADOS_CHOICES = [
+		('', '--- Seleccionar Grado ---'),  # Valor vacío para la opción neutra
+		('2do Año/Grado', '2do Año/Grado'),
+		('3er Año/Grado', '3er Año/Grado'),
+	]
 	
-# 	grado_seleccion = forms.ChoiceField(
-# 		choices=GRADOS_CHOICES,
-# 		label="Seleccione un Grado",
-# 		required=True,
-# 		widget=forms.Select()
-# 	)
+	grado_seleccion = forms.ChoiceField(
+		choices=GRADOS_CHOICES,
+		label="Seleccione un Grado",
+		required=True,
+		widget=forms.Select()
+	)
 # class SeccionTurnoForm(forms.Form):
 # 	# Definimos el campo vacío inicialmente
 # 	seleccion = forms.ModelChoiceField(
