@@ -219,33 +219,33 @@
                   </tr>
                   <tr>
                     <th>Nombre</th><th>Apellido</th><th>DNI</th><th>Sección</th><th>Turno</th>
-                    
-                    <th class="text-center bg-alumno">Acción</th>
+                    <th>Asistencia</th><th>Fluidez</th><th>P1</th><th>P2</th><th>P3</th>
+                    <th>P4</th><th>P5</th><th>P6</th><th class="text-center bg-alumno">Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {% for alum in alumnos %}
+                  {% for eval in evaluaciones %}
                   <tr>
-                    <td><strong>{{ alum.nombre }}</strong></td>
-                    <td>{{ alum.apellido }}</td>
-                    <td>{{ alum.numero_de_documento }}</td>
-                    <td>{{ alum.seccion }}</td>
-                    <td>{{ alum.turno }}</td>
-                    {% comment %} <td class="text-center">{{ alum.asistencia }}</td>
-                    <td class="text-center">{{ alum.cantidad_palabras_leidas|default:'-' }}</td>
-                    <td class="text-center">{{ alum.pregunta_1|default:'-' }}</td>
-                    <td class="text-center">{{ alum.pregunta_2|default:'-' }}</td>
-                    <td class="text-center">{{ alum.pregunta_3|default:'-' }}</td>
-                    <td class="text-center">{{ alum.pregunta_4|default:'-' }}</td>
-                    <td class="text-center">{{ alum.pregunta_5|default:'-' }}</td>
-                    <td class="text-center">{{ alum.pregunta_6|default:'-' }}</td> {% endcomment %}
-                    {% comment %} <td class="text-center">
+                    <td><strong>{{ eval.alumno.nombre }}</strong></td>
+                    <td>{{ eval.alumno.apellido }}</td>
+                    <td>{{ eval.alumno.dni }}</td>
+                    <td>{{ eval.alumno.seccion.seccion }}</td>
+                    <td>{{ eval.alumno.seccion.turno }}</td>
+                    <td class="text-center">{{ eval.asistencia }}</td>
+                    <td class="text-center">{{ eval.cantidad_palabras_leidas|default:'-' }}</td>
+                    <td class="text-center">{{ eval.pregunta_1|default:'-' }}</td>
+                    <td class="text-center">{{ eval.pregunta_2|default:'-' }}</td>
+                    <td class="text-center">{{ eval.pregunta_3|default:'-' }}</td>
+                    <td class="text-center">{{ eval.pregunta_4|default:'-' }}</td>
+                    <td class="text-center">{{ eval.pregunta_5|default:'-' }}</td>
+                    <td class="text-center">{{ eval.pregunta_6|default:'-' }}</td>
+                    <td class="text-center">
                        <div class="d-inline-flex gap-1">
                         <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-primary btn-custom" title="Editar"><i class="bi bi-person"></i></a>
                         <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_evaluacion' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-success btn-custom" title="Evaluar"><i class="bi bi-pencil"></i></a>
                         <a href="{% url 'evaluaciones_educativas:fluidez_2026:borrar_registro_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-danger btn-custom" title="Borrar"><i class="bi bi-trash"></i></a>
                       </div> 
-                    </td> {% endcomment %}
+                    </td>
                   </tr>
                   {% empty %}
                   <tr><td colspan="14" class="text-center py-4 text-muted">Use los filtros superiores para cargar la lista.</td></tr>

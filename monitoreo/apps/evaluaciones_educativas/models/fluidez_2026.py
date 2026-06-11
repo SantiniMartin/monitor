@@ -93,9 +93,9 @@ class AlumnoFluidez2026(models.Model):
 	dni = models.CharField(max_length=8,unique=True,null=True,blank=True)
 	nombre = models.CharField(max_length=50)
 	apellido = models.CharField(max_length=50)
-	comunidad_indigena=models.CharField(max_length=11, choices= OPCIONES_COMUNIDAD_INDIGENA, blank=True)
-	discapacidad = models.CharField(choices=OPCIONES_DISCAPACIDAD, blank=True)
-	seccion = models.ForeignKey(SeccionFluidez2026, on_delete=models.CASCADE)
+	comunidad_indigena=models.CharField(max_length=11, choices= OPCIONES_COMUNIDAD_INDIGENA, blank=True,null=True
+	discapacidad = models.CharField(choices=OPCIONES_DISCAPACIDAD, blank=True,null=True)
+	seccion = models.ForeignKey(SeccionFluidez2026, on_delete=models.CASCADE,null=True)
 	class Meta:
 		#managed = False
 		db_table = '"fluidez_2026"."alumnos"'
@@ -159,3 +159,30 @@ class TablaTemporalAplicadores(models.Model):
 
 	def str(self):
 		return f"{self.nombre_apellido} - {self.cuil}"
+	
+
+class TablaTemporalAlumnoFluidez2026(models.Model):
+    # NOTA: Django necesita obligatoriamente un campo primary_key.
+    # Si la tabla no tiene una clave primaria explícita, puedes usar uno de los 
+    # campos existentes (como numero_de_documento si es único) o definir un campo ficticio.
+    # Usamos primary_key=True en el documento asumiendo que te servirá para identificar filas.
+    numero_de_documento = models.CharField(max_length=20, primary_key=True, db_column='numero_de_documento')
+
+    cueanexo = models.CharField(max_length=15, null=True, blank=True)
+    nombre_institucion = models.CharField(max_length=255, null=True, blank=True)
+    nivel = models.CharField(max_length=100, null=True, blank=True)
+    tipo_documento = models.CharField(max_length=250, null=True, blank=True)
+    apellido = models.CharField(max_length=250, null=True, blank=True)
+    nombre = models.CharField(max_length=250, null=True, blank=True)
+    titulacion = models.CharField(max_length=255, null=True, blank=True)
+    anio = models.CharField(max_length=50, null=True, blank=True)
+    seccion = models.CharField(max_length=250, null=True, blank=True)
+    estado_inscripcion = models.CharField(max_length=100, null=True, blank=True)
+    ciclo_lectivo = models.CharField(max_length=50, null=True, blank=True)
+
+    class Meta:
+        managed = False  # <--- Evita que Django cree o modifique la tabla
+        db_table = '"fluidez_2026"."tabla_temporal_alumno"'  # <--- Esquema y tabla
+
+    def str(self):
+        return f"{self.apellido}, {self.nombre} - {self.numero_de_documento}"

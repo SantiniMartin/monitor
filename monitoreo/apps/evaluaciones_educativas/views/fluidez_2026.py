@@ -42,11 +42,43 @@ from django.contrib import messages
 # 		   }
 # 	return render(request, "fluidez_2026/inicio.html",contexto)
 
-
-#TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
-# @login_required
 def lista(request):
 	cuil=27308542489
+	grado=None
+	evaluacion=None
+	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
+	grado_form=GradoFluidez2026ViewForm()
+	if request.method == 'POST':
+		with transaction.atomic():
+			if cueanexo_form.is_valid():
+				cueanexo=cueanexo_form.cleaned_data["cueanexo"]
+				grado_form=GradoFluidez2026ViewForm(request.POST, cueanexo=cueanexo)
+				if grado_form.is_valid():
+					grado_public_id=grado_form.cleaned_data["grado"]
+					if grado_public_id:
+						grado=GradoFluidez2026.objects.get(public_id=grado_public_id)
+						if grado.nombre_grado == '2do Año/Grado':
+							nombre_grado='2do Grado/Año'
+						else:
+							nombre_grado='3er Grado/Año'
+						alumnos=TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo=cueanexo, anio=nombre_grado)
+						print(f'ACA{grado.nombre_grado}')
+						#evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos)
+					#return redirect("evaluaciones_educativas:fluidez_2026:lista",grado_public_id=grado)
+	contexto={'cueanexo_form':cueanexo_form,
+		   'grado_form':grado_form,
+		   'grado':grado,
+		   'alumnos':alumnos
+		   }
+	print(cueanexo)
+	print(alumnos)
+	print(grado.nombre_grado)
+	return render(request, "fluidez_2026/lista.html",contexto)
+#TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
+# @login_required
+def lista_examen(request):
+	cuil=27308542489
+	#2731748768
 	grado=None
 	evaluacion=None
 	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
@@ -63,7 +95,6 @@ def lista(request):
 						alumnos=AlumnoFluidez2026.objects.filter(seccion__grado=grado)
 						print(f'ACA{alumnos}')
 						evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos)
-						
 					#return redirect("evaluaciones_educativas:fluidez_2026:lista",grado_public_id=grado)
 	contexto={'cueanexo_form':cueanexo_form,
 		   'grado_form':grado_form,
