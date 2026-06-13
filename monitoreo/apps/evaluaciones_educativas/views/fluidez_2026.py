@@ -46,6 +46,7 @@ def lista(request):
 	cuil=27308542489
 	grado=None
 	evaluacion=None
+	alumnos_qs = None
 	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
 	grado_form=GradoFluidez2026ViewForm()
 	if request.method == 'POST':
@@ -61,18 +62,35 @@ def lista(request):
 							nombre_grado='2do Grado/Año'
 						else:
 							nombre_grado='3er Grado/Año'
-						alumnos=TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo=cueanexo, anio=nombre_grado)
+						if cueanexo:
+							lista_dnis = list(
+								TablaTemporalAlumnoFluidez2026.objects
+								.filter(cueanexo=cueanexo,anio=nombre_grado)
+								.values_list('numero_de_documento', flat=True)
+							)
+							print(lista_dnis)
+							lista = list(
+								AlumnoFluidez2026.objects
+								.filter(~Q(dni__in=lista_dnis),seccion__grado__Establecimiento__cueanexo=int(cueanexo))
+								.select_related('seccion__año', 'seccion__año__Establecimiento')
+								.values_list('dni', flat=True)
+							)
+							lista_dnis.extend(lista)
+							print(lista_dnis)
+							alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
+							print(f'------------{alumnos_qs}')
+							alumnos=TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo=cueanexo, anio=nombre_grado)
 						print(f'ACA{grado.nombre_grado}')
 						#evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos)
 					#return redirect("evaluaciones_educativas:fluidez_2026:lista",grado_public_id=grado)
 	contexto={'cueanexo_form':cueanexo_form,
 		   'grado_form':grado_form,
 		   'grado':grado,
-		   'alumnos':alumnos
+		   'alumnos':alumnos_qs
 		   }
-	print(cueanexo)
-	print(alumnos)
-	print(grado.nombre_grado)
+	# print(cueanexo)
+	# print(alumnos)
+	# print(grado.nombre_grado)
 	return render(request, "fluidez_2026/lista.html",contexto)
 #TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
 # @login_required
@@ -148,22 +166,32 @@ def carga_alumno(request):
 # @login_required
 def editar_alumno(request,alumno_public_id):
 	instancia_alumno=get_object_or_404(AlumnoFluidez2026,public_id=alumno_public_id)
-	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=instancia_alumno.seccion_id)
-	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
+	print(instancia_alumno)
+	alumno_datos=get_object_or_404(TablaTemporalAlumnoFluidez2026,numero_de_documento=instancia_alumno.dni)
+	print(alumno_datos.cueanexo)
+	print(alumno_datos.anio)
+	if alumno_datos.anio == '2do Grado/Año':
+		nombre_grado='2do Año/Grado'
+	else:
+		nombre_grado='3er Año/Grado'
+	#secciones=SeccionFluidez2026.objects.filter(grado__nombre_grado=alumno_datos.anio,grado__cueanexo=alumno_datos.cueanexo)
+	instancia_grado=get_object_or_404(GradoFluidez2026,cueanexo=alumno_datos.cueanexo,nombre_grado=nombre_grado)
+	# instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
 	alumno_form = AlumnoFluidez2026Form(instance=instancia_alumno)
-	seccion_form = SeccionFluidez2026Form(instance=instancia_seccion)
+	print('hola')
+	seccion_form = SeccionFluidez2026Form(cueanexo=alumno_datos.cueanexo,nombre_grado=nombre_grado)
 	grado_form = GradoFluidez2026Form(instance=instancia_grado)
 	if request.method == 'POST':
 		alumno_form = AlumnoFluidez2026Form(request.POST, instance=instancia_alumno)
 		grado_form = GradoFluidez2026Form(request.POST, instance=instancia_grado)
-		seccion_form = SeccionFluidez2026Form(request.POST, instance=instancia_seccion)
+		seccion_form = SeccionFluidez2026Form(request.POST, cueanexo=alumno_datos.cueanexo,nombre_grado=nombre_grado)
 		if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
 			with transaction.atomic():
-				nombre_grado=grado_form.cleaned_data["nombre_grado"]
-				cueanexo_grado=grado_form.cleaned_data["cueanexo"]
+				#nombre_grado=grado_form.cleaned_data["nombre_grado"]
+				#cueanexo_grado=grado_form.cleaned_data["cueanexo"]
 				instancia_grado, creado_grado=GradoFluidez2026.objects.get_or_create(
 					nombre_grado=nombre_grado,
-					cueanexo=cueanexo_grado
+					cueanexo=alumno_datos.cueanexo
 					)
 				turno_seccion=seccion_form.cleaned_data["turno"]
 				nombre_seccion=seccion_form.cleaned_data["seccion"]
@@ -175,7 +203,7 @@ def editar_alumno(request,alumno_public_id):
 				alumno = alumno_form.save(commit=False)
 				alumno.seccion = instancia_seccion
 				alumno.save()
-			return redirect("evaluaciones_educativas:fluidez_2026:editar_asistencia", alumno_public_id=alumno.public_id)
+			return redirect("evaluaciones_educativas:fluidez_2025:editar_asistencia", alumno_public_id=alumno.public_id)
 	context = {
 		'alumno_form': alumno_form,
 		 'grado_form': grado_form,

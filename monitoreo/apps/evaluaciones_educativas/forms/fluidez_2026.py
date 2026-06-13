@@ -148,11 +148,11 @@ class GradoFluidez2026Form(forms.ModelForm):
 		fields=['nombre_grado','cueanexo']
 		#ocultamos cueanexo
 		widgets = {
-			'cueanexo': forms.NumberInput(
-				attrs={
-					'readonly':'readonly'
-				}
-			),
+			# 'cueanexo': forms.NumberInput(
+			# 	attrs={
+			# 		'readonly':'readonly'
+			# 	}
+			# ),
 			'nombre_grado': forms.TextInput(
 				attrs={
 					'readonly':'readonly'
@@ -162,16 +162,40 @@ class GradoFluidez2026Form(forms.ModelForm):
 	#solucion para evitar no seleccionar un unique desde el form	
 
 
-class SeccionFluidez2026Form(forms.ModelForm):
-	class Meta:
-		model = SeccionFluidez2026
-		fields=['seccion','turno']
-		widgets = {
-			'seccion': forms.Select(
-				attrs={'required': 'true'}),
-				'turno': forms.Select(
-				attrs={'required': 'true'})
-				}
+class SeccionFluidez2026Form(forms.Form):
+	# class Meta:
+	# 	model = SeccionFluidez2026
+	# 	fields=['seccion','turno']
+	# 	widgets = {
+	# 		'seccion': forms.Select(
+	# 			attrs={'required': 'true'}),
+	# 			'turno': forms.Select(
+	# 			attrs={'required': 'true'})
+	# 			}
+	seccion_turno = forms.ChoiceField(
+        choices=[('', '--- Seleccionar turno y sección ---')], # Aquí asignas las opciones
+        label='SELECCIONE TURNO Y SECCIÓN', 
+        required=False,
+        widget=forms.Select
+    )
+	def __init__(self, *args, **kwargs):
+		print('aca')
+		# Extraemos el CUIL de los argumentos
+		cueanexo = kwargs.pop('cueanexo', None)
+		nombre_grado = kwargs.pop('nombre_grado', None)
+		super().__init__(*args, **kwargs)
+		if cueanexo and nombre_grado:
+			#cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
+			qs =SeccionFluidez2026.objects.filter(grado__cueanexo=cueanexo, grado__nombre_grado=nombre_grado).values_list('id','seccion','turno')
+			print(f'acaaa{qs}')
+			choices_seccion_turno = [
+					('', '---SELECCIONE TURNO Y SECCIÓN-----'),
+					]
+			for i in qs:
+				print(i)
+				choices_seccion_turno.append((i[0], (f'Sección: {i[1]} Turno: {i[2]}')))
+				print(f'oo{choices_seccion_turno}')
+			self.fields['seccion_turno'].choices = choices_seccion_turno
 	
 	
 class BorrarRegistroAlumnoForm(forms.Form):

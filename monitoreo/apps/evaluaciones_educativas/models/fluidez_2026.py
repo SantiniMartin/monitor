@@ -66,8 +66,8 @@ class SeccionFluidez2026(models.Model):
 	('DOBLE', 'Doble'),
 	]
 	public_id = models.UUIDField(default=uuid.uuid4,editable=False,unique=True)
-	seccion = models.CharField(max_length=5, choices=OPCIONES_SECCION, blank=True)
-	turno = models.CharField(max_length=6, choices=OPCIONES_TURNO, blank=True )
+	seccion = models.CharField(max_length=20, choices=OPCIONES_SECCION, blank=True)
+	turno = models.CharField(max_length=20, choices=OPCIONES_TURNO, blank=True )
 	grado = models.ForeignKey(GradoFluidez2026, on_delete=models.CASCADE)
 	class Meta:
 		#managed = False
@@ -90,10 +90,10 @@ class AlumnoFluidez2026(models.Model):
 	('NO', 'Ninguna'),
 ]
 	public_id = models.UUIDField(default=uuid.uuid4,editable=False,unique=True)
-	dni = models.CharField(max_length=8,unique=True,null=True,blank=True)
+	dni = models.CharField(max_length=10,unique=True,null=True,blank=True)
 	nombre = models.CharField(max_length=50)
 	apellido = models.CharField(max_length=50)
-	comunidad_indigena=models.CharField(max_length=11, choices= OPCIONES_COMUNIDAD_INDIGENA, blank=True,null=True
+	comunidad_indigena=models.CharField(max_length=11, choices= OPCIONES_COMUNIDAD_INDIGENA, blank=True,null=True)
 	discapacidad = models.CharField(choices=OPCIONES_DISCAPACIDAD, blank=True,null=True)
 	seccion = models.ForeignKey(SeccionFluidez2026, on_delete=models.CASCADE,null=True)
 	class Meta:
