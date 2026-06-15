@@ -15,6 +15,8 @@ from openpyxl import Workbook
 #from apps.consultasge.models import CapaUnicaOfertas
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
+from django.urls import reverse
+from urllib.parse import urlencode # Necesario para armar los parámetros de la URL
 
 
 # @login_required
@@ -44,9 +46,9 @@ from django.contrib import messages
 
 def lista(request):
 	cuil=27308542489
-	grado=None
-	evaluacion=None
 	alumnos_qs = None
+	qs_secciones=None
+	grado=None
 	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
 	grado_form=GradoFluidez2026ViewForm()
 	if request.method == 'POST':
@@ -62,36 +64,119 @@ def lista(request):
 							nombre_grado='2do Grado/Año'
 						else:
 							nombre_grado='3er Grado/Año'
-						if cueanexo:
-							lista_dnis = list(
-								TablaTemporalAlumnoFluidez2026.objects
-								.filter(cueanexo=cueanexo,anio=nombre_grado)
-								.values_list('numero_de_documento', flat=True)
-							)
-							print(lista_dnis)
-							lista = list(
-								AlumnoFluidez2026.objects
-								.filter(~Q(dni__in=lista_dnis),seccion__grado__Establecimiento__cueanexo=int(cueanexo))
-								.select_related('seccion__año', 'seccion__año__Establecimiento')
-								.values_list('dni', flat=True)
-							)
-							lista_dnis.extend(lista)
-							print(lista_dnis)
-							alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
-							print(f'------------{alumnos_qs}')
-							alumnos=TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo=cueanexo, anio=nombre_grado)
-						print(f'ACA{grado.nombre_grado}')
-						#evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos)
-					#return redirect("evaluaciones_educativas:fluidez_2026:lista",grado_public_id=grado)
-	contexto={'cueanexo_form':cueanexo_form,
+						lista_dnis = list(
+							TablaTemporalAlumnoFluidez2026.objects
+							.filter(cueanexo=cueanexo,anio=nombre_grado)
+							.values_list('numero_de_documento', flat=True)
+						)
+						lista = list(
+							AlumnoFluidez2026.objects
+							.filter(~Q(dni__in=lista_dnis),seccion__grado__Establecimiento__cueanexo=int(cueanexo))
+							.select_related('seccion__año', 'seccion__año__Establecimiento')
+							.values_list('dni', flat=True)
+						)
+						lista_dnis.extend(lista)
+						alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
+						#--------------logica de secciones-------
+						qs_secciones = SeccionFluidez2026.objects.filter(
+							grado__cueanexo=cueanexo
+						)
+	# else:
+	# 	grado=GradoFluidez2026.objects.get(public_id=grado)
+	# 	if grado.nombre_grado == '2do Año/Grado':
+	# 		nombre_grado='2do Grado/Año'
+	# 	else:
+	# 		nombre_grado='3er Grado/Año'
+	# 	lista_dnis = list(
+	# 	TablaTemporalAlumnoFluidez2026.objects
+	# 	.filter(cueanexo=cueanexo,anio=nombre_grado)
+	# 	.values_list('numero_de_documento', flat=True)
+	# 	)
+	# 	lista = list(
+	# 	AlumnoFluidez2026.objects
+	# 	.filter(~Q(dni__in=lista_dnis),seccion__grado__Establecimiento__cueanexo=int(cueanexo))
+	# 	.select_related('seccion__año', 'seccion__año__Establecimiento')
+	# 	.values_list('dni', flat=True)
+	# 	)
+	# 	lista_dnis.extend(lista)
+	# 	alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
+	# 	#--------------logica de secciones-------
+	# 	qs_secciones = SeccionFluidez2026.objects.filter(
+	# 	grado__cueanexo=cueanexo
+	# 	)
+	contexto={
+			'cueanexo_form':cueanexo_form,
 		   'grado_form':grado_form,
 		   'grado':grado,
-		   'alumnos':alumnos_qs
+		   'alumnos':alumnos_qs,
+		   'secciones_turnos_disponibles': qs_secciones,
+		   'opciones_comunidad_indigena': AlumnoFluidez2026.OPCIONES_COMUNIDAD_INDIGENA,
+		   'opciones_discapacidad':       AlumnoFluidez2026.OPCIONES_DISCAPACIDAD,   
 		   }
-	# print(cueanexo)
-	# print(alumnos)
-	# print(grado.nombre_grado)
 	return render(request, "fluidez_2026/lista.html",contexto)
+
+#-----------logica de actualizar seccion-------------------
+#@login_required
+def actualizar_seccion(request, alumno_public_id):
+	"""Actualiza la sección, turno, comunidad_indigena y discapacidad de un alumno."""
+	if request.method == 'POST':
+		print(alumno_public_id)
+		alumno = get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
+
+		grado = request.POST.get('grado')
+		nueva_seccion_turno_public_id = request.POST.get('seccion_turno')
+		comunidad     = request.POST.get('comunidad_indigena')
+		discapacidad  = request.POST.get('discapacidad')
+
+		# Actualizar sección y turno
+		if nueva_seccion_turno_public_id:
+			if alumno.seccion:
+					cueanexo = alumno.seccion.grado.cueanexo
+					print(cueanexo)
+			else:
+					cueanexo = request.POST.get('cueanexo')
+					print(cueanexo)
+					
+			#grado_actual = GradoFluidez2026.objects.get(cueanexo=cueanexo)
+			seccion_obj = SeccionFluidez2026.objects.get(
+					public_id=nueva_seccion_turno_public_id
+			)
+			alumno.seccion = seccion_obj
+
+		# Actualizar comunidad indígena (solo valores válidos)
+		valores_comunidad = [v for v, _ in AlumnoFluidez2026.OPCIONES_COMUNIDAD_INDIGENA]
+		if comunidad in valores_comunidad:
+			alumno.comunidad_indigena = comunidad
+
+		# Actualizar discapacidad (solo valores válidos)
+		valores_discapacidad = [v for v, _ in AlumnoFluidez2026.OPCIONES_DISCAPACIDAD]
+		if discapacidad in valores_discapacidad:
+			alumno.discapacidad = discapacidad
+
+		alumno.save()
+		base_url = reverse('evaluaciones_educativas:fluidez_2026:lista') # <-- Cambia esto por el name de tu url real
+			
+		# 4. Creamos los query parameters (?cueanexo=x&grado=y)
+		query_kwargs = {}
+		if cueanexo: query_kwargs['cueanexo'] = cueanexo
+		if grado: query_kwargs['grado'] = grado
+		
+		query_string = urlencode(query_kwargs)
+		url_final = f"{base_url}?{query_string}"
+	#url = reverse('evaluaciones_educativas:diagnostico_2026:inicio')
+		return redirect(url_final)
+# 	return redirect(f"{url}?cueanexo={selected_cue}")
+
+#------------------fin logica de actualizar seccion-------------------
+
+
+
+
+
+
+
+
+
 #TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
 # @login_required
 def lista_examen(request):

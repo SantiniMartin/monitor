@@ -12,6 +12,7 @@ urlpatterns = [
     # path('',fluidez_2026.grado, name='grados'),
 	path('',fluidez_2026.lista, name='lista'),
     path('lista_examen',fluidez_2026.lista_examen, name='lista_examen'),
+    path('actualizar_seccion/<uuid:alumno_public_id>/', fluidez_2026.actualizar_seccion, name='actualizar_seccion'),
     # path('lista_grado/<str:grado>',fluidez_2026.lista_grado, name='lista_grado'),
 	# path('asistencia/<uuid:alumno_public_id>/',fluidez_2026.asistencia, name='asistencia'),
 	path('editar_asistencia/<uuid:alumno_public_id>/',fluidez_2026.editar_asistencia, name='editar_asistencia'),

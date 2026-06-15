@@ -26,7 +26,7 @@ class CueanexoFluidez2026ViewForm(forms.Form):
 					]
 			for i in qs:
 				choices_cueanexo.append((i.cueanexo, i.cueanexo))
-				print(choices_cueanexo)
+				#print(choices_cueanexo)
 			self.fields['cueanexo'].choices = choices_cueanexo
 
 class GradoFluidez2026ViewForm(forms.Form):
@@ -46,7 +46,7 @@ class GradoFluidez2026ViewForm(forms.Form):
 			for i in qs:
 				choices_grado.append((i.public_id, i.nombre_grado))
 			self.fields['grado'].choices = choices_grado
-			print(f'aca2{choices_grado}')
+			#print(f'aca2{choices_grado}')
 
 class SeccionFluidez2026ViewForm(forms.Form):
 	seccion = forms.ChoiceField(label='secciones', required=False)
@@ -179,7 +179,7 @@ class SeccionFluidez2026Form(forms.Form):
         widget=forms.Select
     )
 	def __init__(self, *args, **kwargs):
-		print('aca')
+		#print('aca')
 		# Extraemos el CUIL de los argumentos
 		cueanexo = kwargs.pop('cueanexo', None)
 		nombre_grado = kwargs.pop('nombre_grado', None)
@@ -187,14 +187,14 @@ class SeccionFluidez2026Form(forms.Form):
 		if cueanexo and nombre_grado:
 			#cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
 			qs =SeccionFluidez2026.objects.filter(grado__cueanexo=cueanexo, grado__nombre_grado=nombre_grado).values_list('id','seccion','turno')
-			print(f'acaaa{qs}')
+			#print(f'acaaa{qs}')
 			choices_seccion_turno = [
 					('', '---SELECCIONE TURNO Y SECCIÓN-----'),
 					]
 			for i in qs:
-				print(i)
+				#print(i)
 				choices_seccion_turno.append((i[0], (f'Sección: {i[1]} Turno: {i[2]}')))
-				print(f'oo{choices_seccion_turno}')
+				#print(f'oo{choices_seccion_turno}')
 			self.fields['seccion_turno'].choices = choices_seccion_turno
 	
 	
