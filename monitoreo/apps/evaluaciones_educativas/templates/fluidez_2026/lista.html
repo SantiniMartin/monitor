@@ -270,6 +270,9 @@
                             {% csrf_token %}
                             <input type="hidden" name="cueanexo" value="{{ grado.cueanexo }}">
                             <input type="hidden" name="grado" value="{{ grado.public_id }}">
+                            {% if fid_actual %}
+                                <input type="hidden" name="fid" value="{{ fid_actual }}">
+                            {% endif %}
                             
                             <button type="submit" class="btn btn-success btn-sm btn-confirmar" title="Confirmar datos">
                                 ✔ Confirmar
@@ -289,11 +292,14 @@
         </div>
 
         <div class="d-flex justify-content-between">
+          <a href="https://visoreducativochaco.com.ar/" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+              <i class="bi bi-file-me-2"></i> Visor
+            </a>
           {% if grado.public_id %}
            <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno' %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
               <i class="bi bi-file-me-2"></i> Carga alumno
             </a>
-            <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+            <a href="{% url 'evaluaciones_educativas:fluidez_2026:lista_examen' %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
               <i class="bi bi-journal-plus"></i> Carga Exámenes
             </a>
             <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
@@ -305,28 +311,122 @@
     </div>
 
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const filterForm = document.getElementById("filter-form");
-        const selectCueanexo = document.getElementById("cueanexo-select");
-        const radiosGrado = filterForm.querySelectorAll('input[type="radio"]');
-        const btnSubmit = document.getElementById("btn-submit-filter");
+document.addEventListener("DOMContentLoaded", function () {
+    // ==========================================
+    // 1. LÓGICA DE VALIDACIÓN DEL FILTRO
+    // ==========================================
+    const filterForm = document.getElementById("filter-form");
+    const selectCueanexo = document.getElementById("cueanexo-select");
+    const radiosGrado = filterForm.querySelectorAll('input[type="radio"]');
+    const btnSubmit = document.getElementById("btn-submit-filter");
 
-        function validarFiltros() {
-            if (!selectCueanexo) return;
-            
-            const cueOk = selectCueanexo.value.trim() !== "" && selectCueanexo.value !== "None";
-            const gradoOk = Array.from(radiosGrado).some(r => r.checked);
-            
+    function validarFiltros() {
+        if (!selectCueanexo) return;
+        
+        const cueOk = selectCueanexo.value.trim() !== "" && selectCueanexo.value !== "None";
+        const gradoOk = Array.from(radiosGrado).some(r => r.checked);
+        
+        if (!document.body.classList.contains('cargando')) {
             btnSubmit.disabled = !(cueOk && gradoOk);
         }
+    }
 
-        if (selectCueanexo) {
-            selectCueanexo.addEventListener("change", validarFiltros);
+    if (selectCueanexo) {
+        selectCueanexo.addEventListener("change", validarFiltros);
+    }
+    radiosGrado.forEach(r => r.addEventListener("change", validarFiltros));
+    validarFiltros();
+
+
+    // ==========================================
+    // 2. LÓGICA DE BLOQUEO Y SPINNER
+    // ==========================================
+    function activarEstadoDeCarga(elementoActivo) {
+        document.body.classList.add('cargando');
+
+        // Bloquear selects e inputs
+        document.querySelectorAll('select, input').forEach(input => {
+            input.style.pointerEvents = 'none';
+            input.style.opacity = '0.7';
+        });
+
+        // Bloquear todos los botones y enlaces
+        document.querySelectorAll('button, a.btn').forEach(elem => {
+            if (elem.tagName === 'BUTTON') elem.disabled = true;
+            if (elem.tagName === 'A') {
+                elem.classList.add('disabled');
+                elem.style.pointerEvents = 'none';
+            }
+        });
+
+        // Activar spinner en el elemento clickeado
+        if (elementoActivo) {
+            // Guardamos el texto original en un atributo de datos oculto antes de borrarlo
+            if (!elementoActivo.dataset.htmlOriginal) {
+                elementoActivo.dataset.htmlOriginal = elementoActivo.innerHTML;
+            }
+            
+            const anchoActual = elementoActivo.offsetWidth;
+            if (anchoActual > 0) {
+                elementoActivo.style.width = anchoActual + 'px';
+            }
+            elementoActivo.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...';
         }
-        
-        radiosGrado.forEach(r => r.addEventListener("change", validarFiltros));
-        validarFiltros();
-      });
+    }
+
+    // Interceptar formularios
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function () {
+            const btnSubmitLocal = this.querySelector('button[type="submit"]');
+            activarEstadoDeCarga(btnSubmitLocal);
+        });
+    });
+
+    // Interceptar enlaces
+    document.querySelectorAll('a.btn').forEach(link => {
+        link.addEventListener('click', function (e) {
+            if (this.classList.contains('disabled') || document.body.classList.contains('cargando')) {
+                e.preventDefault();
+                return;
+            }
+            activarEstadoDeCarga(this);
+        });
+    });
+    
+    // ==========================================
+    // 3. LA MAGIA PARA EL BOTÓN "ATRÁS"
+    // ==========================================
+    window.addEventListener('pageshow', function (event) {
+        // event.persisted es true si el navegador sacó la página de la caché (Atrás/Adelante)
+        if (event.persisted) {
+            document.body.classList.remove('cargando');
+
+            // Restaurar inputs y selects
+            document.querySelectorAll('select, input').forEach(input => {
+                input.style.pointerEvents = 'auto';
+                input.style.opacity = '1';
+            });
+
+            // Restaurar botones y enlaces a su texto/estado original
+            document.querySelectorAll('button, a.btn').forEach(elem => {
+                if (elem.tagName === 'BUTTON') elem.disabled = false;
+                if (elem.tagName === 'A') {
+                    elem.classList.remove('disabled');
+                    elem.style.pointerEvents = 'auto';
+                }
+                
+                // Si este fue el botón que tenía el spinner, le devolvemos su texto
+                if (elem.dataset.htmlOriginal) {
+                    elem.innerHTML = elem.dataset.htmlOriginal;
+                    elem.style.width = ''; // Quitamos el ancho fijo
+                }
+            });
+
+            // Re-evaluamos el botón de filtro inicial por seguridad
+            validarFiltros();
+        }
+    });
+});
     </script>
   </body>
 </html>

@@ -45,127 +45,166 @@ from urllib.parse import urlencode # Necesario para armar los parámetros de la 
 # 	return render(request, "fluidez_2026/inicio.html",contexto)
 
 def lista(request):
-	cuil=27308542489
-	alumnos_qs = None
-	qs_secciones=None
-	grado=None
-	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
-	grado_form=GradoFluidez2026ViewForm()
-	if request.method == 'POST':
-		with transaction.atomic():
-			if cueanexo_form.is_valid():
-				cueanexo=cueanexo_form.cleaned_data["cueanexo"]
-				grado_form=GradoFluidez2026ViewForm(request.POST, cueanexo=cueanexo)
-				if grado_form.is_valid():
-					grado_public_id=grado_form.cleaned_data["grado"]
-					if grado_public_id:
-						grado=GradoFluidez2026.objects.get(public_id=grado_public_id)
-						if grado.nombre_grado == '2do Año/Grado':
-							nombre_grado='2do Grado/Año'
-						else:
-							nombre_grado='3er Grado/Año'
-						lista_dnis = list(
-							TablaTemporalAlumnoFluidez2026.objects
-							.filter(cueanexo=cueanexo,anio=nombre_grado)
-							.values_list('numero_de_documento', flat=True)
-						)
-						lista = list(
-							AlumnoFluidez2026.objects
-							.filter(~Q(dni__in=lista_dnis),seccion__grado__Establecimiento__cueanexo=int(cueanexo))
-							.select_related('seccion__año', 'seccion__año__Establecimiento')
-							.values_list('dni', flat=True)
-						)
-						lista_dnis.extend(lista)
-						alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
-						#--------------logica de secciones-------
-						qs_secciones = SeccionFluidez2026.objects.filter(
-							grado__cueanexo=cueanexo
-						)
-	# else:
-	# 	grado=GradoFluidez2026.objects.get(public_id=grado)
-	# 	if grado.nombre_grado == '2do Año/Grado':
-	# 		nombre_grado='2do Grado/Año'
-	# 	else:
-	# 		nombre_grado='3er Grado/Año'
-	# 	lista_dnis = list(
-	# 	TablaTemporalAlumnoFluidez2026.objects
-	# 	.filter(cueanexo=cueanexo,anio=nombre_grado)
-	# 	.values_list('numero_de_documento', flat=True)
-	# 	)
-	# 	lista = list(
-	# 	AlumnoFluidez2026.objects
-	# 	.filter(~Q(dni__in=lista_dnis),seccion__grado__Establecimiento__cueanexo=int(cueanexo))
-	# 	.select_related('seccion__año', 'seccion__año__Establecimiento')
-	# 	.values_list('dni', flat=True)
-	# 	)
-	# 	lista_dnis.extend(lista)
-	# 	alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
-	# 	#--------------logica de secciones-------
-	# 	qs_secciones = SeccionFluidez2026.objects.filter(
-	# 	grado__cueanexo=cueanexo
-	# 	)
-	contexto={
-			'cueanexo_form':cueanexo_form,
-		   'grado_form':grado_form,
-		   'grado':grado,
-		   'alumnos':alumnos_qs,
-		   'secciones_turnos_disponibles': qs_secciones,
-		   'opciones_comunidad_indigena': AlumnoFluidez2026.OPCIONES_COMUNIDAD_INDIGENA,
-		   'opciones_discapacidad':       AlumnoFluidez2026.OPCIONES_DISCAPACIDAD,   
-		   }
-	return render(request, "fluidez_2026/lista.html",contexto)
+    cuil = 27308542489
+    
+    # 1. Variables por defecto
+    fid_actual = request.GET.get('fid')
+    cueanexo_id = None
+    grado_public_id = None
+
+    alumnos_qs = None
+    qs_secciones = None
+    grado = None
+    
+    # Instanciamos los formularios vacíos
+    cueanexo_form = CueanexoFluidez2026ViewForm(cuil=cuil)
+    grado_form = GradoFluidez2026ViewForm()
+
+    # ==========================================
+    # LÓGICA DE CAPTURA DE DATOS (POST)
+    # ==========================================
+    if request.method == 'POST':
+        # Tomamos los datos tal cual los envió el HTML
+        cueanexo_id = request.POST.get('cueanexo')
+        grado_id = request.POST.get('grado')
+        
+       # 1. Intentamos rescatar el FID que ya tenía la pestaña
+        fid_actual = request.POST.get('fid')
+        
+        # 2. Si no tenía (porque es el primer POST), le generamos uno
+        if not fid_actual:
+            fid_actual = str(uuid.uuid4())[:8]
+            
+        # 3. Guardamos o sobreescribimos los datos en ESA misma carpeta
+        request.session[f"filtro_{fid_actual}"] = {
+            'cueanexo': cueanexo_id,
+            'grado': grado_id
+        }
+        
+        request.session.modified = True
+        
+        # Redirigimos
+        return redirect(f"{request.path}?fid={fid_actual}")
+
+    # ==========================================
+    # LÓGICA DE RECUPERACIÓN (GET)
+    # ==========================================
+    else:
+        if fid_actual:
+            datos_guardados = request.session.get(f"filtro_{fid_actual}")
+            
+            if datos_guardados:
+                # 1. Extraemos los datos CRUDOS directamente de la memoria
+                cueanexo_id = datos_guardados.get('cueanexo')
+                grado_public_id = datos_guardados.get('grado')
+                
+                # 2. Pasamos los datos a los formularios SOLO para que el HTML 
+                # mantenga visualmente seleccionadas las opciones correctas.
+                cueanexo_form = CueanexoFluidez2026ViewForm(datos_guardados, cuil=cuil)
+                if cueanexo_id:
+                    grado_form = GradoFluidez2026ViewForm(datos_guardados, cueanexo=cueanexo_id)
+
+
+    # ==========================================
+    # LÓGICA DE BÚSQUEDA A LA BASE DE DATOS
+    # ==========================================
+    # Esto se ejecutará siempre que tengamos los dos datos, sin depender del .is_valid()
+    if cueanexo_id and grado_public_id:
+        
+        grado = GradoFluidez2026.objects.get(public_id=grado_public_id)
+        
+        if grado.nombre_grado == '2do Año/Grado':
+            nombre_grado = '2do Grado/Año'
+        else:
+            nombre_grado = '3er Grado/Año'
+            
+        lista_dnis = list(
+            TablaTemporalAlumnoFluidez2026.objects
+            .filter(cueanexo=cueanexo_id, anio=nombre_grado)
+            .values_list('numero_de_documento', flat=True)
+        )
+        
+        lista = list(
+            AlumnoFluidez2026.objects
+            .filter(~Q(dni__in=lista_dnis), seccion__grado__Establecimiento__cueanexo=int(cueanexo_id))
+            .select_related('seccion__año', 'seccion__año__Establecimiento')
+            .values_list('dni', flat=True)
+        )
+        
+        lista_dnis.extend(lista)
+        alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
+        
+        qs_secciones = SeccionFluidez2026.objects.filter(
+            grado__cueanexo=cueanexo_id
+        )
+
+    # ==========================================
+    # RENDERIZADO
+    # ==========================================
+    contexto = {
+        'cueanexo_form': cueanexo_form,
+        'grado_form': grado_form,
+        'grado': grado,
+        'alumnos': alumnos_qs,
+        'secciones_turnos_disponibles': qs_secciones,
+        'opciones_comunidad_indigena': AlumnoFluidez2026.OPCIONES_COMUNIDAD_INDIGENA,
+        'opciones_discapacidad': AlumnoFluidez2026.OPCIONES_DISCAPACIDAD,
+        'fid_actual': fid_actual,
+    }
+    
+    return render(request, "fluidez_2026/lista.html", contexto)
 
 #-----------logica de actualizar seccion-------------------
 #@login_required
 def actualizar_seccion(request, alumno_public_id):
-	"""Actualiza la sección, turno, comunidad_indigena y discapacidad de un alumno."""
-	if request.method == 'POST':
-		print(alumno_public_id)
-		alumno = get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
+    """Actualiza la sección, turno, comunidad_indigena y discapacidad de un alumno."""
+    if request.method == 'POST':
+        fid = request.POST.get('fid')
+        
+        # 1. Obtenemos al alumno de forma segura
+        alumno = get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
 
-		grado = request.POST.get('grado')
-		nueva_seccion_turno_public_id = request.POST.get('seccion_turno')
-		comunidad     = request.POST.get('comunidad_indigena')
-		discapacidad  = request.POST.get('discapacidad')
+        nueva_seccion_turno_public_id = request.POST.get('seccion_turno')
+        comunidad = request.POST.get('comunidad_indigena')
+        discapacidad = request.POST.get('discapacidad')
 
-		# Actualizar sección y turno
-		if nueva_seccion_turno_public_id:
-			if alumno.seccion:
-					cueanexo = alumno.seccion.grado.cueanexo
-					print(cueanexo)
-			else:
-					cueanexo = request.POST.get('cueanexo')
-					print(cueanexo)
-					
-			#grado_actual = GradoFluidez2026.objects.get(cueanexo=cueanexo)
-			seccion_obj = SeccionFluidez2026.objects.get(
-					public_id=nueva_seccion_turno_public_id
-			)
-			alumno.seccion = seccion_obj
+        # 2. Actualizar sección y turno
+        if nueva_seccion_turno_public_id:
+            # Usamos get_object_or_404 para evitar crasheos si el ID es inválido
+            seccion_obj = get_object_or_404(SeccionFluidez2026, public_id=nueva_seccion_turno_public_id)
+            alumno.seccion = seccion_obj
+        else:
+            # Si permite desasignar la sección al seleccionar la opción vacía
+            alumno.seccion = None 
 
-		# Actualizar comunidad indígena (solo valores válidos)
-		valores_comunidad = [v for v, _ in AlumnoFluidez2026.OPCIONES_COMUNIDAD_INDIGENA]
-		if comunidad in valores_comunidad:
-			alumno.comunidad_indigena = comunidad
+        # 3. Actualizar comunidad indígena
+        valores_comunidad = [str(v) for v, _ in AlumnoFluidez2026.OPCIONES_COMUNIDAD_INDIGENA]
+        if comunidad in valores_comunidad:
+            alumno.comunidad_indigena = comunidad
+        elif not comunidad: # Si manda vacío, limpiamos el campo (si tu modelo lo permite)
+            alumno.comunidad_indigena = None
 
-		# Actualizar discapacidad (solo valores válidos)
-		valores_discapacidad = [v for v, _ in AlumnoFluidez2026.OPCIONES_DISCAPACIDAD]
-		if discapacidad in valores_discapacidad:
-			alumno.discapacidad = discapacidad
+        # 4. Actualizar discapacidad
+        valores_discapacidad = [str(v) for v, _ in AlumnoFluidez2026.OPCIONES_DISCAPACIDAD]
+        if discapacidad in valores_discapacidad:
+            alumno.discapacidad = discapacidad
+        elif not discapacidad: # Limpiamos si viene vacío
+            alumno.discapacidad = None
 
-		alumno.save()
-		base_url = reverse('evaluaciones_educativas:fluidez_2026:lista') # <-- Cambia esto por el name de tu url real
-			
-		# 4. Creamos los query parameters (?cueanexo=x&grado=y)
-		query_kwargs = {}
-		if cueanexo: query_kwargs['cueanexo'] = cueanexo
-		if grado: query_kwargs['grado'] = grado
-		
-		query_string = urlencode(query_kwargs)
-		url_final = f"{base_url}?{query_string}"
-	#url = reverse('evaluaciones_educativas:diagnostico_2026:inicio')
-		return redirect(url_final)
-# 	return redirect(f"{url}?cueanexo={selected_cue}")
+        # 5. Guardamos cambios
+        alumno.save()
+
+        # 6. Redirección con el token de pestaña
+        base_url = reverse('evaluaciones_educativas:fluidez_2026:lista')
+        
+        if fid:
+            return redirect(f"{base_url}?fid={fid}")
+        
+        return redirect(base_url)
+    
+    # Si por alguna razón entra por GET (alguien teclea la URL directo), 
+    # simplemente lo devolvemos a la lista.
+    return redirect('evaluaciones_educativas:fluidez_2026:lista')
 
 #------------------fin logica de actualizar seccion-------------------
 
@@ -180,32 +219,111 @@ def actualizar_seccion(request, alumno_public_id):
 #TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
 # @login_required
 def lista_examen(request):
-	cuil=27308542489
-	#2731748768
-	grado=None
-	evaluacion=None
-	cueanexo_form=CueanexoFluidez2026ViewForm(request.POST or None,cuil=cuil)
-	grado_form=GradoFluidez2026ViewForm()
-	if request.method == 'POST':
-		with transaction.atomic():
-			if cueanexo_form.is_valid():
-				cueanexo=cueanexo_form.cleaned_data["cueanexo"]
-				grado_form=GradoFluidez2026ViewForm(request.POST, cueanexo=cueanexo)
-				if grado_form.is_valid():
-					grado_public_id=grado_form.cleaned_data["grado"]
-					if grado_public_id:
-						grado=GradoFluidez2026.objects.get(public_id=grado_public_id)
-						alumnos=AlumnoFluidez2026.objects.filter(seccion__grado=grado)
-						print(f'ACA{alumnos}')
-						evaluacion=EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos)
-					#return redirect("evaluaciones_educativas:fluidez_2026:lista",grado_public_id=grado)
-	contexto={'cueanexo_form':cueanexo_form,
-		   'grado_form':grado_form,
-		   'grado':grado,
-		   'evaluaciones':evaluacion
-		   }
-	print(evaluacion)
-	return render(request, "fluidez_2026/lista.html",contexto)
+    cuil = 27308542489
+    
+    # 1. Variables por defecto
+    fid_actual = request.GET.get('fid')
+    cueanexo_id = None
+    grado_public_id = None
+
+    alumnos_qs = None
+    qs_secciones = None
+    grado = None
+    
+    # Instanciamos los formularios vacíos
+    cueanexo_form = CueanexoFluidez2026ViewForm(cuil=cuil)
+    grado_form = GradoFluidez2026ViewForm()
+
+    # ==========================================
+    # LÓGICA DE CAPTURA DE DATOS (POST)
+    # ==========================================
+    if request.method == 'POST':
+        # Tomamos los datos tal cual los envió el HTML
+        cueanexo_id = request.POST.get('cueanexo')
+        grado_id = request.POST.get('grado')
+        
+       # 1. Intentamos rescatar el FID que ya tenía la pestaña
+        fid_actual = request.POST.get('fid')
+        
+        # 2. Si no tenía (porque es el primer POST), le generamos uno
+        if not fid_actual:
+            fid_actual = str(uuid.uuid4())[:8]
+            
+        # 3. Guardamos o sobreescribimos los datos en ESA misma carpeta
+        request.session[f"filtro_{fid_actual}"] = {
+            'cueanexo': cueanexo_id,
+            'grado': grado_id
+        }
+        
+        request.session.modified = True
+        
+        # Redirigimos
+        return redirect(f"{request.path}?fid={fid_actual}")
+
+    # ==========================================
+    # LÓGICA DE RECUPERACIÓN (GET)
+    # ==========================================
+    else:
+        if fid_actual:
+            datos_guardados = request.session.get(f"filtro_{fid_actual}")
+            
+            if datos_guardados:
+                # 1. Extraemos los datos CRUDOS directamente de la memoria
+                cueanexo_id = datos_guardados.get('cueanexo')
+                grado_public_id = datos_guardados.get('grado')
+                
+                # 2. Pasamos los datos a los formularios SOLO para que el HTML 
+                # mantenga visualmente seleccionadas las opciones correctas.
+                cueanexo_form = CueanexoFluidez2026ViewForm(datos_guardados, cuil=cuil)
+                if cueanexo_id:
+                    grado_form = GradoFluidez2026ViewForm(datos_guardados, cueanexo=cueanexo_id)
+
+
+    # ==========================================
+    # LÓGICA DE BÚSQUEDA A LA BASE DE DATOS
+    # ==========================================
+    # Esto se ejecutará siempre que tengamos los dos datos, sin depender del .is_valid()
+    if cueanexo_id and grado_public_id:
+        
+        grado = GradoFluidez2026.objects.get(public_id=grado_public_id)
+        
+        if grado.nombre_grado == '2do Año/Grado':
+            nombre_grado = '2do Grado/Año'
+        else:
+            nombre_grado = '3er Grado/Año'
+            
+        lista_dnis = list(
+            TablaTemporalAlumnoFluidez2026.objects
+            .filter(cueanexo=cueanexo_id, anio=nombre_grado)
+            .values_list('numero_de_documento', flat=True)
+        )
+        
+        lista = list(
+            AlumnoFluidez2026.objects
+            .filter(~Q(dni__in=lista_dnis), seccion__grado__Establecimiento__cueanexo=int(cueanexo_id))
+            .select_related('seccion__año', 'seccion__año__Establecimiento')
+            .values_list('dni', flat=True)
+        )
+        
+        lista_dnis.extend(lista)
+        alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
+        
+        qs_secciones = SeccionFluidez2026.objects.filter(
+            grado__cueanexo=cueanexo_id
+        )
+
+    # ==========================================
+    # RENDERIZADO
+    # ==========================================
+    contexto = {
+        'cueanexo_form': cueanexo_form,
+        'grado_form': grado_form,
+        'grado': grado,
+        'alumnos': alumnos_qs,
+        'fid_actual': fid_actual,
+    }
+    
+    return render(request, "fluidez_2026/lista.html", contexto)
 
 #TODO MEJORAR LOGICA
 def carga_alumno(request):
