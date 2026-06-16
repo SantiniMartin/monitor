@@ -77,10 +77,57 @@
           <button type="submit" class="btn btn-success btn-custom w-100 mt-3">
             Guardar Registro
           </button>
+          {% comment %} <input type="hidden" name="cueanexo" value="{{ alumno.seccion.grado.cueanexo }}">
+          <input type="hidden" name="grado" value="{{ alumno.seccion.grado.public_id }}"> {% endcomment %}
+          {% if fid_actual %}
+              <input type="hidden" name="fid" value="{{ fid_actual }}">
+          {% endif %}
         </form>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Obtenemos el campo de asistencia (Django le asigna el prefijo 'id_')
+        const asistenciaSelect = document.getElementById('id_asistencia');
+        
+        // Lista de los IDs de los campos que queremos ocultar/limpiar
+        const camposAdicionales = [
+          'id_cantidad_palabras_leidas',
+          'id_pregunta_1', 'id_pregunta_2', 'id_pregunta_3',
+          'id_pregunta_4', 'id_pregunta_5', 'id_pregunta_6'
+        ];
+
+        function toggleCampos() {
+          // ¡OJO ACÁ! Verificá qué valor exacto tiene "Ausente" en tu modelo. 
+          // Si en tu modelo dice choices=[('A', 'Ausente')], acá tenés que poner 'A'.
+          const esAusente = asistenciaSelect.value === 'AUSENTE';
+
+          camposAdicionales.forEach(function(id) {
+            const campo = document.getElementById(id);
+            if (campo) {
+              const pContainer = campo.closest('p');
+
+              if (esAusente) {
+                if (pContainer) pContainer.style.display = 'none';
+                campo.disabled = true;  // <--- ESTO ES LA CLAVE. Apaga la validación de HTML5
+              } else {
+                if (pContainer) pContainer.style.display = 'block';
+                campo.disabled = false; // Lo vuelve a habilitar si cambia a Presente
+                campo.setAttribute('required', 'true');
+              }
+            }
+          });
+        }
+
+        if (asistenciaSelect) {
+          // Ejecutar al cargar la vista (por si viene preseleccionado o se recarga con errores)
+          toggleCampos();
+          // Escuchar cada cambio en el desplegable
+          asistenciaSelect.addEventListener('change', toggleCampos);
+        }
+      });
+    </script>
   </body>
 </html>

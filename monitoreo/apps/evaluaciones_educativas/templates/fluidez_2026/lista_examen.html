@@ -205,7 +205,9 @@
                 </form>
             </div>
           </div>
-
+           {% if fid_actual %}
+              <input type="hidden" name="fid" value="{{ fid_actual }}">
+          {% endif %}
           <div class="card-body">
             <div class="table-responsive">
               <table class="table table-striped table-hover align-middle table-fixed">
@@ -224,27 +226,37 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for eval in evaluaciones %}
+                  {% for alum in alumnos %}
                   <tr>
-                    <td><strong>{{ eval.alumno.nombre }}</strong></td>
-                    <td>{{ eval.alumno.apellido }}</td>
-                    <td>{{ eval.alumno.dni }}</td>
-                    <td>{{ eval.alumno.seccion.seccion }}</td>
-                    <td>{{ eval.alumno.seccion.turno }}</td>
-                    <td class="text-center">{{ eval.asistencia }}</td>
-                    <td class="text-center">{{ eval.cantidad_palabras_leidas|default:'-' }}</td>
-                    <td class="text-center">{{ eval.pregunta_1|default:'-' }}</td>
-                    <td class="text-center">{{ eval.pregunta_2|default:'-' }}</td>
-                    <td class="text-center">{{ eval.pregunta_3|default:'-' }}</td>
-                    <td class="text-center">{{ eval.pregunta_4|default:'-' }}</td>
-                    <td class="text-center">{{ eval.pregunta_5|default:'-' }}</td>
-                    <td class="text-center">{{ eval.pregunta_6|default:'-' }}</td>
+                    <td><strong>{{ alum.nombre }}</strong></td>
+                    <td>{{ alum.apellido }}</td>
+                    <td>{{ alum.dni }}</td>
+                    <td>{{ alum.seccion.seccion|default:'-'  }}</td>
+                    <td>{{ alum.seccion.turno |default:'-' }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.asistencia|default:'-'  }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.cantidad_palabras_leidas|default:'-' }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.pregunta_1|default:'-' }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.pregunta_2|default:'-' }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.pregunta_3|default:'-' }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.pregunta_4|default:'-' }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.pregunta_5|default:'-' }}</td>
+                    <td class="text-center">{{ alum.evaluacionfluidezlectorafluidez2026.pregunta_6|default:'-' }}</td>
                     <td class="text-center">
+                      {% if alum.seccion.seccion and not alum.evaluacionfluidezlectorafluidez2026.asistencia %} 
                        <div class="d-inline-flex gap-1">
-                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-primary btn-custom" title="Editar"><i class="bi bi-person"></i></a>
-                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_evaluacion' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-success btn-custom" title="Evaluar"><i class="bi bi-pencil"></i></a>
-                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:borrar_registro_alumno' alumno_public_id=eval.alumno.public_id %}" class="btn btn-outline-danger btn-custom" title="Borrar"><i class="bi bi-trash"></i></a>
+                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_evaluacion' alumno_public_id=alum.public_id fid_actual=fid_actual  %}" class="btn btn-outline-primary btn-custom" title="Evaluar"><i class="bi bi-file-earmark-plus"></i></a>
+                        
+                        {% comment %} <a href="{% url 'evaluaciones_educativas:fluidez_2026:borrar_registro_alumno' alumno_public_id=alum.public_id fid_actual=fid_actual %}" class="btn btn-outline-danger btn-custom" title="Borrar Evaluación"><i class="bi bi-trash"></i></a> {% endcomment %}
+                      </div>
+                      {% endif %}
+                      {% if alum.evaluacionfluidezlectorafluidez2026.asistencia %} 
+                        <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_evaluacion' alumno_public_id=alum.public_id fid_actual=fid_actual %}" class="btn btn-outline-success btn-custom" title="Editar Evaluación"><i class="bi bi-pencil"></i></a>
+                      {% comment %} {%else%}
+                      <div class="d-inline-flex gap-1">
+                       <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_alumno' alumno_public_id=alum.public_id fid_actual=fid_actual %}" class="btn btn-outline-primary btn-custom" title="Editar"><i class="bi bi-person"></i></a>
                       </div> 
+                      {% endif %} {% endcomment %}
+                       {% endif %}
                     </td>
                   </tr>
                   {% empty %}
@@ -262,12 +274,13 @@
             <i class="bi bi-person-plus-fill me-2"></i>Añadir Alumno
           </a>
           {% endcomment %}
+          
           {% if grado.public_id %}
-           <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno' %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+           {% comment %} <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno' %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
               <i class="bi bi-file-me-2"></i>carga alumno
-            </a>
-            <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
-              <i class="bi bi-journal-plus"></i>Carga Examenes
+            </a> {% endcomment %}
+            <a href="{% url 'evaluaciones_educativas:fluidez_2026:lista' %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+              <i class="bi bi-journal-plus"></i>Volver listado secciones
             </a>
             <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
               <i class="bi bi-file-earmark-excel me-2"></i>Exportar Excel

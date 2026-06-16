@@ -8,11 +8,11 @@ from psycopg2 import extras
 
 class CueanexoFluidez2026ViewForm(forms.Form):
 	cueanexo = forms.ChoiceField(
-        choices=[('', '--- Seleccionar ---')], # Aquí asignas las opciones
-        label='SELECCIONE UN CUEANEXO', 
-        required=False,
-        widget=forms.Select
-    )
+		choices=[('', '--- Seleccionar ---')], # Aquí asignas las opciones
+		label='SELECCIONE UN CUEANEXO', 
+		required=False,
+		widget=forms.Select
+	)
 	def __init__(self, *args, **kwargs):
 		# Extraemos el CUIL de los argumentos
 		cuil = kwargs.pop('cuil', None)
@@ -31,8 +31,8 @@ class CueanexoFluidez2026ViewForm(forms.Form):
 
 class GradoFluidez2026ViewForm(forms.Form):
 	# OPCIONES_CUEANEXO = [
-    #     ('', '---'),
-    # ]
+	#     ('', '---'),
+	# ]
 	grado= forms.ChoiceField(label='SELECCIONE UN GRADO', required=False, widget=forms.RadioSelect(
 		))
 	def __init__(self, *args, **kwargs):
@@ -112,8 +112,10 @@ class AsistenciaFluidez2026Form(forms.Form):
 class EvaluacionFluidez2026Form(forms.ModelForm):
 	class Meta:
 		model= EvaluacionFluidezLectoraFluidez2026
-		fields=['cantidad_palabras_leidas','pregunta_1','pregunta_2','pregunta_3','pregunta_4' ,'pregunta_5','pregunta_6']
+		fields=['asistencia','cantidad_palabras_leidas','pregunta_1','pregunta_2','pregunta_3','pregunta_4' ,'pregunta_5','pregunta_6']
 		widgets = {
+			'asistencia': forms.Select(
+				attrs={'required': 'true'}),
 			'cantidad_palabras_leidas': forms.NumberInput(attrs={
 			'min':'0',
 			'placeholder':'INGRESA LA CANTIDAD DE PALABRAS LEIDAS'
@@ -131,7 +133,6 @@ class EvaluacionFluidez2026Form(forms.ModelForm):
 			'pregunta_6': forms.Select(
 				attrs={'required': 'true'})
 			}
-		
 	def __init__(self, *args, max_cantidad_palabra=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		if max_cantidad_palabra is not None:
@@ -141,6 +142,28 @@ class EvaluacionFluidez2026Form(forms.ModelForm):
 			# **Importante:** Establece el atributo HTML 'max' para el frontend
 			self.fields['cantidad_palabras_leidas'].widget.attrs['max'] = max_cantidad_palabra
 			self.fields['cantidad_palabras_leidas'].widget.attrs['placeholder'] = f'Máx. {max_cantidad_palabra}'
+		if self.is_bound and self.data.get('asistencia') == 'AUSENTE':
+			campos_dependientes = [
+				'cantidad_palabras_leidas', 'pregunta_1', 'pregunta_2', 
+				'pregunta_3', 'pregunta_4', 'pregunta_5', 'pregunta_6'
+			]
+			for campo in campos_dependientes:
+				self.fields[campo].required = False
+	def clean(self):
+		cleaned_data = super().clean()
+		asistencia = cleaned_data.get('asistencia')
+
+		if asistencia == 'AUSENTE':
+			campos_dependientes = [
+				'cantidad_palabras_leidas', 'pregunta_1', 'pregunta_2', 
+				'pregunta_3', 'pregunta_4', 'pregunta_5', 'pregunta_6'
+			]
+			for campo in campos_dependientes:
+				cleaned_data[campo] = None  # Fuerza el guardado a null
+				if campo in self._errors:
+					del self._errors[campo]
+
+		return cleaned_data
 
 class GradoFluidez2026Form(forms.ModelForm):
 	class Meta:
@@ -173,11 +196,11 @@ class SeccionFluidez2026Form(forms.Form):
 	# 			attrs={'required': 'true'})
 	# 			}
 	seccion_turno = forms.ChoiceField(
-        choices=[('', '--- Seleccionar turno y sección ---')], # Aquí asignas las opciones
-        label='SELECCIONE TURNO Y SECCIÓN', 
-        required=False,
-        widget=forms.Select
-    )
+		choices=[('', '--- Seleccionar turno y sección ---')], # Aquí asignas las opciones
+		label='SELECCIONE TURNO Y SECCIÓN', 
+		required=False,
+		widget=forms.Select
+	)
 	def __init__(self, *args, **kwargs):
 		#print('aca')
 		# Extraemos el CUIL de los argumentos
@@ -614,11 +637,11 @@ class Grado_selec_2026_Form(forms.Form):
 #     db_params = conexion_bd()
 #     conn = None
 #     cueanexos = []
-    
+	
 #     # 1. Limpieza de parámetros
 #     s = sector.strip() if (sector and str(sector).strip()) else None
 #     a = ambito.strip() if (ambito and str(ambito).strip()) else None
-    
+	
 #     # Filtro base obligatorio
 #     oferta_val = '%Común - Primaria de 7 años%'
 
@@ -626,7 +649,7 @@ class Grado_selec_2026_Form(forms.Form):
 #         conn = psycopg2.connect(**db_params)
 #         with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
 #             query_base = "SELECT cueanexo FROM v_capa_unica_ofertas"
-            
+			
 #             # 2. Construcción dinámica de condiciones (Sin Región)
 #             condiciones = ["oferta ILIKE %s"]
 #             parametros = [oferta_val]
@@ -634,7 +657,7 @@ class Grado_selec_2026_Form(forms.Form):
 #             if s and s!='TODOS':
 #                 condiciones.append("TRIM(sector) ILIKE %s")
 #                 parametros.append(s)
-            
+			
 #             if a and a!='TODOS':
 #                 # Se mantiene el % para capturar variantes de Ámbito (Urbano/Rural)
 #                 condiciones.append("TRIM(ambito) ILIKE %s")
@@ -650,7 +673,7 @@ class Grado_selec_2026_Form(forms.Form):
 #             cur.execute(query_final, parametros)
 #             cueanexos_bd = cur.fetchall()
 #             cueanexos = [fila['cueanexo'] for fila in cueanexos_bd]
-            
+			
 #     except Exception as error:
 #         print(f"Error en la consulta: {error}")
 #     finally:
