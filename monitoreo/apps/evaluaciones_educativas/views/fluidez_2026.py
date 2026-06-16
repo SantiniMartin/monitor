@@ -125,10 +125,11 @@ def lista(request,fid_actual=None):
 			.values_list('numero_de_documento', flat=True)
 		)
 		print(lista_dnis)
-		
+		print(cueanexo_id)
+		print(nombre_grado)
 		lista = list(
 			AlumnoFluidez2026.objects
-			.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(cueanexo_id),seccion__grado__nombre_grado=nombre_grado)
+			.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(cueanexo_id),seccion__grado__nombre_grado=grado.nombre_grado)
 			.values_list('dni', flat=True)
 		)
 		print('-'*50)
@@ -141,7 +142,6 @@ def lista(request,fid_actual=None):
 		qs_secciones = SeccionFluidez2026.objects.filter(
 			grado__public_id=grado.public_id
 		)
-
 	# ==========================================
 	# RENDERIZADO
 	# ==========================================
@@ -331,31 +331,28 @@ def lista_examen(request,fid_actual=None):
 	return render(request, "fluidez_2026/lista_examen.html", contexto)
 
 #TODO MEJORAR LOGICA
-def carga_alumno(request,fid_actual):
+def carga_alumno(request,fid_actual,grado_public_id):
 	cuil = 27308542489
-	#grado=get_object_or_404(GradoFluidez2026)
+	print(grado_public_id)
+	grado=get_object_or_404(GradoFluidez2026, public_id=grado_public_id)
 	alumno_form = AlumnoFluidez2026Form()
 	# grado_form = GradoFluidez2026Form(instance=grado)
 	grado_form = None
-	seccion_form = SeccionFluidez2026Form()
+	seccion_form = SeccionFluidez2026Form(cueanexo=grado.cueanexo,nombre_grado=grado.nombre_grado)
 	if request.method == 'POST':
 		alumno_form = AlumnoFluidez2026Form(request.POST)
-		grado_form = GradoFluidez2026Form(request.POST)
-		seccion_form = SeccionFluidez2026Form(request.POST,cuil=cuil)
-		if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
+		#grado_form = GradoFluidez2026Form(request.POST)
+		seccion_form = SeccionFluidez2026Form(request.POST, cueanexo=grado.cueanexo,nombre_grado=grado.nombre_grado)
+		# if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
+		if alumno_form.is_valid() and seccion_form.is_valid():
 		   #una instancia a la vez
 			with transaction.atomic():
-				turno_seccion=seccion_form.cleaned_data["turno"]
-				nombre_seccion=seccion_form.cleaned_data["seccion"]
+				seccion_turno_id=seccion_form.cleaned_data["seccion_turno"]
+				print(seccion_turno_id)
 				instancia_seccion, creado_seccion = SeccionFluidez2026.objects.get_or_create(
-				seccion=nombre_seccion,
-				turno=turno_seccion
+				id=seccion_turno_id,
+				grado=grado
 				)
-				# instancia_seccion, creado_seccion = SeccionFluidez2026.objects.get_or_create(
-				# seccion=nombre_seccion,
-				# turno=turno_seccion,
-				# grado=grado
-				# )
 				
 				alumno = alumno_form.save(commit=False)
 				alumno.seccion = instancia_seccion

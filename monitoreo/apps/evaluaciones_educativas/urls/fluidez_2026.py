@@ -5,7 +5,7 @@ app_name = 'fluidez_2026'
 
 urlpatterns = [
 	#path('',fluidez_2026.inicio, name= 'inicio'),
-    path('carga_alumno/<str:fid_actual>/',fluidez_2026.carga_alumno, name= 'carga_alumno'),
+    path('carga_alumno/<str:fid_actual>/<uuid:grado_public_id>',fluidez_2026.carga_alumno, name= 'carga_alumno'),
     path('editar_alumno/<uuid:alumno_public_id>/<str:fid_actual>/',fluidez_2026.editar_alumno, name= 'editar_alumno'),
 	path('carga_evaluacion/<uuid:alumno_public_id>/<str:fid_actual>/',fluidez_2026.carga_evaluacion, name= 'carga_evaluacion'),
 	path('editar_evaluacion/<uuid:alumno_public_id>/<str:fid_actual>/',fluidez_2026.editar_evaluacion, name= 'editar_evaluacion'),

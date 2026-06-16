@@ -171,11 +171,11 @@ class GradoFluidez2026Form(forms.ModelForm):
 		fields=['nombre_grado','cueanexo']
 		#ocultamos cueanexo
 		widgets = {
-			# 'cueanexo': forms.NumberInput(
-			# 	attrs={
-			# 		'readonly':'readonly'
-			# 	}
-			# ),
+			'cueanexo': forms.NumberInput(
+				attrs={
+					'readonly':'readonly'
+				}
+			),
 			'nombre_grado': forms.TextInput(
 				attrs={
 					'readonly':'readonly'
