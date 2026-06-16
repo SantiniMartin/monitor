@@ -98,7 +98,7 @@ def lista(request,fid_actual=None):
 				# 1. Extraemos los datos CRUDOS directamente de la memoria
 				cueanexo_id = datos_guardados.get('cueanexo')
 				grado_public_id = datos_guardados.get('grado')
-				
+				print(f'cue:{cueanexo_id}, grado{grado_public_id}')
 				# 2. Pasamos los datos a los formularios SOLO para que el HTML 
 				# mantenga visualmente seleccionadas las opciones correctas.
 				cueanexo_form = CueanexoFluidez2026ViewForm(datos_guardados, cuil=cuil)
@@ -124,16 +124,19 @@ def lista(request,fid_actual=None):
 			.filter(cueanexo=cueanexo_id, anio=nombre_grado)
 			.values_list('numero_de_documento', flat=True)
 		)
+		print(lista_dnis)
 		
 		lista = list(
 			AlumnoFluidez2026.objects
-			.filter(~Q(dni__in=lista_dnis), seccion__grado__Establecimiento__cueanexo=int(cueanexo_id))
-			.select_related('seccion__año', 'seccion__año__Establecimiento')
+			.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(cueanexo_id),seccion__grado__nombre_grado=nombre_grado)
 			.values_list('dni', flat=True)
 		)
+		print('-'*50)
+		print(lista)
 		
 		lista_dnis.extend(lista)
 		alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
+		print(alumnos_qs)
 		
 		qs_secciones = SeccionFluidez2026.objects.filter(
 			grado__public_id=grado.public_id
@@ -303,8 +306,7 @@ def lista_examen(request,fid_actual=None):
 		
 		lista = list(
 			AlumnoFluidez2026.objects
-			.filter(~Q(dni__in=lista_dnis), seccion__grado__Establecimiento__cueanexo=int(cueanexo_id))
-			.select_related('seccion__año', 'seccion__año__Establecimiento')
+			.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(cueanexo_id),seccion__grado__nombre_grado=nombre_grado)
 			.values_list('dni', flat=True)
 		)
 		
@@ -623,8 +625,11 @@ def editar_evaluacion(request, alumno_public_id, fid_actual):
 			with transaction.atomic():
 				evaluacion=form.save(commit=False)
 				evaluacion.alumno_id = alumno_id
-				evaluacion.asistencia='PRESENTE'
 				evaluacion.encargado_carga='DIRECTOR'
+				if form.cleaned_data["asistencia"] == 'AUSENTE':
+					evaluacion=ausentismo_evaluacion(instancia_evaluacion)
+				else:
+					evaluacion.asistencia='PRESENTE'
 				evaluacion.save()
 			return redirect("evaluaciones_educativas:fluidez_2026:lista_examen", fid_actual=fid_actual)
 	context = {
