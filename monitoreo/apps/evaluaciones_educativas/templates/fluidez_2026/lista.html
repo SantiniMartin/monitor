@@ -5,11 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lista de Evaluación</title>
 
+    <!-- Preconectar a Google Fonts para mayor velocidad -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Fuente Inter (Estándar en UI/UX) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
     <style>
       body {
+        font-family: 'Inter', sans-serif;
         background: linear-gradient(135deg, #eef2ff, #ffffff);
         min-height: 100vh;
         padding: 30px;
@@ -35,7 +42,13 @@
         padding: 20px;
       }
 
-      h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 15px; text-align: center; }
+      h1 { 
+        font-size: 1.5rem; 
+        font-weight: 700; 
+        margin-bottom: 15px; 
+        text-align: center;
+        letter-spacing: -0.5px;
+      }
 
       /* FILTRO HORIZONTAL */
       .header-controls {
@@ -49,8 +62,9 @@
         color: #ffffff;
         margin-bottom: 0;
         margin-right: 10px;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
+        letter-spacing: 0.8px;
         white-space: nowrap;
       }
 
@@ -65,13 +79,6 @@
         height: 38px !important;
         font-size: 0.9rem;
         min-width: 200px;
-      }
-
-      .form-check-label {
-        color: white;
-        font-weight: 500;
-        cursor: pointer;
-        font-size: 0.9rem;
       }
 
       .divider-vertical {
@@ -97,66 +104,190 @@
         transform: scale(1.05);
       }
 
-      /* TABLA ESTILOS */
-      .table-fixed { table-layout: fixed; width: 100%; }
+      /* TABLA ESTILOS Y STICKY HEADER */
+      .table-container {
+        max-height: 65vh; 
+        overflow-y: auto;
+        overflow-x: auto; 
+        -webkit-overflow-scrolling: touch; 
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      }
+      
+      .table-fixed { 
+        table-layout: fixed; 
+        width: 100%; 
+        min-width: 1050px; 
+        margin-bottom: 0; 
+        font-size: 0.9rem;
+      }
+      
+      .table-fixed thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: #212529; 
+        box-shadow: inset 0 -1px 0 #373b3e; 
+      }
+
       .table-fixed th, .table-fixed td {
         white-space: normal;
         overflow-wrap: break-word;
-        padding: 0.5rem 0.3rem;
+        padding: 0.7rem 0.5rem;
+        vertical-align: middle;
       }
 
-      /* ANCHOS DE COLUMNAS */
-      .table-fixed th:nth-child(1), .table-fixed td:nth-child(1) { width: 10%; }
-      .table-fixed th:nth-child(2), .table-fixed td:nth-child(2) { width: 10%; }
-      .table-fixed th:nth-child(3), .table-fixed td:nth-child(3) { width: 8%; }
-      .table-fixed th:nth-child(4), .table-fixed td:nth-child(4) { width: 10%; }
-      .table-fixed th:nth-child(5), .table-fixed td:nth-child(5) { width: 10%; }
-      .table-fixed th:nth-child(6), .table-fixed td:nth-child(6) { width: 10%; }
-      .table-fixed th:nth-child(7), .table-fixed td:nth-child(7) { width: 12%; }
+      .numeros-tabulares { font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+
+      /* ESTILOS PARA ENCABEZADOS ORDENABLES */
+      th.sortable { cursor: pointer; user-select: none; }
+      .sort-wrapper { display: inline-flex; align-items: center; }
+      .sort-arrows { display: inline-flex; flex-direction: column; margin-left: 6px; gap: 2px; }
+      .arrow-up { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid rgba(255, 255, 255, 0.3); }
+      .arrow-down { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid rgba(255, 255, 255, 0.3); }
+      th.sortable.asc .arrow-up { border-bottom-color: #ffffff; }
+      th.sortable.desc .arrow-down { border-top-color: #ffffff; }
+
+      /* SELECTS SUTILES */
+      .select-subtle {
+        border-color: transparent;
+        background-color: transparent;
+        padding-left: 2px;
+        transition: all 0.2s ease-in-out;
+        box-shadow: none !important;
+        font-weight: 500;
+        font-size: 0.85rem;
+      }
+      .select-subtle:hover, .select-subtle:focus {
+        border-color: #ced4da;
+        background-color: #fff;
+        padding-left: 8px;
+      }
+
+      .table-fixed th:nth-child(1), .table-fixed td:nth-child(1) { width: 12%; }
+      .table-fixed th:nth-child(2), .table-fixed td:nth-child(2) { width: 12%; }
+      .table-fixed th:nth-child(3), .table-fixed td:nth-child(3) { width: 10%; }
+      .table-fixed th:nth-child(4), .table-fixed td:nth-child(4) { width: 15%; }
+      .table-fixed th:nth-child(5), .table-fixed td:nth-child(5) { width: 15%; }
+      .table-fixed th:nth-child(6), .table-fixed td:nth-child(6) { width: 14%; }
+      .table-fixed th:nth-child(7), .table-fixed td:nth-child(7) { width: 7%; }
       .table-fixed th:nth-child(8), .table-fixed td:nth-child(8) { width: 10%; }
-
       .bg-alumno { background-color: #007bff !important; color: white; }
-      .bg-comprension { background-color: #28a745 !important; }
-      .btn-custom { border-radius: 8px; font-weight: 600; padding: 0.2rem 0.3rem; font-size: 0.7rem; }
 
+      /* SIDEBAR ORIGINAL DESKTOP */
       #sidebar-wrapper {
-        width: 70px; transition: width 0.35s ease; overflow: hidden;
+        width: 70px; transition: width 0.35s ease, transform 0.35s ease; overflow: hidden;
         background: #0a58ca; color: white; position: fixed;
-        top: 0; left: 0; height: 100%; z-index: 1030; padding-top: 20px;
+        top: 0; left: 0; height: 100%; z-index: 1040; padding-top: 20px;
       }
       #sidebar-wrapper:hover { width: 280px; }
       #content-area { margin-left: 90px; transition: margin-left 0.35s ease; }
+      
+      /* Botón flotante móvil (oculto en desktop) */
+      #btn-mobile-toggle { display: none; }
+
+      /* =========================================================
+         AJUSTES RESPONSIVOS (CELULARES Y TABLETS)
+         ========================================================= */
+      @media (max-width: 992px) {
+        body { padding: 15px 10px; }
+        .card-header { padding: 15px; }
+        h1 { font-size: 1.3rem; margin-top: 20px; }
+        
+        #sidebar-wrapper {
+            transform: translateX(-100%); 
+            width: 250px;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+        }
+        #sidebar-wrapper.expanded {
+            transform: translateX(0); 
+        }
+        #sidebar-wrapper:hover { width: 250px; }
+        #content-area { margin-left: 0; }
+        
+        #btn-mobile-toggle { 
+            display: block; 
+            position: fixed; 
+            top: 15px; 
+            left: 15px; 
+            z-index: 1050; 
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .filter-group {
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .header-controls select { width: 100%; }
+        .divider-vertical { display: none; }
+        .btn-header-submit { width: 100%; margin-top: 5px; }
+        
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        .action-buttons > a {
+            flex: 1 1 calc(50% - 10px); 
+            text-align: center;
+            padding: 10px !important;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .action-buttons > a i { margin-bottom: 4px; margin-right: 0 !important; font-size: 1.2rem; }
+      }
     </style>
   </head>
 
   <body>
-    {% for message in messages %}
-      {% if forloop.first %}
-        <div class="d-flex justify-content-center">
-            <div class="alert alert-danger text-center w-50 mt-4 shadow-sm">
-                {{ message }}
-            </div>
-        </div>
-      {% endif %}
-    {% endfor %}
 
+    <!-- BOTÓN FLOTANTE MÓVIL PARA EL SIDEBAR -->
+    <button id="btn-mobile-toggle" class="btn btn-primary">
+        <i class="bi bi-list fs-4"></i>
+    </button>
+
+    <!-- CONTENEDOR DE TOASTS -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1060;">
+      {% for message in messages %}
+        <div class="toast align-items-center text-bg-{% if message.tags == 'error' %}danger{% else %}success{% endif %} border-0 show shadow" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body fw-medium">
+              <i class="bi {% if message.tags == 'error' %}bi-exclamation-octagon{% else %}bi-check-circle{% endif %} me-2"></i>
+              {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- SIDEBAR -->
     <div id="sidebar-wrapper">
-      <ul class="nav flex-column px-2">
+      <div class="text-end pe-3 pt-2 d-lg-none">
+          <button id="btn-close-sidebar" class="btn text-white fs-4 p-0 border-0 shadow-none">
+              <i class="bi bi-x-lg"></i>
+          </button>
+      </div>
+      <ul class="nav flex-column px-2 mt-2">
         <li class="nav-item">
-          {% comment %} <a href="{% url 'directores:institucional'%}" class="nav-link text-white">
-            <i class="bi bi-house-door"></i> <span class="ms-2"></span>
-          </a> {% endcomment %}
         </li>
       </ul>
     </div>
 
+    <!-- ÁREA DE CONTENIDO -->
     <div id="content-area">
       <div class="container container-custom">
         <div class="card mb-4">
           <div class="card-header">
             <h1>Evaluación de Fluidez y Comprensión Lectora</h1> 
             
-            <div class="header-controls">
+            <div class="header-controls shadow-sm">
                 <form method="POST" id="filter-form" class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     {% csrf_token %}
                     
@@ -169,22 +300,22 @@
                       </select>
                     </div>
 
-                    <div class="divider-vertical d-none d-md-block"></div>
+                    <div class="divider-vertical d-none d-lg-block"></div>
 
                     <div class="filter-group">
                       <label class="section-title">Grado</label>
-                      <div class="radio-list text-center">
+                      <div class="radio-list text-center text-lg-start" style="font-size: 0.9rem;">
                         {% if grado_form %}
                           {% for eleccion in grado_form.grado %}
                             {{ eleccion }}
                           {% endfor %}
                         {% else %}
-                          <p class="text-muted small mb-0">Selecciona un Cueanexo para ver los grados.</p>
+                          <p class="text-white-50 small mb-0">Selecciona un Cueanexo para ver los grados.</p>
                         {% endif %}
                       </div>
                     </div> 
 
-                    <div class="divider-vertical d-none d-md-block"></div>
+                    <div class="divider-vertical d-none d-lg-block"></div>
 
                     <button type="submit" id="btn-submit-filter" class="btn btn-header-submit" disabled>
                       <i class="bi bi-search"></i> Buscar
@@ -194,36 +325,85 @@
           </div>
 
           <div class="card-body">
-            <div class="table-responsive">
-              <h4 class="text-center bg-alumno py-2 mb-0" style="font-size: 1rem; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-                <i class="bi bi-eye"></i> VISUALIZANDO | CUEANEXO: {{ grado.cueanexo }}  GRADO: {{ grado.nombre_grado }}
-              </h4>  
-              
-              <table class="table table-striped table-hover align-middle table-fixed mb-0">
+            
+            <!-- PANEL DE CONTROL UNIFICADO -->
+            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
+                
+                <!-- Buscador -->
+                <div class="w-100" style="max-width: 400px;">
+                    {% if alumnos %}
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="buscador-alumnos" class="form-control border-start-0 ps-0" placeholder="Buscar alumno...">
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="action-buttons gap-2">
+                    <a href="https://visoreducativochaco.com.ar/" class="btn btn-outline-secondary px-3 fw-semibold shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-display"></i> Visor
+                    </a>
+                    
+                    {% if grado.public_id %}
+                    <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-3 fw-semibold shadow-sm text-white" style="border-radius: 10px;">
+                        <i class="bi bi-file-earmark-excel"></i> Exportar
+                    </a>
+                    
+                    <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno'  fid_actual=fid_actual grado_public_id=grado.public_id%}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-person-plus"></i> Cargar Alumno
+                    </a>
+                    
+                    <a href="{% url 'evaluaciones_educativas:fluidez_2026:lista_examen' %}" class="btn btn-primary px-4 fw-bold shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-journal-check me-1"></i> Exámenes
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TÍTULO DE VISUALIZACIÓN (Ahora está fuera del contenedor con scroll para que no se rompa) -->
+            {% if alumnos %}
+            <div class="bg-alumno text-white text-center py-2 px-3" style="font-size: 0.95rem; font-weight: 600; letter-spacing: 0.5px; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+              <i class="bi bi-eye me-1"></i> VISUALIZANDO | CUEANEXO: {{ grado.cueanexo }} <br class="d-md-none"> GRADO: {{ grado.nombre_grado }}
+            </div>  
+            {% endif %}
+
+            <!-- CONTENEDOR CON SCROLL PARA LA TABLA -->
+            <div class="table-container" style="{% if alumnos %}border-top-left-radius: 0; border-top-right-radius: 0;{% endif %}">
+              <table class="table table-striped table-hover align-middle table-fixed mb-0" id="tabla-alumnos">
                 <thead class="table-dark">
                   <tr>
-                    <th colspan="8" class="text-center bg-alumno">Datos del Alumno</th>
-                  </tr>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Apellido</th>
-                    <th>DNI</th>
-                    <th>Sección y Turno</th> 
-                    <th>Comunidad Indígena</th>
-                    <th>Discapacidad</th>
-                    <th class="text-center bg-alumno">Acciones</th>
-                    <th class="text-center bg-alumno">Confirmar</th>
+                    <th class="sortable" data-sort="nombre" title="Ordenar por Nombre">
+                        <div class="sort-wrapper">Nombre <div class="sort-arrows"><div class="arrow-up"></div><div class="arrow-down"></div></div></div>
+                    </th>
+                    <th class="sortable" data-sort="apellido" title="Ordenar por Apellido">
+                        <div class="sort-wrapper">Apellido <div class="sort-arrows"><div class="arrow-up"></div><div class="arrow-down"></div></div></div>
+                    </th>
+                    <th class="sortable" data-sort="dni" title="Ordenar por DNI">
+                        <div class="sort-wrapper">DNI <div class="sort-arrows"><div class="arrow-up"></div><div class="arrow-down"></div></div></div>
+                    </th>
+                    <th class="sortable" data-sort="seccion_turno" title="Ordenar por Sección y Turno">
+                        <div class="sort-wrapper">Sección y Turno <div class="sort-arrows"><div class="arrow-up"></div><div class="arrow-down"></div></div></div>
+                    </th> 
+                    <th class="sortable" data-sort="comunidad_indigena" title="Ordenar por Comunidad Indígena">
+                        <div class="sort-wrapper">Comunidad Indigena <div class="sort-arrows"><div class="arrow-up"></div><div class="arrow-down"></div></div></div>
+                    </th>
+                    <th class="sortable" data-sort="discapacidad" title="Ordenar por Discapacidad">
+                        <div class="sort-wrapper">Discapacidad <div class="sort-arrows"><div class="arrow-up"></div><div class="arrow-down"></div></div></div>
+                    </th>
+                    <th class="text-center">Editar</th>
+                    <th class="text-center text-warning">Guardar</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for alum in alumnos %}
-                  <tr>
-                    <td><strong>{{ alum.nombre }}</strong></td>
-                    <td>{{ alum.apellido }}</td>
-                    <td>{{ alum.dni }}</td>
+                  <tr class="fila-alumno" data-nombre="{{ alum.nombre }}" data-apellido="{{ alum.apellido }}" data-dni="{{ alum.dni }}">
+                    <td class="fw-semibold text-dark">{{ alum.nombre }}</td>
+                    <td class="text-secondary">{{ alum.apellido }}</td>
+                    <td class="text-secondary numeros-tabulares">{{ alum.dni }}</td>
                     
                     <td>
-                      <select form="form-alumno-{{ forloop.counter }}" name="seccion_turno" class="form-select form-select-sm select-inline">
+                      <select form="form-alumno-{{ forloop.counter }}" name="seccion_turno" class="form-select form-select-sm select-subtle">
                           <option value="" {% if not alum.seccion %}selected{% endif %}>--- Seleccionar ---</option>
                           {% for valor in secciones_turnos_disponibles %}
                               <option value="{{ valor.public_id}}" {% if alum.seccion == valor %}selected{% endif %}>
@@ -234,7 +414,7 @@
                     </td>
                     
                     <td>
-                        <select form="form-alumno-{{ forloop.counter }}" name="comunidad_indigena" class="form-select form-select-sm select-inline">
+                        <select form="form-alumno-{{ forloop.counter }}" name="comunidad_indigena" class="form-select form-select-sm select-subtle">
                             <option value="" {% if not alum.comunidad_indigena %}selected{% endif %}>--- Seleccionar ---</option>
                             {% for valor, etiqueta in opciones_comunidad_indigena %}
                                 <option value="{{ valor }}" {% if alum.comunidad_indigena == valor %}selected{% endif %}>
@@ -245,7 +425,7 @@
                     </td>
 
                     <td>
-                        <select form="form-alumno-{{ forloop.counter }}" name="discapacidad" class="form-select form-select-sm select-inline">
+                        <select form="form-alumno-{{ forloop.counter }}" name="discapacidad" class="form-select form-select-sm select-subtle">
                             <option value="" {% if not alum.discapacidad %}selected{% endif %}>--- Seleccionar ---</option>
                             {% for valor, etiqueta in opciones_discapacidad %}
                                 <option value="{{ valor }}" {% if alum.discapacidad == valor %}selected{% endif %}>
@@ -256,13 +436,9 @@
                     </td>
 
                     <td class="text-center">
-                       <div class="d-inline-flex gap-1">
                         {% if alum.seccion %}
-                          <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_alumno' alumno_public_id=alum.public_id fid_actual=fid_actual %}" class="btn btn-outline-primary btn-custom" title="Editar"><i class="bi bi-person"></i></a>
+                          <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_alumno' alumno_public_id=alum.public_id fid_actual=fid_actual %}" class="btn btn-outline-primary btn-sm" title="Editar datos del alumno" style="border-radius: 6px;"><i class="bi bi-pencil-square"></i></a>
                         {% endif %}
-                          {% comment %} <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_evaluacion' alumno_public_id=alum.public_id %}" class="btn btn-outline-success btn-custom" title="Evaluar"><i class="bi bi-pencil"></i></a> {% endcomment %}
-                        {% comment %} <a href="{% url 'evaluaciones_educativas:fluidez_2026:borrar_registro_alumno' alumno_public_id=alum.public_id %}" class="btn btn-outline-danger btn-custom" title="Borrar"><i class="bi bi-trash"></i></a> {% endcomment %}
-                      </div> 
                     </td> 
 
                     <td class="text-center">
@@ -274,15 +450,23 @@
                                 <input type="hidden" name="fid" value="{{ fid_actual }}">
                             {% endif %}
                             
-                            <button type="submit" class="btn btn-success btn-sm btn-confirmar" title="Confirmar datos">
-                                ✔ Confirmar
+                            <button type="submit" class="btn btn-warning btn-sm fw-bold shadow-sm" title="Confirmar datos de esta fila" style="border-radius: 6px;">
+                                <i class="bi bi-floppy"></i> Guardar
                             </button>
                         </form>
                     </td>
                   </tr>
                   {% empty %}
                   <tr>
-                    <td colspan="8" class="text-center py-4 text-muted">Use los filtros superiores para cargar la lista.</td>
+                    <td colspan="8" class="text-center py-5">
+                      <div class="d-flex flex-column align-items-center justify-content-center text-muted" style="min-height: 250px;">
+                          <i class="bi bi-inboxes mb-3" style="font-size: 3.5rem; color: #cbd5e1;"></i>
+                          <h5 class="fw-semibold" style="color: #64748b;">No hay alumnos para mostrar</h5>
+                          <p class="mb-0" style="font-size: 0.95rem; max-width: 400px;">
+                              Utilizá los filtros del panel azul superior seleccionando un <strong>Cueanexo</strong> y un <strong>Grado</strong> para cargar la lista.
+                          </p>
+                      </div>
+                    </td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -290,31 +474,32 @@
             </div>
           </div>
         </div>
-
-        <div class="d-flex justify-content-between">
-          <a href="https://visoreducativochaco.com.ar/" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
-              <i class="bi bi-file-me-2"></i> Visor
-            </a>
-          {% if grado.public_id %}
-           <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno'  fid_actual=fid_actual %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
-              <i class="bi bi-file-me-2"></i> Carga alumno
-            </a>
-            <a href="{% url 'evaluaciones_educativas:fluidez_2026:lista_examen' %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
-              <i class="bi bi-journal-plus"></i> Carga Exámenes
-            </a>
-            <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
-              <i class="bi bi-file-earmark-excel me-2"></i> Exportar Excel
-            </a>
-          {% endif %}
-        </div> 
       </div>
     </div>
 
+    <!-- Script Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // ==========================================
+    
+    // INICIALIZAR TOASTS
+    const toastElList = document.querySelectorAll('.toast')
+    const toastList = [...toastElList].map(toastEl => new bootstrap.Toast(toastEl, { delay: 4000 }))
+    toastList.forEach(toast => toast.show());
+
+    // LÓGICA DEL SIDEBAR MOBILE & DESKTOP
+    const sidebar = document.getElementById("sidebar-wrapper");
+    const btnMobileToggle = document.getElementById("btn-mobile-toggle");
+    const btnCloseSidebar = document.getElementById("btn-close-sidebar");
+
+    function toggleMobileSidebar() {
+        sidebar.classList.toggle("expanded");
+    }
+    
+    if(btnMobileToggle) btnMobileToggle.addEventListener("click", toggleMobileSidebar);
+    if(btnCloseSidebar) btnCloseSidebar.addEventListener("click", toggleMobileSidebar);
+
     // 1. LÓGICA DE VALIDACIÓN DEL FILTRO
-    // ==========================================
     const filterForm = document.getElementById("filter-form");
     const selectCueanexo = document.getElementById("cueanexo-select");
     const radiosGrado = filterForm.querySelectorAll('input[type="radio"]');
@@ -337,20 +522,15 @@ document.addEventListener("DOMContentLoaded", function () {
     radiosGrado.forEach(r => r.addEventListener("change", validarFiltros));
     validarFiltros();
 
-
-    // ==========================================
     // 2. LÓGICA DE BLOQUEO Y SPINNER
-    // ==========================================
     function activarEstadoDeCarga(elementoActivo) {
         document.body.classList.add('cargando');
 
-        // Bloquear selects e inputs
         document.querySelectorAll('select, input').forEach(input => {
             input.style.pointerEvents = 'none';
             input.style.opacity = '0.7';
         });
 
-        // Bloquear todos los botones y enlaces
         document.querySelectorAll('button, a.btn').forEach(elem => {
             if (elem.tagName === 'BUTTON') elem.disabled = true;
             if (elem.tagName === 'A') {
@@ -359,22 +539,18 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Activar spinner en el elemento clickeado
         if (elementoActivo) {
-            // Guardamos el texto original en un atributo de datos oculto antes de borrarlo
             if (!elementoActivo.dataset.htmlOriginal) {
                 elementoActivo.dataset.htmlOriginal = elementoActivo.innerHTML;
             }
-            
             const anchoActual = elementoActivo.offsetWidth;
             if (anchoActual > 0) {
                 elementoActivo.style.width = anchoActual + 'px';
             }
-            elementoActivo.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...';
+            elementoActivo.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
         }
     }
 
-    // Interceptar formularios
     document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function () {
             const btnSubmitLocal = this.querySelector('button[type="submit"]');
@@ -382,50 +558,126 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Interceptar enlaces
     document.querySelectorAll('a.btn').forEach(link => {
         link.addEventListener('click', function (e) {
-            if (this.classList.contains('disabled') || document.body.classList.contains('cargando')) {
-                e.preventDefault();
+            if (this.classList.contains('disabled') || document.body.classList.contains('cargando') || this.hasAttribute('data-bs-dismiss') || this.id === 'btn-mobile-toggle' || this.id === 'btn-close-sidebar') {
+                if(this.id !== 'btn-mobile-toggle' && this.id !== 'btn-close-sidebar'){
+                    e.preventDefault();
+                }
                 return;
             }
             activarEstadoDeCarga(this);
         });
     });
     
-    // ==========================================
     // 3. LA MAGIA PARA EL BOTÓN "ATRÁS"
-    // ==========================================
     window.addEventListener('pageshow', function (event) {
-        // event.persisted es true si el navegador sacó la página de la caché (Atrás/Adelante)
         if (event.persisted) {
             document.body.classList.remove('cargando');
 
-            // Restaurar inputs y selects
             document.querySelectorAll('select, input').forEach(input => {
                 input.style.pointerEvents = 'auto';
                 input.style.opacity = '1';
             });
 
-            // Restaurar botones y enlaces a su texto/estado original
             document.querySelectorAll('button, a.btn').forEach(elem => {
                 if (elem.tagName === 'BUTTON') elem.disabled = false;
                 if (elem.tagName === 'A') {
                     elem.classList.remove('disabled');
                     elem.style.pointerEvents = 'auto';
                 }
-                
-                // Si este fue el botón que tenía el spinner, le devolvemos su texto
                 if (elem.dataset.htmlOriginal) {
                     elem.innerHTML = elem.dataset.htmlOriginal;
-                    elem.style.width = ''; // Quitamos el ancho fijo
+                    elem.style.width = ''; 
                 }
             });
-
-            // Re-evaluamos el botón de filtro inicial por seguridad
             validarFiltros();
         }
     });
+
+    // 4. LÓGICA DEL BUSCADOR DE ALUMNOS
+    const inputBuscador = document.getElementById("buscador-alumnos");
+    
+    if (inputBuscador) {
+        inputBuscador.addEventListener("input", (evento) => {
+            const terminoBusqueda = evento.target.value.toLowerCase().trim();
+            const filas = document.querySelectorAll(".fila-alumno");
+
+            filas.forEach(fila => {
+                const nombre = (fila.getAttribute("data-nombre") || "").toLowerCase();
+                const apellido = (fila.getAttribute("data-apellido") || "").toLowerCase();
+                const dni = (fila.getAttribute("data-dni") || "").toLowerCase();
+
+                if (nombre.includes(terminoBusqueda) || apellido.includes(terminoBusqueda) || dni.includes(terminoBusqueda)) {
+                    fila.style.display = ""; 
+                } else {
+                    fila.style.display = "none"; 
+                }
+            });
+        });
+
+        inputBuscador.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+            }
+        });
+    }
+
+    // 5. LÓGICA DE ORDENAMIENTO DE TABLA AVANZADA
+    const headersSortable = document.querySelectorAll("th.sortable");
+    const tbody = document.querySelector("#tabla-alumnos tbody");
+    
+    let columnaActiva = "";
+    let ordenAscendente = true;
+
+    headersSortable.forEach(th => {
+        th.addEventListener("click", () => {
+            const columna = th.getAttribute("data-sort");
+
+            if (columnaActiva === columna) {
+                ordenAscendente = !ordenAscendente;
+            } else {
+                columnaActiva = columna;
+                ordenAscendente = true;
+            }
+
+            headersSortable.forEach(header => {
+                header.classList.remove("asc", "desc");
+            });
+            th.classList.add(ordenAscendente ? "asc" : "desc");
+
+            const filas = Array.from(tbody.querySelectorAll(".fila-alumno"));
+
+            filas.sort((a, b) => {
+                let valorA = "";
+                let valorB = "";
+
+                if (columna === "seccion_turno" || columna === "comunidad_indigena" || columna === "discapacidad") {
+                    const selectA = a.querySelector(`select[name="${columna}"]`);
+                    const selectB = b.querySelector(`select[name="${columna}"]`);
+                    
+                    valorA = selectA ? selectA.options[selectA.selectedIndex].text.replace("--- Seleccionar ---", "") : "";
+                    valorB = selectB ? selectB.options[selectB.selectedIndex].text.replace("--- Seleccionar ---", "") : "";
+                } else {
+                    valorA = a.getAttribute(`data-${columna}`) || "";
+                    valorB = b.getAttribute(`data-${columna}`) || "";
+                }
+
+                if (columna === "dni") {
+                    const numA = parseInt(valorA, 10) || 0;
+                    const numB = parseInt(valorB, 10) || 0;
+                    return ordenAscendente ? (numA - numB) : (numB - numA);
+                } else {
+                    return ordenAscendente 
+                        ? valorA.localeCompare(valorB) 
+                        : valorB.localeCompare(valorA);
+                }
+            });
+
+            filas.forEach(fila => tbody.appendChild(fila));
+        });
+    });
+
 });
     </script>
   </body>
