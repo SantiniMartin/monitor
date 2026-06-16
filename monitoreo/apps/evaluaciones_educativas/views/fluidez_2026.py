@@ -306,7 +306,7 @@ def lista_examen(request,fid_actual=None):
 		
 		lista = list(
 			AlumnoFluidez2026.objects
-			.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(cueanexo_id),seccion__grado__nombre_grado=nombre_grado)
+			.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(cueanexo_id),seccion__grado__nombre_grado=grado.nombre_grado)
 			.values_list('dni', flat=True)
 		)
 		
