@@ -257,7 +257,7 @@
 
                     <td class="text-center">
                        <div class="d-inline-flex gap-1">
-                        {% if alumn.seccion %}
+                        {% if alum.seccion %}
                           <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_alumno' alumno_public_id=alum.public_id fid_actual=fid_actual %}" class="btn btn-outline-primary btn-custom" title="Editar"><i class="bi bi-person"></i></a>
                         {% endif %}
                           {% comment %} <a href="{% url 'evaluaciones_educativas:fluidez_2026:editar_evaluacion' alumno_public_id=alum.public_id %}" class="btn btn-outline-success btn-custom" title="Evaluar"><i class="bi bi-pencil"></i></a> {% endcomment %}
