@@ -571,9 +571,9 @@ def carga_evaluacion(request, alumno_public_id, fid_actual):
 	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
 	grado_public=instancia_grado.public_id
 	if instancia_grado.nombre_grado =='SEGUNDO':
-		cantidad_palabra_maxima=170
+		cantidad_palabra_maxima=196
 	else:
-		cantidad_palabra_maxima=211
+		cantidad_palabra_maxima=265
 		
 	evaluacion_existente = None
 	try:
@@ -767,6 +767,15 @@ def descargar_excel(request,grado_public_id):
 	wb.save(response)
 	# 5. Retornar la respuesta al navegador
 	return response
+
+
+def completar_carga(request,grado_public_id):
+	instancia_grado=get_object_or_404(GradoFluidez2026,public_id=grado_public_id)
+	instancia_grado.estado_carga=True
+	instancia_grado.save()
+	return HttpResponse('OK')
+
+
 
 # # @login_required
 # # def monitoreo(request):

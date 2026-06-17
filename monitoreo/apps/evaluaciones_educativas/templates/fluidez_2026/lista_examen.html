@@ -262,7 +262,7 @@
     </div>
 
     <!-- SIDEBAR -->
-    <div id="sidebar-wrapper">
+    {% comment %} <div id="sidebar-wrapper">
       <div class="text-end pe-3 pt-2 d-lg-none">
         <button id="btn-close-sidebar" class="btn text-white fs-4 p-0 border-0 shadow-none">
           <i class="bi bi-x-lg"></i>
@@ -271,7 +271,7 @@
       <ul class="nav flex-column px-2 mt-2">
         <li class="nav-item"></li>
       </ul>
-    </div>
+    </div> {% endcomment %}
 
     <!-- ÁREA DE CONTENIDO -->
     <div id="content-area">
@@ -333,9 +333,15 @@
                 <a href="{% url 'evaluaciones_educativas:fluidez_2026:lista' %}" class="btn btn-outline-secondary px-3 fw-semibold shadow-sm" style="border-radius: 10px;">
                   <i class="bi bi-arrow-left me-1"></i> Listado
                 </a>
+                <a href="https://visoreducativochaco.com.ar/" class="btn btn-outline-secondary px-3 fw-semibold shadow-sm" style="border-radius: 10px;">
+                        <i class="bi bi-display"></i> Visor
+                    </a>
                 {% if grado.public_id %}
                 <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-3 fw-semibold shadow-sm text-white" style="border-radius: 10px;">
                   <i class="bi bi-file-earmark-excel me-1"></i> Exportar
+                </a>
+                <a href="{% url 'evaluaciones_educativas:fluidez_2026:completar_carga' grado_public_id=grado.public_id %}" class="btn btn-success px-3 fw-semibold shadow-sm text-white" style="border-radius: 10px;">
+                  <i class="bi bi-file-earmark-excel me-1"></i> Finalizar Carga
                 </a>
                 {% endif %}
               </div>

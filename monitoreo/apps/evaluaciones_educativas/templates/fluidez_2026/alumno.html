@@ -48,7 +48,7 @@
                   <div class="col-md-6">{{ seccion_form.as_p }}</div>
                 </div>
                 <button type="submit" id="btn-submit" class="btn btn-primary btn-custom w-100 mt-3 shadow-sm">
-                  <i class="fas fa-save me-2"></i> Ir al siguiente paso
+                  <i class="fas fa-save me-2"></i> Guardar registro
                 </button>
               </form>
             </div>
@@ -78,7 +78,36 @@
             elemento.style.pointerEvents = 'none';
         }
 
-        form.addEventListener("submit", () => activarLoading(btnSubmit));
+        // --- VALIDACIÓN Y ENVÍO DEL FORMULARIO ---
+        form.addEventListener("submit", function(event) {
+            let esValido = true;
+            
+            // Busca todos los selects dentro del formulario (generados por Django)
+            const selects = form.querySelectorAll("select");
+            
+            selects.forEach(select => {
+                const opcionTexto = select.options[select.selectedIndex].text;
+                
+                // Si el texto de la opción incluye la frase prohibida o si su valor está en blanco (opción por defecto de Django)
+                if (opcionTexto.includes("SELECCIONE TURNO Y SECCIÓN") || select.value === "") {
+                    esValido = false;
+                    select.classList.add("is-invalid"); // Resalta el borde en rojo (Bootstrap)
+                } else {
+                    select.classList.remove("is-invalid");
+                }
+            });
+
+            // Si encontró la opción por defecto, frena el envío
+            if (!esValido) {
+                event.preventDefault(); // Detiene el POST
+                alert("Por favor, seleccione un Turno y Sección válido antes de guardar.");
+                return; // Corta la ejecución para que NO se active el loading
+            }
+
+            // Si pasó la validación, activa el loading
+            activarLoading(btnSubmit);
+        });
+
         btnVolver.addEventListener("click", (e) => {
             activarLoading(btnVolver);
         });

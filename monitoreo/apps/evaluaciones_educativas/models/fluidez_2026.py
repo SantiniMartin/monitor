@@ -30,6 +30,7 @@ class GradoFluidez2026(models.Model):
 	cueanexo = models.CharField(max_length=9)
 	nombre_grado = models.CharField(max_length=13, choices= OPCIONES_GRADO, default='2do Año/Grado')
 	Establecimiento = models.ForeignKey(EstablecimientosFluidez2026, on_delete=models.CASCADE)
+	estado_carga = models.BooleanField(default=False)
 	class Meta:
 	   #managed = False
 		db_table = '"fluidez_2026"."grados"' 

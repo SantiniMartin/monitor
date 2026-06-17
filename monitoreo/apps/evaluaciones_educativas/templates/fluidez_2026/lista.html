@@ -268,7 +268,7 @@
     </div>
 
     <!-- SIDEBAR -->
-    <div id="sidebar-wrapper">
+    {% comment %} <div id="sidebar-wrapper">
       <div class="text-end pe-3 pt-2 d-lg-none">
           <button id="btn-close-sidebar" class="btn text-white fs-4 p-0 border-0 shadow-none">
               <i class="bi bi-x-lg"></i>
@@ -278,7 +278,7 @@
         <li class="nav-item">
         </li>
       </ul>
-    </div>
+    </div> {% endcomment %}
 
     <!-- ÁREA DE CONTENIDO -->
     <div id="content-area">
@@ -353,11 +353,10 @@
                     <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno'  fid_actual=fid_actual grado_public_id=grado.public_id%}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
                         <i class="bi bi-person-plus"></i> Cargar Alumno
                     </a>
-                    
+                    {% endif %}
                     <a href="{% url 'evaluaciones_educativas:fluidez_2026:lista_examen' %}" class="btn btn-primary px-4 fw-bold shadow-sm" style="border-radius: 10px;">
                         <i class="bi bi-journal-check me-1"></i> Exámenes
                     </a>
-                    {% endif %}
                 </div>
             </div>
 
