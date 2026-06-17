@@ -65,21 +65,22 @@ def lista(request,fid_actual=None):
 	# LÓGICA DE CAPTURA DE DATOS (POST)
 	# ==========================================
 	if request.method == 'POST':
-		# Tomamos los datos tal cual los envió el HTML
-		cueanexo_id = request.POST.get('cueanexo')
-		grado_id = request.POST.get('grado')
+		# 1. Tomamos los datos tal cual los envió el HTML
+		cueanexo_nuevo = request.POST.get('cueanexo')
+		grado_nuevo = request.POST.get('grado')
 		
-	   # 1. Intentamos rescatar el FID que ya tenía la pestaña
-		fid_actual = request.POST.get('fid')
+		# 2. Leemos qué teníamos guardado ANTES de este cambio
+		datos_anteriores = request.session.get(f"filtro_{fid_actual}", {})
+		cueanexo_anterior = datos_anteriores.get('cueanexo')
 		
-		# 2. Si no tenía (porque es el primer POST), le generamos uno
-		if not fid_actual:
-			fid_actual = str(uuid.uuid4())[:8]
+		# 3. LA MAGIA: Si el cueanexo cambió, el grado viejo ya no sirve
+		if cueanexo_nuevo != cueanexo_anterior:
+			grado_nuevo = None  # Lo reseteamos a la fuerza
 			
-		# 3. Guardamos o sobreescribimos los datos en ESA misma carpeta
+		# 4. Guardamos o sobreescribimos los datos en ESA misma carpeta
 		request.session[f"filtro_{fid_actual}"] = {
-			'cueanexo': cueanexo_id,
-			'grado': grado_id
+			'cueanexo': cueanexo_nuevo,
+			'grado': grado_nuevo
 		}
 		
 		request.session.modified = True
@@ -243,21 +244,22 @@ def lista_examen(request,fid_actual=None):
 	# LÓGICA DE CAPTURA DE DATOS (POST)
 	# ==========================================
 	if request.method == 'POST':
-		# Tomamos los datos tal cual los envió el HTML
-		cueanexo_id = request.POST.get('cueanexo')
-		grado_id = request.POST.get('grado')
+		# 1. Tomamos los datos tal cual los envió el HTML
+		cueanexo_nuevo = request.POST.get('cueanexo')
+		grado_nuevo = request.POST.get('grado')
 		
-	   # 1. Intentamos rescatar el FID que ya tenía la pestaña
-		fid_actual = request.POST.get('fid')
+		# 2. Leemos qué teníamos guardado ANTES de este cambio
+		datos_anteriores = request.session.get(f"filtro_{fid_actual}", {})
+		cueanexo_anterior = datos_anteriores.get('cueanexo')
 		
-		# 2. Si no tenía (porque es el primer POST), le generamos uno
-		if not fid_actual:
-			fid_actual = str(uuid.uuid4())[:8]
+		# 3. LA MAGIA: Si el cueanexo cambió, el grado viejo ya no sirve
+		if cueanexo_nuevo != cueanexo_anterior:
+			grado_nuevo = None  # Lo reseteamos a la fuerza
 			
-		# 3. Guardamos o sobreescribimos los datos en ESA misma carpeta
+		# 4. Guardamos o sobreescribimos los datos en ESA misma carpeta
 		request.session[f"filtro_{fid_actual}"] = {
-			'cueanexo': cueanexo_id,
-			'grado': grado_id
+			'cueanexo': cueanexo_nuevo,
+			'grado': grado_nuevo
 		}
 		
 		request.session.modified = True
@@ -336,8 +338,8 @@ def carga_alumno(request,fid_actual,grado_public_id):
 	print(grado_public_id)
 	grado=get_object_or_404(GradoFluidez2026, public_id=grado_public_id)
 	alumno_form = AlumnoFluidez2026Form()
-	# grado_form = GradoFluidez2026Form(instance=grado)
-	grado_form = None
+	grado_form = GradoFluidez2026Form(instance=grado)
+	#grado_form = None
 	seccion_form = SeccionFluidez2026Form(cueanexo=grado.cueanexo,nombre_grado=grado.nombre_grado)
 	if request.method == 'POST':
 		alumno_form = AlumnoFluidez2026Form(request.POST)
@@ -380,6 +382,8 @@ def editar_alumno(request,alumno_public_id, fid_actual):
 		anio=alumno_datos.anio
 	cueanexo=instancia_alumno.seccion.grado.cueanexo
 	anio=instancia_alumno.seccion.grado.nombre_grado
+	seccion=instancia_alumno.seccion.id
+	print(seccion)
 	# print(alumno_datos.cueanexo)
 	# print(alumno_datos.anio)
 	if anio == '2do Grado/Año':
@@ -391,7 +395,7 @@ def editar_alumno(request,alumno_public_id, fid_actual):
 	# instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
 	alumno_form = AlumnoFluidez2026Form(instance=instancia_alumno)
 	print('hola')
-	seccion_form = SeccionFluidez2026Form(cueanexo=instancia_grado.cueanexo,nombre_grado=instancia_grado.nombre_grado)
+	seccion_form = SeccionFluidez2026Form(cueanexo=instancia_grado.cueanexo,nombre_grado=instancia_grado.nombre_grado,initial={'seccion_turno':seccion})
 	grado_form = GradoFluidez2026Form(instance=instancia_grado)
 	if request.method == 'POST':
 		alumno_form = AlumnoFluidez2026Form(request.POST, instance=instancia_alumno)
@@ -570,7 +574,7 @@ def carga_evaluacion(request, alumno_public_id, fid_actual):
 	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=alumno_id.seccion_id)
 	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
 	grado_public=instancia_grado.public_id
-	if instancia_grado.nombre_grado =='SEGUNDO':
+	if instancia_grado.nombre_grado =='2do Año/Grado':
 		cantidad_palabra_maxima=196
 	else:
 		cantidad_palabra_maxima=265
@@ -601,7 +605,9 @@ def carga_evaluacion(request, alumno_public_id, fid_actual):
 		form = EvaluacionFluidez2026Form(max_cantidad_palabra=cantidad_palabra_maxima)
 		#Creacion de diccionario para el Post
 	context = {'form': form,
-			   'alumno':alumno_id}
+			   'alumno':alumno_id,
+			   'fid_actual':fid_actual
+			   }
 	return render(request, "fluidez_2026/evaluacion.html", context)
 
 # @login_required
@@ -611,10 +617,10 @@ def editar_evaluacion(request, alumno_public_id, fid_actual):
 	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
 	grado_public=instancia_grado.public_id
 	instancia_evaluacion=get_object_or_404(EvaluacionFluidezLectoraFluidez2026,alumno_id=alumno_id.id)
-	if instancia_grado.nombre_grado =='SEGUNDO':
-		cantidad_palabra_maxima=170
+	if instancia_grado.nombre_grado =='2do Año/Grado':
+		cantidad_palabra_maxima=196
 	else:
-		cantidad_palabra_maxima=211
+		cantidad_palabra_maxima=265
 	form=EvaluacionFluidez2026Form(instance=instancia_evaluacion, max_cantidad_palabra=cantidad_palabra_maxima)
 	if request.method == 'POST':
 		form=EvaluacionFluidez2026Form(request.POST,instance=instancia_evaluacion,max_cantidad_palabra=cantidad_palabra_maxima)

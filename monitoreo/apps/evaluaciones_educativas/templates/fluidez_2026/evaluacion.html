@@ -8,6 +8,7 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
     <style>
       body {
@@ -69,16 +70,21 @@
       </div>
 
       <div class="card-body p-4">
-        <form method="POST">
+        <form method="POST" id="form-evaluacion">
           {% csrf_token %}
 
           <div class="mb-3">{{ form.as_p }}</div>
 
-          <button type="submit" class="btn btn-success btn-custom w-100 mt-3">
+          <button type="submit" id="btn-submit" class="btn btn-success btn-custom w-100 mt-3">
             Guardar Registro
           </button>
-          {% comment %} <input type="hidden" name="cueanexo" value="{{ alumno.seccion.grado.cueanexo }}">
-          <input type="hidden" name="grado" value="{{ alumno.seccion.grado.public_id }}"> {% endcomment %}
+          
+          <div class="card-footer footer-bg p-4 px-md-5 mt-3">
+              <a href="{% url 'evaluaciones_educativas:fluidez_2026:lista_examen' fid_actual=fid_actual %}" id="btn-volver" class="btn btn-outline-secondary fw-semibold w-100 py-2" style="border-radius: 10px; font-size: 1.05rem;">
+                <i class="bi bi-arrow-left me-2"></i> Volver a la Lista de Exámenes
+              </a>
+          </div>
+          
           {% if fid_actual %}
               <input type="hidden" name="fid" value="{{ fid_actual }}">
           {% endif %}
@@ -89,10 +95,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        // Obtenemos el campo de asistencia (Django le asigna el prefijo 'id_')
+        // --- 1. Lógica de Ocultar/Mostrar Campos ---
         const asistenciaSelect = document.getElementById('id_asistencia');
-        
-        // Lista de los IDs de los campos que queremos ocultar/limpiar
         const camposAdicionales = [
           'id_cantidad_palabras_leidas',
           'id_pregunta_1', 'id_pregunta_2', 'id_pregunta_3',
@@ -100,8 +104,6 @@
         ];
 
         function toggleCampos() {
-          // ¡OJO ACÁ! Verificá qué valor exacto tiene "Ausente" en tu modelo. 
-          // Si en tu modelo dice choices=[('A', 'Ausente')], acá tenés que poner 'A'.
           const esAusente = asistenciaSelect.value === 'AUSENTE';
 
           camposAdicionales.forEach(function(id) {
@@ -111,10 +113,10 @@
 
               if (esAusente) {
                 if (pContainer) pContainer.style.display = 'none';
-                campo.disabled = true;  // <--- ESTO ES LA CLAVE. Apaga la validación de HTML5
+                campo.disabled = true;  
               } else {
                 if (pContainer) pContainer.style.display = 'block';
-                campo.disabled = false; // Lo vuelve a habilitar si cambia a Presente
+                campo.disabled = false; 
                 campo.setAttribute('required', 'true');
               }
             }
@@ -122,11 +124,66 @@
         }
 
         if (asistenciaSelect) {
-          // Ejecutar al cargar la vista (por si viene preseleccionado o se recarga con errores)
           toggleCampos();
-          // Escuchar cada cambio en el desplegable
           asistenciaSelect.addEventListener('change', toggleCampos);
         }
+
+        // --- 2. Funcionalidad de Loading y Bloqueo cruzado de botones ---
+        const form = document.getElementById("form-evaluacion");
+        const btnSubmit = document.getElementById("btn-submit");
+        const btnVolver = document.getElementById("btn-volver");
+
+        function activarLoading(elemento) {
+            if (elemento.dataset.htmlOriginal) return; 
+            elemento.dataset.htmlOriginal = elemento.innerHTML;
+            elemento.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Cargando...';
+            elemento.classList.add('disabled');
+            elemento.style.pointerEvents = 'none';
+            elemento.setAttribute('disabled', 'true');
+        }
+
+        // Nueva función: Bloquea el botón que NO se presionó para evitar doble acción
+        function bloquearBotonInactivo(elemento) {
+            if (elemento) {
+                elemento.classList.add('disabled');
+                elemento.style.pointerEvents = 'none';
+                elemento.setAttribute('disabled', 'true');
+            }
+        }
+
+        if (form) {
+            form.addEventListener("submit", function() {
+                activarLoading(btnSubmit);
+                bloquearBotonInactivo(btnVolver); // Bloquea el botón volver
+            });
+        }
+
+        if (btnVolver) {
+            btnVolver.addEventListener("click", function() {
+                activarLoading(btnVolver);
+                bloquearBotonInactivo(btnSubmit); // Bloquea el botón guardar
+            });
+        }
+
+        // Restaurar estado si el usuario usa el botón "Atrás" del navegador
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                [btnSubmit, btnVolver].forEach(btn => {
+                    if (btn) {
+                        // Restaura el HTML si era el botón con el "Cargando..."
+                        if (btn.dataset.htmlOriginal) {
+                            btn.innerHTML = btn.dataset.htmlOriginal;
+                            delete btn.dataset.htmlOriginal;
+                        }
+                        // Quita los bloqueos de TODOS los botones
+                        btn.classList.remove('disabled');
+                        btn.style.pointerEvents = 'auto';
+                        btn.removeAttribute('disabled');
+                    }
+                });
+            }
+        });
+
       });
     </script>
   </body>
