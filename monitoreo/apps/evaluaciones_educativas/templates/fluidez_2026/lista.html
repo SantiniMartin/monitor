@@ -346,9 +346,9 @@
                     </a>
                     
                     {% if grado.public_id %}
-                    <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-3 fw-semibold shadow-sm text-white" style="border-radius: 10px;">
+                    {% comment %} <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-3 fw-semibold shadow-sm text-white" style="border-radius: 10px;">
                         <i class="bi bi-file-earmark-excel"></i> Exportar
-                    </a>
+                    </a> {% endcomment %}
                     
                     <a href="{% url 'evaluaciones_educativas:fluidez_2026:carga_alumno'  fid_actual=fid_actual grado_public_id=grado.public_id%}" class="btn btn-success px-4 fw-bold shadow-sm" style="border-radius: 10px;">
                         <i class="bi bi-person-plus"></i> Cargar Alumno
@@ -678,6 +678,42 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 });
+// 6. LÓGICA DE VALIDACIÓN DEL BOTÓN GUARDAR POR ALUMNO
+    const filasAlumnosValidacion = document.querySelectorAll(".fila-alumno");
+
+    filasAlumnosValidacion.forEach(fila => {
+        // Seleccionamos los elementos específicos dentro de esta fila
+        const selectSeccion = fila.querySelector('select[name="seccion_turno"]');
+        const selectComunidad = fila.querySelector('select[name="comunidad_indigena"]');
+        const selectDiscapacidad = fila.querySelector('select[name="discapacidad"]');
+        const btnGuardar = fila.querySelector('button[type="submit"]');
+
+        // Nos aseguramos de que todos los elementos existan en la fila
+        if (selectSeccion && selectComunidad && selectDiscapacidad && btnGuardar) {
+            
+            // Función para verificar el estado de los selects
+            const evaluarSelects = () => {
+                const valorSeccion = selectSeccion.value.trim();
+                const valorComunidad = selectComunidad.value.trim();
+                const valorDiscapacidad = selectDiscapacidad.value.trim();
+
+                // Si alguno de los tres es la opción por defecto (""), deshabilitamos el botón
+                if (valorSeccion === "" || valorComunidad === "" || valorDiscapacidad === "") {
+                    btnGuardar.disabled = true;
+                } else {
+                    btnGuardar.disabled = false;
+                }
+            };
+
+            // 1. Ejecutar al cargar la página (por si el backend ya trae datos seleccionados)
+            evaluarSelects();
+
+            // 2. Ejecutar cada vez que el usuario cambie alguna opción
+            selectSeccion.addEventListener("change", evaluarSelects);
+            selectComunidad.addEventListener("change", evaluarSelects);
+            selectDiscapacidad.addEventListener("change", evaluarSelects);
+        }
+    });
     </script>
   </body>
 </html>

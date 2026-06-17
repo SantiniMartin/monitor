@@ -1,7 +1,7 @@
 from apps.evaluaciones_educativas.models.fluidez_2026 import *
 from apps.evaluaciones_educativas.forms.fluidez_2026 import *
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
@@ -45,7 +45,7 @@ from urllib.parse import urlencode # Necesario para armar los parámetros de la 
 # 	return render(request, "fluidez_2026/inicio.html",contexto)
 
 def lista(request,fid_actual=None):
-	cuil = 27308542489
+	cuil = 20422632264
 	
 	if not fid_actual:
 	# 1. Variables por defecto
@@ -224,7 +224,7 @@ def actualizar_seccion(request, alumno_public_id):
 #TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
 # @login_required
 def lista_examen(request,fid_actual=None):
-	cuil = 27308542489
+	cuil = 20422632264
 	if not fid_actual:
 	# 1. Variables por defecto
 		fid_actual = request.GET.get('fid')
@@ -334,7 +334,7 @@ def lista_examen(request,fid_actual=None):
 
 #TODO MEJORAR LOGICA
 def carga_alumno(request,fid_actual,grado_public_id):
-	cuil = 27308542489
+	cuil = 20422632264
 	print(grado_public_id)
 	grado=get_object_or_404(GradoFluidez2026, public_id=grado_public_id)
 	alumno_form = AlumnoFluidez2026Form()
@@ -384,14 +384,16 @@ def editar_alumno(request,alumno_public_id, fid_actual):
 	anio=instancia_alumno.seccion.grado.nombre_grado
 	seccion=instancia_alumno.seccion.id
 	print(seccion)
+	print(anio)
 	# print(alumno_datos.cueanexo)
 	# print(alumno_datos.anio)
-	if anio == '2do Grado/Año':
-		nombre_grado='2do Año/Grado'
-	else:
-		nombre_grado='3er Año/Grado'
+	# if anio == '2do Grado/Año':
+	# 	nombre_grado='2do Año/Grado'
+	# else:
+	# 	nombre_grado='3er Año/Grado'
+	#print(nombre_grado)
 	#secciones=SeccionFluidez2026.objects.filter(grado__nombre_grado=alumno_datos.anio,grado__cueanexo=alumno_datos.cueanexo)
-	instancia_grado=get_object_or_404(GradoFluidez2026,cueanexo=cueanexo,nombre_grado=nombre_grado)
+	instancia_grado=get_object_or_404(GradoFluidez2026,cueanexo=cueanexo,nombre_grado=anio)
 	# instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
 	alumno_form = AlumnoFluidez2026Form(instance=instancia_alumno)
 	print('hola')
@@ -721,7 +723,7 @@ def borrar_registro_alumno(request,alumno_public_id):
 			   }
 	return render(request,"fluidez_2026/borrar_registro_alumno.html",context)
 #DESCARGAR EXCEL
-@login_required
+#@login_required
 def descargar_excel(request,grado_public_id):
 	instancia_grado=get_object_or_404(GradoFluidez2026,public_id=grado_public_id)
 	instancia_seccion=SeccionFluidez2026.objects.filter(grado_id=instancia_grado)
@@ -741,7 +743,7 @@ def descargar_excel(request,grado_public_id):
 		nombre_grado='3er_Grado_'
 	else:
 		nombre_grado='_'
-	response['Content-Disposition'] = f'attachment; filename="reporte_fluidez_{nombre_grado}noviembre_2026.xlsx"'
+	response['Content-Disposition'] = f'attachment; filename="reporte_fluidez_{nombre_grado}junio_2026.xlsx"'
 
 	# 3. Generar el contenido del Excel (lo mismo que tenías)
 	wb = Workbook()
@@ -776,11 +778,90 @@ def descargar_excel(request,grado_public_id):
 
 
 def completar_carga(request,grado_public_id):
-	instancia_grado=get_object_or_404(GradoFluidez2026,public_id=grado_public_id)
-	instancia_grado.estado_carga=True
-	instancia_grado.save()
-	return HttpResponse('OK')
-
+	#instancia_grado=get_object_or_404(GradoFluidez2026,public_id=grado_public_id)
+	estado_carga=True
+	lista_inicial_conteo=None
+	lista_final_conteo=None
+	numero=None
+	instancia_grado = GradoFluidez2026.objects.get(public_id=grado_public_id)
+		
+	if instancia_grado.nombre_grado == '2do Año/Grado':
+		nombre_grado = '2do Grado/Año'
+	else:
+		nombre_grado = '3er Grado/Año'
+		
+	lista_dnis = list(
+		TablaTemporalAlumnoFluidez2026.objects
+		.filter(cueanexo=instancia_grado.cueanexo, anio=nombre_grado)
+		.values_list('numero_de_documento', flat=True)
+	)
+	
+	lista = list(
+		AlumnoFluidez2026.objects
+		.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(instancia_grado.cueanexo),seccion__grado__nombre_grado=instancia_grado.nombre_grado)
+		.values_list('dni', flat=True)
+	)
+	lista_dnis.extend(lista)
+	alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
+	lista_inicial_conteo=alumnos_qs.count()
+	evaluaciones=EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__in=alumnos_qs).count()
+	lista_final_conteo=evaluaciones
+	if instancia_grado.estado_carga == True:
+		# Si estaba CERRADO y hacen clic, quieren ABRIRLO.
+		# Lo abrimos siempre, sin importar si los conteos coinciden o no.
+		instancia_grado.estado_carga = False
+		instancia_grado.save()
+	else:
+		# Si estaba ABIERTO y hacen clic, quieren CERRARLO.
+		# ACÁ SÍ validamos que hayan evaluado a todos.
+		if lista_inicial_conteo == lista_final_conteo:
+			instancia_grado.estado_carga = True
+			instancia_grado.save()
+		else:
+			# Faltan alumnos, cancelamos la acción.
+			estado_carga = False
+			numero = lista_inicial_conteo - lista_final_conteo
+	print(f'es numero{numero}')
+	return JsonResponse({
+        'es_valido': estado_carga,
+        'nuevo_estado': instancia_grado.estado_carga,
+        'faltantes': numero
+    })
+#---------------------------------------------------------------------------------
+# def boton_completar_carga(cueanexo, materia_nombre):
+# 	estado_carga=None
+# 	lista_inicial_conteo=None
+# 	lista_final_conteo=None
+# 	numero=None
+# 	lista_dnis = list(
+# 			TablaTemporalAlumno.objects
+# 			.filter(cueanexo=cueanexo)
+# 			.values_list('numero_de_documento', flat=True)
+# 		)
+# 	lista = list(
+# 			Alumno2026.objects
+# 			.filter(~Q(dni__in=lista_dnis),seccion__año__Establecimiento__cueanexo=int(cueanexo))
+# 			.select_related('seccion__año', 'seccion__año__Establecimiento')
+# 			.values_list('dni', flat=True)
+# 		)
+# 	lista_dnis.extend(lista)
+# 	alumnos_qs = Alumno2026.objects.filter(dni__in=lista_dnis)
+# 	lista_inicial_conteo=alumnos_qs.count()
+# 	if materia_nombre == 'Matemática':
+# 		evaluaciones=Matematica2026.objects.filter(alumno__in=alumnos_qs).count()
+# 		#evaluaciones_materia=evaluaciones
+# 		lista_final_conteo=evaluaciones
+# 	else:
+# 		evaluaciones=Lengua2026.objects.filter(alumno__in=alumnos_qs).count()
+# 		lista_final_conteo=evaluaciones
+# 	#for i in alumnos_qs:
+# 	if lista_inicial_conteo == lista_final_conteo:
+# 		estado_carga=True
+# 	else:
+# 		estado_carga=False
+# 		numero = lista_inicial_conteo - lista_final_conteo
+# 	print(f'es numero{numero}')
+# 	return estado_carga,numero
 
 
 # # @login_required
