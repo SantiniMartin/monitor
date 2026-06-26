@@ -919,7 +919,7 @@ def monitoreo_alumno(request):
 			Q(apellido__icontains=buscar) |
 			Q(nombre__icontains=buscar)
 		).select_related(
-			'seccion__grado',
+			'seccion__grado__Establecimiento',
 			'evaluacionfluidezlectorafluidez2026'
 		).order_by('apellido', 'nombre')
 

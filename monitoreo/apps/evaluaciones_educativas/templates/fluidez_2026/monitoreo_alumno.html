@@ -159,6 +159,7 @@
                   <tr>
                     <th>DNI</th>
                     <th class="bg-alumno">APELLIDO Y NOMBRE</th>
+                    <th>ESTABLECIMIENTO</th>
                     <th>GRADO / SECCIÓN</th>
                     <th class="text-center">ASISTENCIA</th>
                     <th class="text-center">PALABRAS LEÍDAS</th>
@@ -171,6 +172,7 @@
                   <tr>
                     <td><strong>{{ alumno.dni }}</strong></td>
                     <td>{{ alumno.apellido }}, {{ alumno.nombre }}</td>
+                    <td>{{ alumno.seccion.grado.Establecimiento.escuela }}</td>
                     <td>{{ alumno.seccion.grado.nombre_grado }} ({{ alumno.seccion }})</td>
                     <td class="text-center">
                       {% if alumno.evaluacionfluidezlectorafluidez2026 %}
@@ -208,7 +210,7 @@
                   </tr>
                   {% empty %}
                   <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
+                    <td colspan="7" class="text-center text-muted py-4">
                       <i class="bi bi-info-circle fs-4 d-block mb-2"></i>
                       No se encontraron alumnos coincidentes con la búsqueda.
                     </td>
