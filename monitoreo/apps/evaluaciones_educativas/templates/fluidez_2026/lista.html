@@ -341,9 +341,9 @@
 
                 <!-- Botones de Acción -->
                 <div class="action-buttons gap-2">
-                    <a href="https://visoreducativochaco.com.ar/" class="btn btn-outline-secondary px-3 fw-semibold shadow-sm" style="border-radius: 10px;">
+                    {% comment %} <a href="{% url 'director:institucional' %}" class="btn btn-outline-secondary px-3 fw-semibold shadow-sm" style="border-radius: 10px;">
                         <i class="bi bi-display"></i> Visor
-                    </a>
+                    </a> {% endcomment %}
                     
                     {% if grado.public_id %}
                     {% comment %} <a href="{% url 'evaluaciones_educativas:fluidez_2026:excel' grado_public_id=grado.public_id %}" class="btn btn-success px-3 fw-semibold shadow-sm text-white" style="border-radius: 10px;">

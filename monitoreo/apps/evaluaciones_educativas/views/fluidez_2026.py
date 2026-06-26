@@ -6,7 +6,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
 from django.templatetags.static import static
-from django.db.models import Count,Q,Avg
+from django.db.models import Count,Q,Avg, F
 from datetime import date, datetime
 import psycopg2
 from psycopg2 import extras
@@ -99,7 +99,7 @@ def lista(request,fid_actual=None):
 				# 1. Extraemos los datos CRUDOS directamente de la memoria
 				cueanexo_id = datos_guardados.get('cueanexo')
 				grado_public_id = datos_guardados.get('grado')
-				print(f'cue:{cueanexo_id}, grado{grado_public_id}')
+				#print(f'cue:{cueanexo_id}, grado{grado_public_id}')
 				# 2. Pasamos los datos a los formularios SOLO para que el HTML 
 				# mantenga visualmente seleccionadas las opciones correctas.
 				cueanexo_form = CueanexoFluidez2026ViewForm(datos_guardados, cuil=cuil)
@@ -125,16 +125,16 @@ def lista(request,fid_actual=None):
 			.filter(cueanexo=cueanexo_id, anio=nombre_grado)
 			.values_list('numero_de_documento', flat=True)
 		)
-		print(lista_dnis)
-		print(cueanexo_id)
-		print(nombre_grado)
+		#print(lista_dnis)
+		#print(cueanexo_id)
+		#print(nombre_grado)
 		lista = list(
 			AlumnoFluidez2026.objects
 			.filter(~Q(dni__in=lista_dnis), seccion__grado__cueanexo=int(cueanexo_id),seccion__grado__nombre_grado=grado.nombre_grado)
 			.values_list('dni', flat=True)
 		)
-		print('-'*50)
-		print(lista)
+		#print('-'*50)
+		#print(lista)
 		
 		lista_dnis.extend(lista)
 		alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
@@ -271,7 +271,7 @@ def lista_examen(request,fid_actual=None):
 	# LÓGICA DE RECUPERACIÓN (GET)
 	# ==========================================
 	else:
-		print(fid_actual)
+		#print(fid_actual)
 		if fid_actual:
 			datos_guardados = request.session.get(f"filtro_{fid_actual}")
 			
@@ -335,7 +335,7 @@ def lista_examen(request,fid_actual=None):
 #TODO MEJORAR LOGICA
 def carga_alumno(request,fid_actual,grado_public_id):
 	cuil = 20422632264
-	print(grado_public_id)
+	#print(grado_public_id)
 	grado=get_object_or_404(GradoFluidez2026, public_id=grado_public_id)
 	alumno_form = AlumnoFluidez2026Form()
 	grado_form = GradoFluidez2026Form(instance=grado)
@@ -350,7 +350,7 @@ def carga_alumno(request,fid_actual,grado_public_id):
 		   #una instancia a la vez
 			with transaction.atomic():
 				seccion_turno_id=seccion_form.cleaned_data["seccion_turno"]
-				print(seccion_turno_id)
+				#print(seccion_turno_id)
 				instancia_seccion, creado_seccion = SeccionFluidez2026.objects.get_or_create(
 				id=seccion_turno_id,
 				grado=grado
@@ -373,9 +373,9 @@ def carga_alumno(request,fid_actual,grado_public_id):
 
 # @login_required
 def editar_alumno(request,alumno_public_id, fid_actual):
-	print(fid_actual)
+	#print(fid_actual)
 	instancia_alumno=get_object_or_404(AlumnoFluidez2026,public_id=alumno_public_id)
-	print(instancia_alumno)
+	#print(instancia_alumno)
 	if not instancia_alumno.seccion.grado.cueanexo:
 		alumno_datos=get_object_or_404(TablaTemporalAlumnoFluidez2026,numero_de_documento=instancia_alumno.dni)
 		cueanexo=alumno_datos.cueanexo
@@ -383,8 +383,8 @@ def editar_alumno(request,alumno_public_id, fid_actual):
 	cueanexo=instancia_alumno.seccion.grado.cueanexo
 	anio=instancia_alumno.seccion.grado.nombre_grado
 	seccion=instancia_alumno.seccion.id
-	print(seccion)
-	print(anio)
+	#print(seccion)
+	#print(anio)
 	# print(alumno_datos.cueanexo)
 	# print(alumno_datos.anio)
 	# if anio == '2do Grado/Año':
@@ -396,13 +396,12 @@ def editar_alumno(request,alumno_public_id, fid_actual):
 	instancia_grado=get_object_or_404(GradoFluidez2026,cueanexo=cueanexo,nombre_grado=anio)
 	# instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
 	alumno_form = AlumnoFluidez2026Form(instance=instancia_alumno)
-	print('hola')
 	seccion_form = SeccionFluidez2026Form(cueanexo=instancia_grado.cueanexo,nombre_grado=instancia_grado.nombre_grado,initial={'seccion_turno':seccion})
 	grado_form = GradoFluidez2026Form(instance=instancia_grado)
 	if request.method == 'POST':
 		alumno_form = AlumnoFluidez2026Form(request.POST, instance=instancia_alumno)
 		grado_form = GradoFluidez2026Form(request.POST, instance=instancia_grado)
-		seccion_form = SeccionFluidez2026Form(request.POST, cueanexo=cueanexo,nombre_grado=nombre_grado)
+		seccion_form = SeccionFluidez2026Form(request.POST, cueanexo=cueanexo,nombre_grado=instancia_grado.nombre_grado)
 		if alumno_form.is_valid() and grado_form.is_valid() and seccion_form.is_valid():
 			with transaction.atomic():
 				#nombre_grado=grado_form.cleaned_data["nombre_grado"]
@@ -412,7 +411,7 @@ def editar_alumno(request,alumno_public_id, fid_actual):
 					cueanexo=cueanexo
 					)
 				seccion_turno_id=seccion_form.cleaned_data["seccion_turno"]
-				print(seccion_turno_id)
+				#print(seccion_turno_id)
 				instancia_seccion, creado_seccion = SeccionFluidez2026.objects.get_or_create(
 				id=seccion_turno_id,
 				grado=instancia_grado
@@ -699,7 +698,7 @@ def editar_asistencia(request,alumno_public_id):
 	return render(request,"fluidez_2026/asistencia.html",context)
 
 # @login_required
-def borrar_registro_alumno(request,alumno_public_id):
+def borrar_registro_alumno(request, alumno_public_id, fid_actual):
 	alumno_id=get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
 	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=alumno_id.seccion_id)
 	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
@@ -711,15 +710,17 @@ def borrar_registro_alumno(request,alumno_public_id):
 				eleccion= form.cleaned_data["borrar"]
 				if eleccion:
 					alumno_id.delete()
-					return redirect("evaluaciones_educativas:fluidez_2026:lista")
-					#return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=grado_public)
+				
+				# Redirección inteligente según el origen
+				if fid_actual == 'monitoreo_alumno':
+					return redirect("evaluaciones_educativas:fluidez_2026:monitoreo_alumno")
 				else:
-					return redirect("evaluaciones_educativas:fluidez_2026:lista")
-					#return redirect("evaluaciones_educativas:fluidez_2026:lista", grado_public_id=grado_public)
+					return redirect("evaluaciones_educativas:fluidez_2026:monitoreo")
 	else:
 		form = BorrarRegistroAlumnoForm()
 	context = {'form': form,
-			   'alumno':alumno_id
+			   'alumno':alumno_id,
+			   'fid_actual': fid_actual
 			   }
 	return render(request,"fluidez_2026/borrar_registro_alumno.html",context)
 #DESCARGAR EXCEL
@@ -821,12 +822,12 @@ def completar_carga(request,grado_public_id):
 			# Faltan alumnos, cancelamos la acción.
 			estado_carga = False
 			numero = lista_inicial_conteo - lista_final_conteo
-	print(f'es numero{numero}')
+	#print(f'es numero{numero}')
 	return JsonResponse({
-        'es_valido': estado_carga,
-        'nuevo_estado': instancia_grado.estado_carga,
-        'faltantes': numero
-    })
+		'es_valido': estado_carga,
+		'nuevo_estado': instancia_grado.estado_carga,
+		'faltantes': numero
+	})
 #---------------------------------------------------------------------------------
 # def boton_completar_carga(cueanexo, materia_nombre):
 # 	estado_carga=None
@@ -864,14 +865,69 @@ def completar_carga(request,grado_public_id):
 # 	return estado_carga,numero
 
 
-# # @login_required
-# # def monitoreo(request):
-# #     instancia_grado_cueanexo=Grado.objects.all()
-# #     # instancia_grado=Grado.objects.filter(cueanexo__in=instancia_grado_cueanexo).values_list('nombre_grado',flat=True)
-# #     # # for i in instancia_grado:
-# #     # #     print(i)
-# #     contexto={'grados':instancia_grado_cueanexo}
-# #     return render(request,"fluidez_2026/monitoreo.html", contexto)
+
+def monitoreo(request):
+	# Recuperamos los parámetros de filtro del GET
+	filtro_escuela = request.GET.get('escuela', '').strip()
+	filtro_sector = request.GET.get('sector', '').strip()
+	filtro_ambito = request.GET.get('ambito', '').strip()
+	filtro_region = request.GET.get('region', '').strip()
+	filtro_cueanexo = request.GET.get('cueanexo', '').strip()
+
+	# Query inicial de establecimientos pre-cargando los grados relacionados para optimización
+	queryset = EstablecimientosFluidez2026.objects.prefetch_related('gradofluidez2026_set')
+
+	# Aplicamos los filtros si se especificaron
+	if filtro_escuela:
+		queryset = queryset.filter(escuela__icontains=filtro_escuela)
+	if filtro_sector:
+		queryset = queryset.filter(sector=filtro_sector)
+	if filtro_ambito:
+		queryset = queryset.filter(ambito=filtro_ambito)
+	if filtro_region:
+		queryset = queryset.filter(region=filtro_region)
+	if filtro_cueanexo:
+		queryset = queryset.filter(cueanexo__icontains=filtro_cueanexo)
+
+	# Obtenemos los valores únicos de la base de datos para los selectores del frontend
+	sectores = EstablecimientosFluidez2026.objects.values_list('sector', flat=True).distinct().order_by('sector')
+	ambitos = EstablecimientosFluidez2026.objects.values_list('ambito', flat=True).distinct().order_by('ambito')
+	regiones = EstablecimientosFluidez2026.objects.values_list('region', flat=True).distinct().order_by('region')
+
+	contexto = {
+		'establecimientos': queryset.order_by('escuela'),
+		'sectores': sectores,
+		'ambitos': ambitos,
+		'regiones': regiones,
+		'valores_filtros': {
+			'escuela': filtro_escuela,
+			'sector': filtro_sector,
+			'ambito': filtro_ambito,
+			'region': filtro_region,
+			'cueanexo': filtro_cueanexo,
+		}
+	}
+	return render(request, "fluidez_2026/monitoreo.html", contexto)
+
+def monitoreo_alumno(request):
+	buscar = request.GET.get('buscar', '').strip()
+	alumnos_resultados = []
+
+	if buscar:
+		alumnos_resultados = AlumnoFluidez2026.objects.filter(
+			Q(dni__icontains=buscar) |
+			Q(apellido__icontains=buscar) |
+			Q(nombre__icontains=buscar)
+		).select_related(
+			'seccion__grado',
+			'evaluacionfluidezlectorafluidez2026'
+		).order_by('apellido', 'nombre')
+
+	contexto = {
+		'alumnos_resultados': alumnos_resultados
+	}
+	return render(request, "fluidez_2026/monitoreo_alumno.html", contexto)
+
 
 # #-----------------------LOGICA PARA VISUALIZAR DATOS ---------------------------
 

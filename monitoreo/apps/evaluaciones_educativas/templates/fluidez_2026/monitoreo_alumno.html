@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BÚSQUEDA DE ALUMNOS</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link rel="stylesheet" href="evaluaciones_educativas/css/style.css" />
+
+    <style>
+      body {
+        background: linear-gradient(135deg, #eef2ff, #ffffff);
+        min-height: 100vh;
+        padding: 30px;
+      }
+
+      .container-custom {
+        max-width: 1400px;
+        margin: auto;
+      }
+
+      .card {
+        border-radius: 18px;
+        border: none;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-header {
+        background: linear-gradient(90deg, #0066cc, #004a99);
+        color: white;
+        padding: 18px;
+        text-align: center;
+      }
+
+      .btn-custom {
+        border-radius: 10px;
+        font-weight: 600;
+      }
+
+      .search-input {
+        border-radius: 10px 0 0 10px;
+        border: 2px solid #0066cc;
+      }
+
+      .search-btn {
+        border-radius: 0 10px 10px 0;
+        background-color: #0066cc;
+        color: white;
+        border: 2px solid #0066cc;
+      }
+
+      .search-btn:hover {
+        background-color: #004a99;
+        border-color: #004a99;
+        color: white;
+      }
+
+      /* Encabezados de tabla */
+      .bg-alumno {
+        background-color: #007bff !important;
+      }
+      .bg-acciones {
+        background-color: #6c757d !important;
+      }
+
+      /* ------- SIDEBAR HOVER AJUSTADO -------- */
+      #sidebar-wrapper {
+        width: 70px;
+        transition: width 0.35s ease;
+        overflow: hidden;
+        background: #0a58ca;
+        color: white;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 1030;
+        padding-top: 20px;
+      }
+
+      #sidebar-wrapper:hover {
+        width: 280px;
+      }
+
+      #sidebar-wrapper .nav-link {
+        color: white;
+        padding: 12px 16px;
+        white-space: nowrap;
+        transition: background 0.25s;
+      }
+
+      #sidebar-wrapper .nav-link:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      #sidebar-wrapper i {
+        font-size: 1.3rem;
+        margin-right: 10px;
+      }
+
+      /* Contenido principal */
+      #content-area {
+        margin-left: 90px;
+        transition: margin-left 0.35s ease;
+      }
+
+      #sidebar-wrapper:hover + #content-area {
+        margin-left: 300px;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div id="content-area">
+      <div class="container container-custom">
+        <div class="card mb-4">
+          <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+            <h1 class="mb-0"><i class="bi bi-search"></i> Búsqueda de Alumnos</h1>
+            <a href="{% url 'evaluaciones_educativas:fluidez_2026:monitoreo' %}" class="btn btn-light btn-custom text-primary shadow-sm">
+              <i class="bi bi-arrow-left-circle-fill"></i> Volver a Monitoreo General
+            </a>
+          </div>
+
+          <div class="card-body p-4">
+            
+            <form method="GET" action="" class="mb-4">
+              <div class="row g-2 justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                  <div class="input-group input-group-lg">
+                    <input 
+                      type="text" 
+                      name="buscar" 
+                      class="form-control search-input" 
+                      placeholder="Buscar por DNI, Apellido o Nombre..."
+                      value="{{ request.GET.buscar }}"
+                    />
+                    <button class="btn search-btn" type="submit">
+                      <i class="bi bi-search"></i> Buscar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <hr class="my-4" />
+
+             <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                  <tr>
+                    <th>DNI</th>
+                    <th class="bg-alumno">APELLIDO Y NOMBRE</th>
+                    <th>GRADO / SECCIÓN</th>
+                    <th class="text-center">ASISTENCIA</th>
+                    <th class="text-center">PALABRAS LEÍDAS</th>
+                    <th class="text-center bg-acciones">ACCIONES</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {% for alumno in alumnos_resultados %}
+                  <tr>
+                    <td><strong>{{ alumno.dni }}</strong></td>
+                    <td>{{ alumno.apellido }}, {{ alumno.nombre }}</td>
+                    <td>{{ alumno.seccion.grado.nombre_grado }} ({{ alumno.seccion }})</td>
+                    <td class="text-center">
+                      {% if alumno.evaluacionfluidezlectorafluidez2026 %}
+                        {% if alumno.evaluacionfluidezlectorafluidez2026.asistencia == "PRESENTE" %}
+                          <span class="badge bg-success">Presente</span>
+                        {% else %}
+                          <span class="badge bg-danger">Ausente</span>
+                        {% endif %}
+                      {% else %}
+                        <span class="badge bg-secondary">Sin Evaluar</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center fw-bold text-primary">
+                      {% if alumno.evaluacionfluidezlectorafluidez2026 %}
+                        {{ alumno.evaluacionfluidezlectorafluidez2026.cantidad_palabras_leidas|default:'0' }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      <div class="d-inline-flex flex-nowrap gap-1">
+                        {# Botones de edición comentados porque sus rutas están inactivas en urls.py #}
+                        {# <a href="#" class="btn btn-sm btn-outline-primary btn-custom" title="Editar Datos del Alumno"><i class="bi bi-person-fill"></i> Editar</a> #}
+                        {# <a href="#" class="btn btn-sm btn-outline-success btn-custom" title="Editar Evaluación de Fluidez"><i class="bi bi-journal-check"></i> Eval.</a> #}
+                        
+                        <a
+                          href="{% url 'evaluaciones_educativas:fluidez_2026:borrar_registro_alumno' alumno_public_id=alumno.public_id fid_actual='monitoreo_alumno' %}"
+                          class="btn btn-sm btn-outline-danger btn-custom"
+                          title="Borrar Registro del Alumno"
+                        >
+                          <i class="bi bi-trash-fill"></i> Borrar
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                      <i class="bi bi-info-circle fs-4 d-block mb-2"></i>
+                      No se encontraron alumnos coincidentes con la búsqueda.
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div> 
+
+          </div>
+        </div>
+
+        {% comment %} <div class="d-flex justify-content-between">
+          <a href="{% url 'grados' %}" class="btn btn-primary btn-custom">
+            <i class="bi bi-arrow-left"></i> Volver a Grados
+          </a>
+          <a href="{% url 'salir' %}" class="btn btn-danger btn-custom">
+            <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+          </a> {% endcomment %}
+        </div>
+
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
