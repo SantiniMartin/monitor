@@ -18,6 +18,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_URL = '/static/'
 STATICFILES_FINDERS = [
@@ -25,7 +26,6 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 
 
 # Quick-start development settings - unsuitable for production
@@ -103,7 +103,7 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST_EVALUACION'),
         'PORT': os.environ.get('POSTGRES_PORT_EVALUACION'),
         'OPTIONS': {
-            'options': '-c search_path=evaluacion,public,diagnostico_2026,fluidez_2026',
+            'options': '-c search_path=evaluacion,public',
         }
     }
 }
@@ -138,8 +138,3 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
