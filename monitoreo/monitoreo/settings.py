@@ -103,7 +103,7 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST_EVALUACION'),
         'PORT': os.environ.get('POSTGRES_PORT_EVALUACION'),
         'OPTIONS': {
-            'options': '-c search_path=evaluacion,public',
+            'options': '-c search_path=evaluacion,public,diagnostico_2026,fluidez_2026',
         }
     }
 }
