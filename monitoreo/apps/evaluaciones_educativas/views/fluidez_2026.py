@@ -700,15 +700,18 @@ def editar_asistencia(request,alumno_public_id):
 # @login_required
 def borrar_registro_alumno(request, alumno_public_id, fid_actual):
 	alumno_id=get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
-	instancia_seccion=get_object_or_404(SeccionFluidez2026,id=alumno_id.seccion_id)
-	instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
-	grado_public=instancia_grado.public_id
+	# instancia_seccion=get_object_or_404(SeccionFluidez2026,id=alumno_id.seccion_id)
+	# instancia_grado=get_object_or_404(GradoFluidez2026,id=instancia_seccion.grado_id)
+	# grado_public=instancia_grado.public_id
 	if request.method == 'POST':
 		form = BorrarRegistroAlumnoForm(request.POST)
 		if form.is_valid():
 			with transaction.atomic():
 				eleccion= form.cleaned_data["borrar"]
 				if eleccion:
+					if alumno_id.dni:
+						if TablaTemporalAlumnoFluidez2026.objects.filter(numero_de_documento=alumno_id.dni).exists():
+							TablaTemporalAlumnoFluidez2026.objects.filter(numero_de_documento=alumno_id.dni).delete()
 					alumno_id.delete()
 				
 				# Redirección inteligente según el origen
@@ -889,13 +892,78 @@ def monitoreo(request):
 	if filtro_cueanexo:
 		queryset = queryset.filter(cueanexo__icontains=filtro_cueanexo)
 
+	# Paginación de a 100 escuelas
+	paginator = Paginator(queryset.order_by('escuela'), 100)
+	page_number = request.GET.get('page')
+	page_obj = paginator.get_page(page_number)
+
+	# Preservar filtros GET en la paginación
+	query_params = request.GET.copy()
+	if 'page' in query_params:
+		del query_params['page']
+	params_url = query_params.urlencode()
+
+	# 1. Obtener los cueanexos de las escuelas de la página actual
+	cueanexos_pagina = [est.cueanexo for est in page_obj]
+
+	# 2. Consultar en bloque la tabla temporal para estos cueanexos
+	temporal_qs = TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo__in=cueanexos_pagina).values('cueanexo', 'anio', 'numero_de_documento')
+	
+	temporal_dict = {}
+	for item in temporal_qs:
+		k = (item['cueanexo'], item['anio'])
+		if k not in temporal_dict:
+			temporal_dict[k] = set()
+		if item['numero_de_documento']:
+			temporal_dict[k].add(item['numero_de_documento'])
+
+	# 3. Consultar en bloque todos los alumnos registrados para estos cueanexos
+	alumnos_qs = AlumnoFluidez2026.objects.filter(
+		seccion__grado__Establecimiento__cueanexo__in=cueanexos_pagina
+	).values(
+		'dni',
+		'seccion__grado__cueanexo',
+		'seccion__grado__nombre_grado',
+		'evaluacionfluidezlectorafluidez2026__alumno_id'
+	)
+
+	alumnos_por_grado = {}
+	for al in alumnos_qs:
+		k = (al['seccion__grado__cueanexo'], al['seccion__grado__nombre_grado'])
+		if k not in alumnos_por_grado:
+			alumnos_por_grado[k] = []
+		alumnos_por_grado[k].append(al)
+
+	# 4. Calcular conteos para cada grado de cada establecimiento
+	for est in page_obj:
+		for grado in est.gradofluidez2026_set.all():
+			cueanexo = est.cueanexo
+			nombre_grado = grado.nombre_grado
+			anio_temporal = '2do Grado/Año' if nombre_grado == '2do Año/Grado' else '3er Grado/Año'
+
+			dnis_temporales = temporal_dict.get((cueanexo, anio_temporal), set())
+			alumnos_del_grado = alumnos_por_grado.get((cueanexo, nombre_grado), [])
+
+			dnis_extras = {
+				al['dni'] for al in alumnos_del_grado 
+				if al['dni'] and al['dni'] not in dnis_temporales
+			}
+
+			dnis_interes = dnis_temporales.union(dnis_extras)
+			alumnos_existentes = [al for al in alumnos_del_grado if al['dni'] in dnis_interes]
+			
+			grado.total_alumnos = len(alumnos_existentes)
+			grado.total_evaluados = sum(1 for al in alumnos_existentes if al['evaluacionfluidezlectorafluidez2026__alumno_id'] is not None)
+
 	# Obtenemos los valores únicos de la base de datos para los selectores del frontend
 	sectores = EstablecimientosFluidez2026.objects.values_list('sector', flat=True).distinct().order_by('sector')
 	ambitos = EstablecimientosFluidez2026.objects.values_list('ambito', flat=True).distinct().order_by('ambito')
 	regiones = EstablecimientosFluidez2026.objects.values_list('region', flat=True).distinct().order_by('region')
 
 	contexto = {
-		'establecimientos': queryset.order_by('escuela'),
+		'establecimientos': page_obj,
+		'page_obj': page_obj,
+		'params_url': params_url,
 		'sectores': sectores,
 		'ambitos': ambitos,
 		'regiones': regiones,
@@ -909,22 +977,163 @@ def monitoreo(request):
 	}
 	return render(request, "fluidez_2026/monitoreo.html", contexto)
 
+def descargar_excel_monitoreo(request):
+	filtro_escuela = request.GET.get('escuela', '').strip()
+	filtro_sector = request.GET.get('sector', '').strip()
+	filtro_ambito = request.GET.get('ambito', '').strip()
+	filtro_region = request.GET.get('region', '').strip()
+	filtro_cueanexo = request.GET.get('cueanexo', '').strip()
+
+	queryset = EstablecimientosFluidez2026.objects.prefetch_related('gradofluidez2026_set')
+
+	if filtro_escuela:
+		queryset = queryset.filter(escuela__icontains=filtro_escuela)
+	if filtro_sector:
+		queryset = queryset.filter(sector=filtro_sector)
+	if filtro_ambito:
+		queryset = queryset.filter(ambito=filtro_ambito)
+	if filtro_region:
+		queryset = queryset.filter(region=filtro_region)
+	if filtro_cueanexo:
+		queryset = queryset.filter(cueanexo__icontains=filtro_cueanexo)
+
+	# 1. Obtener todos los cueanexos del queryset filtrado
+	cueanexos_filtrados = list(queryset.values_list('cueanexo', flat=True))
+
+	# 2. Consultar en bloque la tabla temporal
+	temporal_qs = TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo__in=cueanexos_filtrados).values('cueanexo', 'anio', 'numero_de_documento')
+	
+	temporal_dict = {}
+	for item in temporal_qs:
+		k = (item['cueanexo'], item['anio'])
+		if k not in temporal_dict:
+			temporal_dict[k] = set()
+		if item['numero_de_documento']:
+			temporal_dict[k].add(item['numero_de_documento'])
+
+	# 3. Consultar en bloque todos los alumnos registrados para estos cueanexos
+	alumnos_qs = AlumnoFluidez2026.objects.filter(
+		seccion__grado__Establecimiento__cueanexo__in=cueanexos_filtrados
+	).values(
+		'dni',
+		'seccion__grado__cueanexo',
+		'seccion__grado__nombre_grado',
+		'evaluacionfluidezlectorafluidez2026__alumno_id'
+	)
+
+	alumnos_por_grado = {}
+	for al in alumnos_qs:
+		k = (al['seccion__grado__cueanexo'], al['seccion__grado__nombre_grado'])
+		if k not in alumnos_por_grado:
+			alumnos_por_grado[k] = []
+		alumnos_por_grado[k].append(al)
+
+	response = HttpResponse(
+		content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+	)
+	response['Content-Disposition'] = 'attachment; filename="monitoreo_establecimientos_2026.xlsx"'
+
+	wb = Workbook()
+	ws = wb.active
+	ws.title = "Monitoreo"
+
+	headers = [
+		'CUEANEXO', 'Escuela', 'Sector', 'Ámbito', 'Región', 
+		'Localidad', 'Departamento', 'Grado', 'Total Alumnos', 'Alumnos Evaluados', 'Estado de Carga'
+	]
+	ws.append(headers)
+
+	for est in queryset.order_by('escuela'):
+		grados = est.gradofluidez2026_set.all()
+		if grados:
+			for grado in grados:
+				cueanexo = est.cueanexo
+				nombre_grado = grado.nombre_grado
+				anio_temporal = '2do Grado/Año' if nombre_grado == '2do Año/Grado' else '3er Grado/Año'
+
+				dnis_temporales = temporal_dict.get((cueanexo, anio_temporal), set())
+				alumnos_del_grado = alumnos_por_grado.get((cueanexo, nombre_grado), [])
+
+				dnis_extras = {
+					al['dni'] for al in alumnos_del_grado 
+					if al['dni'] and al['dni'] not in dnis_temporales
+				}
+
+				dnis_interes = dnis_temporales.union(dnis_extras)
+				alumnos_existentes = [al for al in alumnos_del_grado if al['dni'] in dnis_interes]
+				
+				total_alumnos = len(alumnos_existentes)
+				total_evaluados = sum(1 for al in alumnos_existentes if al['evaluacionfluidezlectorafluidez2026__alumno_id'] is not None)
+
+				ws.append([
+					est.cueanexo,
+					est.escuela,
+					est.sector,
+					est.ambito,
+					est.region,
+					est.localidad,
+					est.departamento,
+					grado.nombre_grado,
+					total_alumnos,
+					total_evaluados,
+					'Carga Completa' if grado.estado_carga else 'Incompleto'
+				])
+		else:
+			ws.append([
+				est.cueanexo,
+				est.escuela,
+				est.sector,
+				est.ambito,
+				est.region,
+				est.localidad,
+				est.departamento,
+				'Sin grados registrados',
+				0,
+				0,
+				'-'
+			])
+
+	wb.save(response)
+	return response
+
 def monitoreo_alumno(request):
 	buscar = request.GET.get('buscar', '').strip()
-	alumnos_resultados = []
+	alumnos_qs = None
 
 	if buscar:
-		alumnos_resultados = AlumnoFluidez2026.objects.filter(
-			Q(dni__icontains=buscar) |
-			Q(apellido__icontains=buscar) |
-			Q(nombre__icontains=buscar)
-		).select_related(
-			'seccion__grado__Establecimiento',
-			'evaluacionfluidezlectorafluidez2026'
-		).order_by('apellido', 'nombre')
+		# Limpiar puntos y espacios del DNI para asegurar coincidencia
+		buscar_limpio = buscar.replace('.', '').replace(' ', '')
+		
+		# 1. Buscar DNI coincidente en la tabla temporal
+		lista_dnis = list(
+			TablaTemporalAlumnoFluidez2026.objects
+			.filter(numero_de_documento=buscar_limpio)
+			.values_list('numero_de_documento', flat=True)
+		)
+		
+		# 2. Buscar DNI coincidente en la tabla real de alumnos
+		lista = list(
+			AlumnoFluidez2026.objects
+			.filter(dni=buscar_limpio)
+			.values_list('dni', flat=True)
+		)
+		
+		# 3. Combinar resultados, remover duplicados y vacíos
+		lista_dnis.extend(lista)
+		lista_dnis = list(set(filter(None, lista_dnis)))
+		
+		# 4. Obtener los objetos completos correspondientes con select_related
+		alumnos_qs = (
+			AlumnoFluidez2026.objects
+			.filter(dni__in=lista_dnis)
+			.select_related(
+				'seccion__grado__Establecimiento',
+				'evaluacionfluidezlectorafluidez2026'
+			)
+		)
 
 	contexto = {
-		'alumnos_resultados': alumnos_resultados
+		'alumnos_resultados': alumnos_qs
 	}
 	return render(request, "fluidez_2026/monitoreo_alumno.html", contexto)
 
