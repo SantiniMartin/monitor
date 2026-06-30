@@ -713,12 +713,7 @@ def borrar_registro_alumno(request, alumno_public_id, fid_actual):
 						if TablaTemporalAlumnoFluidez2026.objects.filter(numero_de_documento=alumno_id.dni).exists():
 							TablaTemporalAlumnoFluidez2026.objects.filter(numero_de_documento=alumno_id.dni).delete()
 					alumno_id.delete()
-				
-				# Redirección inteligente según el origen
-				if fid_actual == 'monitoreo_alumno':
-					return redirect("evaluaciones_educativas:fluidez_2026:monitoreo_alumno")
-				else:
-					return redirect("evaluaciones_educativas:fluidez_2026:monitoreo")
+			return redirect("evaluaciones_educativas:fluidez_2026:monitoreo_alumno")
 	else:
 		form = BorrarRegistroAlumnoForm()
 	context = {'form': form,
