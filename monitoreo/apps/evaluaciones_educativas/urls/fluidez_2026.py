@@ -28,5 +28,8 @@ urlpatterns = [
 	path('monitoreo/',fluidez_2026.monitoreo, name='monitoreo'),
 	path('descargar_excel_monitoreo/', fluidez_2026.descargar_excel_monitoreo, name='descargar_excel_monitoreo'),
     path('monitoreo_alumno/',fluidez_2026.monitoreo_alumno, name='monitoreo_alumno'),
+	path('analisis_evaluacion/',fluidez_2026.analisis_evaluaciones_junio_2026, name='analisis_evaluacion'),
+	path('analisis_evaluacion_regional/',fluidez_2026.analisis_evaluaciones_regional_junio_2026, name='analisis_evaluacion_regional'),
+	path('analisis_evaluacion_ministros/',fluidez_2026.analisis_evaluaciones_ministros_junio_2026, name='analisis_evaluacion_ministros'),
 	
 ]

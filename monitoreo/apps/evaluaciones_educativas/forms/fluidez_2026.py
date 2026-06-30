@@ -420,6 +420,103 @@ class Grado_selec_2026_Form(forms.Form):
 		required=True,
 		widget=forms.Select()
 	)
+
+# ----------------------- FORMULARIOS PARA VISTAS DE ANÁLISIS -----------------------
+
+class CueanexoForm(forms.Form):
+	cueanexo_seleccionado = forms.ChoiceField(
+		choices=[('', '--- Seleccionar ---')],
+		label='Seleccione un Cueanexo',
+		required=True,
+		widget=forms.Select
+	)
+	def __init__(self, *args, **kwargs):
+		kwargs.pop('cuil', None)
+		kwargs.pop('nivel_acceso', None)
+		kwargs.pop('sector', None)
+		kwargs.pop('ambito', None)
+		kwargs.pop('region', None)
+		super().__init__(*args, **kwargs)
+		qs = EstablecimientosFluidez2026.objects.all().order_by('escuela')
+		choices_cueanexo = [
+			('', '--- Seleccionar ---'),
+			('TODOS', '--- TODOS LOS CUEANEXOS ---'),
+		]
+		for i in qs:
+			choices_cueanexo.append((i.cueanexo, i.escuela + ' (' + i.cueanexo + ')'))
+		self.fields['cueanexo_seleccionado'].choices = choices_cueanexo
+
+
+class DirectorForm(forms.Form):
+	SECTORES = [
+		('', '-------'),
+		('TODOS', '---TODOS LOS SECTORES----'),
+		('Estatal', 'Estatal'),
+		('Gestión social/cooperativa', 'Gestión social/cooperativa'),
+		('Privado', 'Privado'),
+	]
+	AMBITOS = [
+		('', '-------'),
+		('TODOS', '---TODOS LOS ÁMBITOS----'),
+		('Rural Aglomerado', 'Rural Aglomerado'),
+		('Rural Disperso', 'Rural Disperso'),
+		('Urbano', 'Urbano'),
+	]
+	sector = forms.ChoiceField(choices=SECTORES, label='Sector de Gestión', widget=forms.Select)
+	ambito = forms.ChoiceField(choices=AMBITOS, label='Ámbito', widget=forms.Select)
+
+
+class DirectorNivelForm(DirectorForm):
+	REGIONES = [
+		('', '-------'),
+		('TODOS', '---TODAS LAS REGIONES----'),
+		('R.E. 1', 'R.E. 1'),
+		('SUB. R.E. 1-A', 'SUB. R.E. 1-A'),
+		('SUB. R.E. 1-B', 'SUB. R.E. 1-B'),
+		('R.E. 2', 'R.E. 2'),
+		('SUB. R.E. 2', 'SUB. R.E. 2'),
+		('R.E. 3', 'R.E. 3'),
+		('SUB. R.E. 3', 'SUB. R.E. 3'),
+		('R.E. 4-A', 'R.E. 4-A'),
+		('R.E. 4-B', 'R.E. 4-B'),
+		('R.E. 5', 'R.E. 5'),
+		('SUB. R.E. 5', 'SUB. R.E. 5'),
+		('R.E. 6', 'R.E. 6'),
+		('R.E. 7', 'R.E. 7'),
+		('R.E. 8-A', 'R.E. 8-A'),
+		('R.E. 8-B', 'R.E. 8-B'),
+		('R.E. 9', 'R.E. 9'),
+		('R.E. 10-A', 'R.E. 10-A'),
+		('R.E. 10-B', 'R.E. 10-B'),
+		('R.E. 10-C', 'R.E. 10-C'),
+	]
+	region = forms.ChoiceField(choices=REGIONES, label='Región', widget=forms.Select)
+
+
+class SeccionTurnoForm(forms.Form):
+	seleccion = forms.ChoiceField(
+		choices=[('TODOS', '--- Todas las Secciones ---')],
+		label='Seleccione Sección y Turno',
+		required=True,
+		widget=forms.Select
+	)
+	def __init__(self, *args, **kwargs):
+		grados = kwargs.pop('grados', None)
+		super().__init__(*args, **kwargs)
+		choices_seccion = [('TODOS', '--- Todas las Secciones ---')]
+		if grados:
+			qs = SeccionFluidez2026.objects.filter(grado__in=grados)
+			for i in qs:
+				choices_seccion.append((str(i.id), 'Sección: ' + i.seccion + ' - Turno: ' + i.turno))
+		self.fields['seleccion'].choices = choices_seccion
+
+	def clean_seleccion(self):
+		valor = self.cleaned_data['seleccion']
+		if valor == 'TODOS':
+			return 'TODOS'
+		return SeccionFluidez2026.objects.get(id=valor)
+
+
 # class SeccionTurnoForm(forms.Form):
 # 	# Definimos el campo vacío inicialmente
 # 	seleccion = forms.ModelChoiceField(
