@@ -1,343 +1,349 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MONITOREO</title>
 
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
-    <link rel="stylesheet" href="evaluaciones_educativas/css/style.css" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MONITOREO</title>
 
-    <style>
-      body {
-        background: linear-gradient(135deg, #eef2ff, #ffffff);
-        min-height: 100vh;
-        padding: 30px;
-      }
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="evaluaciones_educativas/css/style.css" />
 
-      .container-custom {
-        max-width: 1400px;
-        margin: auto;
-      }
+  <style>
+    body {
+      background: linear-gradient(135deg, #eef2ff, #ffffff);
+      min-height: 100vh;
+      padding: 30px;
+    }
 
-      .card {
-        border-radius: 18px;
-        border: none;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
-      }
+    .container-custom {
+      max-width: 1400px;
+      margin: auto;
+    }
 
-      .card-header {
-        background: linear-gradient(90deg, #0066cc, #004a99);
-        color: white;
-        padding: 18px;
-        text-align: center;
-      }
+    .card {
+      border-radius: 18px;
+      border: none;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    }
 
-      table {
-        width: 100%;
-      }
+    .card-header {
+      background: linear-gradient(90deg, #0066cc, #004a99);
+      color: white;
+      padding: 18px;
+      text-align: center;
+    }
 
-      .btn-custom {
-        border-radius: 10px;
-        font-weight: 600;
-      }
+    table {
+      width: 100%;
+    }
 
-      /* Encabezados */
-      .bg-alumno {
-        background-color: #007bff !important;
-      }
-      .bg-comprension {
-        background-color: #28a745 !important;
-      }
+    .btn-custom {
+      border-radius: 10px;
+      font-weight: 600;
+    }
 
-      /* ------- SIDEBAR HOVER AJUSTADO -------- */
-      #sidebar-wrapper {
-        width: 70px;
-        transition: width 0.35s ease;
-        overflow: hidden;
-        background: #0a58ca;
-        color: white;
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100%;
-        z-index: 1030;
-        padding-top: 20px;
-      }
+    /* Encabezados */
+    .bg-alumno {
+      background-color: #007bff !important;
+    }
 
-      #sidebar-wrapper:hover {
-        /* AUMENTADO A 280PX para acomodar el texto completo */
-        width: 280px;
-      }
+    .bg-comprension {
+      background-color: #28a745 !important;
+    }
 
-      #sidebar-wrapper .nav-link {
-        color: white;
-        padding: 12px 16px;
-        white-space: nowrap;
-        transition: background 0.25s;
-      }
+    /* ------- SIDEBAR HOVER AJUSTADO -------- */
+    #sidebar-wrapper {
+      width: 70px;
+      transition: width 0.35s ease;
+      overflow: hidden;
+      background: #0a58ca;
+      color: white;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      z-index: 1030;
+      padding-top: 20px;
+    }
 
-      #sidebar-wrapper .nav-link:hover {
-        background: rgba(255, 255, 255, 0.15);
-      }
+    #sidebar-wrapper:hover {
+      /* AUMENTADO A 280PX para acomodar el texto completo */
+      width: 280px;
+    }
 
-      #sidebar-wrapper i {
-        font-size: 1.3rem;
-        margin-right: 10px;
-      }
+    #sidebar-wrapper .nav-link {
+      color: white;
+      padding: 12px 16px;
+      white-space: nowrap;
+      transition: background 0.25s;
+    }
 
-      /* Para que el contenido no quede tapado */
-      #content-area {
-        margin-left: 90px;
-        transition: margin-left 0.35s ease;
-      }
+    #sidebar-wrapper .nav-link:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
 
-      #sidebar-wrapper:hover + #content-area {
-        /* Aumentado a 300px */
-        margin-left: 300px;
-      }
+    #sidebar-wrapper i {
+      font-size: 1.3rem;
+      margin-right: 10px;
+    }
 
-      /* Estilos Premium Adicionales */
-      .transition-card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-      .transition-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
-      }
-      .hover-bg-light {
-        transition: background-color 0.2s ease;
-      }
-      .hover-bg-light:hover {
-        background-color: #f1f5f9 !important;
-      }
-    </style>
-  </head>
+    /* Para que el contenido no quede tapado */
+    #content-area {
+      margin-left: 90px;
+      transition: margin-left 0.35s ease;
+    }
 
-  <body>
-    <div id="content-area">
-      <div class="container container-custom">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h1 class="mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>Evaluación de Fluidez Lectora</h1>
+    #sidebar-wrapper:hover+#content-area {
+      /* Aumentado a 300px */
+      margin-left: 300px;
+    }
+
+    /* Estilos Premium Adicionales */
+    .transition-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .transition-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .hover-bg-light {
+      transition: background-color 0.2s ease;
+    }
+
+    .hover-bg-light:hover {
+      background-color: #f1f5f9 !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="content-area">
+    <div class="container container-custom">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h1 class="mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>Evaluación de Fluidez Lectora</h1>
+        </div>
+
+        <div class="card-body p-4">
+
+          <div
+            class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 pb-3 border-bottom gap-3">
+            <h3 class="text-primary fw-bold mb-0">
+              <i class="bi bi-building-check me-2"></i>Monitoreo de Carga por Escuela
+            </h3>
+            <div class="d-flex gap-2">
+              <a href="{% url 'evaluaciones_educativas:fluidez_2026:descargar_excel_monitoreo' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+                class="btn btn-success btn-custom shadow-sm px-4">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Descargar Excel
+              </a>
+              <a href="{% url 'evaluaciones_educativas:fluidez_2026:monitoreo_alumno' %}"
+                class="btn btn-primary btn-custom shadow-sm px-4">
+                <i class="bi bi-search me-1"></i> Búsqueda de Alumnos
+              </a>
+            </div>
           </div>
-          
-          <div class="card-body p-4">
-            
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 pb-3 border-bottom gap-3">
-              <h3 class="text-primary fw-bold mb-0">
-                <i class="bi bi-building-check me-2"></i>Monitoreo de Carga por Escuela
-              </h3>
-              <div class="d-flex gap-2">
-                <a href="{% url 'evaluaciones_educativas:fluidez_2026:descargar_excel_monitoreo' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-success btn-custom shadow-sm px-4">
-                  <i class="bi bi-file-earmark-excel-fill me-1"></i> Descargar Excel
-                </a>
-                <a href="{% url 'evaluaciones_educativas:fluidez_2026:monitoreo_alumno' %}" class="btn btn-primary btn-custom shadow-sm px-4">
-                  <i class="bi bi-search me-1"></i> Búsqueda de Alumnos
-                </a>
+          <!-- Formulario de Filtros -->
+          <form method="GET" action="" class="mb-4">
+            <div class="card border border-light-subtle shadow-sm mb-4"
+              style="border-radius: 15px; background-color: #f8fafc;">
+              <div class="card-body p-4">
+                <h5 class="text-primary fw-bold mb-3">
+                  <i class="bi bi-funnel-fill me-1"></i> Filtros de Establecimientos
+                </h5>
+
+                <div class="row g-3">
+                  <!-- Escuela -->
+                  <div class="col-md-4 col-lg-3">
+                    <label for="id_escuela" class="form-label fw-semibold text-muted small mb-1">Escuela</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-bank"></i></span>
+                      <input type="text" name="escuela" id="id_escuela" class="form-control border-start-0 ps-0"
+                        placeholder="Nombre de escuela..." value="{{ valores_filtros.escuela }}" />
+                    </div>
+                  </div>
+
+                  <!-- CUEANEXO -->
+                  <div class="col-md-3 col-lg-2">
+                    <label for="id_cueanexo" class="form-label fw-semibold text-muted small mb-1">CUEANEXO</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-hash"></i></span>
+                      <input type="text" name="cueanexo" id="id_cueanexo" class="form-control border-start-0 ps-0"
+                        placeholder="CUEANEXO..." value="{{ valores_filtros.cueanexo }}" />
+                    </div>
+                  </div>
+
+                  <!-- Sector -->
+                  <div class="col-md-3 col-lg-2">
+                    <label for="id_sector" class="form-label fw-semibold text-muted small mb-1">Sector</label>
+                    <select name="sector" id="id_sector" class="form-select">
+                      <option value="">Todos</option>
+                      {% for s in sectores %}
+                      <option value="{{ s }}" {% if s==valores_filtros.sector %}selected{% endif %}>{{ s }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Ámbito -->
+                  <div class="col-md-3 col-lg-2">
+                    <label for="id_ambito" class="form-label fw-semibold text-muted small mb-1">Ámbito</label>
+                    <select name="ambito" id="id_ambito" class="form-select">
+                      <option value="">Todos</option>
+                      {% for a in ambitos %}
+                      <option value="{{ a }}" {% if a==valores_filtros.ambito %}selected{% endif %}>{{ a }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- Región -->
+                  <div class="col-md-3 col-lg-3">
+                    <label for="id_region" class="form-label fw-semibold text-muted small mb-1">Región</label>
+                    <select name="region" id="id_region" class="form-select">
+                      <option value="">Todas</option>
+                      {% for r in regiones %}
+                      <option value="{{ r }}" {% if r==valores_filtros.region %}selected{% endif %}>{{ r }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+                  <a href="{% url 'evaluaciones_educativas:fluidez_2026:monitoreo' %}"
+                    class="btn btn-outline-secondary btn-custom px-4">
+                    <i class="bi bi-trash me-1"></i> Limpiar Filtros
+                  </a>
+                  <button type="submit" class="btn btn-primary btn-custom px-4 shadow-sm">
+                    <i class="bi bi-funnel-fill me-1"></i> Aplicar Filtros
+                  </button>
+                </div>
+
               </div>
             </div>
-            <!-- Formulario de Filtros -->
-            <form method="GET" action="" class="mb-4">
-              <div class="card border border-light-subtle shadow-sm mb-4" style="border-radius: 15px; background-color: #f8fafc;">
-                <div class="card-body p-4">
-                  <h5 class="text-primary fw-bold mb-3">
-                    <i class="bi bi-funnel-fill me-1"></i> Filtros de Establecimientos
-                  </h5>
-                  
-                  <div class="row g-3">
-                    <!-- Escuela -->
-                    <div class="col-md-4 col-lg-3">
-                      <label for="id_escuela" class="form-label fw-semibold text-muted small mb-1">Escuela</label>
-                      <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-bank"></i></span>
-                        <input 
-                          type="text" 
-                          name="escuela" 
-                          id="id_escuela" 
-                          class="form-control border-start-0 ps-0" 
-                          placeholder="Nombre de escuela..." 
-                          value="{{ valores_filtros.escuela }}"
-                        />
+          </form>
+
+          <div class="row">
+            {% for est in establecimientos %}
+            <div class="col-md-6 col-lg-4 mb-4">
+              <div class="card h-100 border border-light-subtle shadow-sm transition-card"
+                style="border-radius: 15px; overflow: hidden; background: #ffffff;">
+                <div class="card-header border-0 py-3 text-start d-flex justify-content-between align-items-center"
+                  style="background: linear-gradient(90deg, #1e3c72, #2a5298); color: white; border-radius: 0;">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-bank text-warning fs-5"></i>
+                    <span class="fw-bold fs-6 text-truncate" style="max-width: 180px;" title="{{ est.escuela }}">{{
+                      est.escuela }}</span>
+                  </div>
+                  <span class="badge bg-light text-dark fw-bold" style="font-size: 0.75rem;">CUE: {{ est.cueanexo
+                    }}</span>
+                </div>
+                <div class="card-body p-3">
+                  <div class="d-flex flex-column gap-2">
+                    {% for grado in est.gradofluidez2026_set.all %}
+                    <div class="d-flex flex-column w-100 p-2 rounded bg-light hover-bg-light transition-all mb-1">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold text-dark" style="font-size: 0.9rem;">
+                          <i class="bi bi-journal-bookmark text-primary me-2"></i>{{
+                          grado.get_nombre_grado_display|default:grado.nombre_grado }}
+                        </span>
+                        {% if grado.estado_carga %}
+                        <span class="badge bg-success d-inline-flex align-items-center gap-1 py-1 px-2"
+                          style="border-radius: 12px; font-size: 0.75rem;">
+                          <i class="bi bi-check-circle-fill"></i> Carga Completa
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1 py-1 px-2"
+                          style="border-radius: 12px; font-size: 0.75rem;">
+                          <i class="bi bi-exclamation-triangle-fill"></i> Incompleto
+                        </span>
+                        {% endif %}
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center text-muted ps-4"
+                        style="font-size: 0.8rem;">
+                        <span>Alumnos: <strong>{{ grado.total_alumnos|default:0 }}</strong></span>
+                        <span>Evaluados: <strong>{{ grado.total_evaluados|default:0 }}</strong></span>
                       </div>
                     </div>
-
-                    <!-- CUEANEXO -->
-                    <div class="col-md-3 col-lg-2">
-                      <label for="id_cueanexo" class="form-label fw-semibold text-muted small mb-1">CUEANEXO</label>
-                      <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-hash"></i></span>
-                        <input 
-                          type="text" 
-                          name="cueanexo" 
-                          id="id_cueanexo" 
-                          class="form-control border-start-0 ps-0" 
-                          placeholder="CUE..." 
-                          value="{{ valores_filtros.cueanexo }}"
-                        />
-                      </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3" style="font-size: 0.9rem;">
+                      <i class="bi bi-info-circle me-1"></i> No hay grados registrados.
                     </div>
-
-                    <!-- Sector -->
-                    <div class="col-md-3 col-lg-2">
-                      <label for="id_sector" class="form-label fw-semibold text-muted small mb-1">Sector</label>
-                      <select name="sector" id="id_sector" class="form-select">
-                        <option value="">Todos</option>
-                        {% for s in sectores %}
-                          <option value="{{ s }}" {% if s == valores_filtros.sector %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-
-                    <!-- Ámbito -->
-                    <div class="col-md-3 col-lg-2">
-                      <label for="id_ambito" class="form-label fw-semibold text-muted small mb-1">Ámbito</label>
-                      <select name="ambito" id="id_ambito" class="form-select">
-                        <option value="">Todos</option>
-                        {% for a in ambitos %}
-                          <option value="{{ a }}" {% if a == valores_filtros.ambito %}selected{% endif %}>{{ a }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-
-                    <!-- Región -->
-                    <div class="col-md-3 col-lg-3">
-                      <label for="id_region" class="form-label fw-semibold text-muted small mb-1">Región</label>
-                      <select name="region" id="id_region" class="form-select">
-                        <option value="">Todas</option>
-                        {% for r in regiones %}
-                          <option value="{{ r }}" {% if r == valores_filtros.region %}selected{% endif %}>{{ r }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
+                    {% endfor %}
                   </div>
-
-                  <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
-                    <a href="{% url 'evaluaciones_educativas:fluidez_2026:monitoreo' %}" class="btn btn-outline-secondary btn-custom px-4">
-                      <i class="bi bi-trash me-1"></i> Limpiar Filtros
-                    </a>
-                    <button type="submit" class="btn btn-primary btn-custom px-4 shadow-sm">
-                      <i class="bi bi-funnel-fill me-1"></i> Aplicar Filtros
-                    </button>
-                  </div>
-
                 </div>
               </div>
-            </form>
-
-            <div class="row">
-              {% for est in establecimientos %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                  <div class="card h-100 border border-light-subtle shadow-sm transition-card" style="border-radius: 15px; overflow: hidden; background: #ffffff;">
-                    <div class="card-header border-0 py-3 text-start d-flex justify-content-between align-items-center" style="background: linear-gradient(90deg, #1e3c72, #2a5298); color: white; border-radius: 0;">
-                      <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-bank text-warning fs-5"></i>
-                        <span class="fw-bold fs-6 text-truncate" style="max-width: 180px;" title="{{ est.escuela }}">{{ est.escuela }}</span>
-                      </div>
-                      <span class="badge bg-light text-dark fw-bold" style="font-size: 0.75rem;">CUE: {{ est.cueanexo }}</span>
-                    </div>
-                    <div class="card-body p-3">
-                      <div class="d-flex flex-column gap-2">
-                        {% for grado in est.gradofluidez2026_set.all %}
-                          <div class="d-flex flex-column w-100 p-2 rounded bg-light hover-bg-light transition-all mb-1">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                              <span class="fw-semibold text-dark" style="font-size: 0.9rem;">
-                                <i class="bi bi-journal-bookmark text-primary me-2"></i>{{ grado.get_nombre_grado_display|default:grado.nombre_grado }}
-                              </span>
-                              {% if grado.estado_carga %}
-                                <span class="badge bg-success d-inline-flex align-items-center gap-1 py-1 px-2" style="border-radius: 12px; font-size: 0.75rem;">
-                                  <i class="bi bi-check-circle-fill"></i> Carga Completa
-                                </span>
-                              {% else %}
-                                <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1 py-1 px-2" style="border-radius: 12px; font-size: 0.75rem;">
-                                  <i class="bi bi-exclamation-triangle-fill"></i> Incompleto
-                                </span>
-                              {% endif %}
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center text-muted ps-4" style="font-size: 0.8rem;">
-                              <span>Alumnos: <strong>{{ grado.total_alumnos|default:0 }}</strong></span>
-                              <span>Evaluados: <strong>{{ grado.total_evaluados|default:0 }}</strong></span>
-                            </div>
-                          </div>
-                        {% empty %}
-                          <div class="text-center text-muted py-3" style="font-size: 0.9rem;">
-                            <i class="bi bi-info-circle me-1"></i> No hay grados registrados.
-                          </div>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              {% empty %}
-                <div class="col-12 text-center py-5">
-                  <div class="text-muted fs-4">
-                    <i class="bi bi-journal-x fs-1 d-block mb-3 text-secondary"></i>
-                    No se encontraron establecimientos para monitorear.
-                  </div>
-                </div>
-              {% endfor %}
             </div>
-
-            {% if page_obj.has_other_pages %}
-              <nav aria-label="Navegación de páginas" class="mt-4">
-                <ul class="pagination justify-content-center">
-                  {% if page_obj.has_previous %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page=1{% if params_url %}&{{ params_url }}{% endif %}" aria-label="Primera">
-                        <span aria-hidden="true">&laquo;&laquo;</span>
-                      </a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if params_url %}&{{ params_url }}{% endif %}" aria-label="Anterior">
-                        <span aria-hidden="true">&laquo;</span>
-                      </a>
-                    </li>
-                  {% else %}
-                    <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
-                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-                  {% endif %}
-
-                  {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                      <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > page_obj.number|add:'-5' and num < page_obj.number|add:'5' %}
-                      <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if params_url %}&{{ params_url }}{% endif %}">{{ num }}</a>
-                      </li>
-                    {% endif %}
-                  {% endfor %}
-
-                  {% if page_obj.has_next %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if params_url %}&{{ params_url }}{% endif %}" aria-label="Siguiente">
-                        <span aria-hidden="true">&raquo;</span>
-                      </a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if params_url %}&{{ params_url }}{% endif %}" aria-label="Última">
-                        <span aria-hidden="true">&raquo;&raquo;</span>
-                      </a>
-                    </li>
-                  {% else %}
-                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-                    <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
-                  {% endif %}
-                </ul>
-              </nav>
-            {% endif %}
-
+            {% empty %}
+            <div class="col-12 text-center py-5">
+              <div class="text-muted fs-4">
+                <i class="bi bi-journal-x fs-1 d-block mb-3 text-secondary"></i>
+                No se encontraron establecimientos para monitorear.
+              </div>
+            </div>
+            {% endfor %}
           </div>
+
+          {% if page_obj.has_other_pages %}
+          <nav aria-label="Navegación de páginas" class="mt-4">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if params_url %}&{{ params_url }}{% endif %}" aria-label="Primera">
+                  <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link"
+                  href="?page={{ page_obj.previous_page_number }}{% if params_url %}&{{ params_url }}{% endif %}"
+                  aria-label="Anterior">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+              {% else %}
+              <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+              <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+              {% endif %}
+
+              {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+              {% elif num > page_obj.number|add:'-5' and num < page_obj.number|add:'5' %} <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if params_url %}&{{ params_url }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link"
+                    href="?page={{ page_obj.next_page_number }}{% if params_url %}&{{ params_url }}{% endif %}"
+                    aria-label="Siguiente">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link"
+                    href="?page={{ page_obj.paginator.num_pages }}{% if params_url %}&{{ params_url }}{% endif %}"
+                    aria-label="Última">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+                {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
 </html>
