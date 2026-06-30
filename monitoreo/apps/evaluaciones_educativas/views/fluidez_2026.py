@@ -1123,7 +1123,7 @@ def monitoreo_alumno(request):
 		lista_dnis = list(set(filter(None, lista_dnis)))
 		
 		# 4. Obtener los objetos completos correspondientes con select_related
-		alumnos_qs = (
+		alumnos_qs = list(
 			AlumnoFluidez2026.objects
 			.filter(dni__in=lista_dnis)
 			.select_related(
@@ -1131,6 +1131,18 @@ def monitoreo_alumno(request):
 				'evaluacionfluidezlectorafluidez2026'
 			)
 		)
+
+		# 5. Obtener el establecimiento original desde la tabla temporal (dict por DNI)
+		temporal_dict = {
+			t.numero_de_documento: t.nombre_institucion
+			for t in TablaTemporalAlumnoFluidez2026.objects
+			.filter(numero_de_documento__in=lista_dnis)
+			.only('numero_de_documento', 'nombre_institucion')
+		}
+
+		# 6. Adjuntar el establecimiento original a cada alumno como atributo dinámico
+		for alumno in alumnos_qs:
+			alumno.establecimiento_original = temporal_dict.get(alumno.dni, '-')
 
 	contexto = {
 		'alumnos_resultados': alumnos_qs
