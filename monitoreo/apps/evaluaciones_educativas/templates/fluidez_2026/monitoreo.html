@@ -182,7 +182,7 @@
                     <select name="sector" id="id_sector" class="form-select">
                       <option value="">Todos</option>
                       {% for s in sectores %}
-                      <option value="{{ s }}" {% if s==valores_filtros.sector %}selected{% endif %}>{{ s }}</option>
+                      <option value="{{ s }}" {% if s == valores_filtros.sector %}selected{% endif %}>{{ s }}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -193,7 +193,7 @@
                     <select name="ambito" id="id_ambito" class="form-select">
                       <option value="">Todos</option>
                       {% for a in ambitos %}
-                      <option value="{{ a }}" {% if a==valores_filtros.ambito %}selected{% endif %}>{{ a }}</option>
+                      <option value="{{ a }}" {% if a == valores_filtros.ambito %}selected{% endif %}>{{ a }}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -204,7 +204,7 @@
                     <select name="region" id="id_region" class="form-select">
                       <option value="">Todas</option>
                       {% for r in regiones %}
-                      <option value="{{ r }}" {% if r==valores_filtros.region %}selected{% endif %}>{{ r }}</option>
+                      <option value="{{ r }}" {% if r == valores_filtros.region %}selected{% endif %}>{{ r }}</option>
                       {% endfor %}
                     </select>
                   </div>
