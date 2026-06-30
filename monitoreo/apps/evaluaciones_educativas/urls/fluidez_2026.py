@@ -25,7 +25,7 @@ urlpatterns = [
     # path('analisis_completo_evaluacion_noviembre_2025/',fluidez_2026.analisis_evaluaciones_ministros_noviembre_2025, name='analisis_completo_evaluacion_noviembre_2025'),
     # path('analisis_evaluacion_noviembre_2025/',fluidez_2026.analisis_evaluaciones_regional_noviembre_2025, name='analisis_evaluacion_noviembre_2025'),
     # path('analisis_evaluaciones_mayo_2025/',fluidez_2026.analisis_evaluaciones_mayo_2025, name='analisis_evaluacion_mayo_2025')
-	path('',fluidez_2026.monitoreo, name='monitoreo'),
+	path('monitoreo/',fluidez_2026.monitoreo, name='monitoreo'),
 	path('descargar_excel_monitoreo/', fluidez_2026.descargar_excel_monitoreo, name='descargar_excel_monitoreo'),
     path('monitoreo_alumno/',fluidez_2026.monitoreo_alumno, name='monitoreo_alumno'),
 	
