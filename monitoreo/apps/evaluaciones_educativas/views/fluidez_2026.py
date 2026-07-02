@@ -11,6 +11,7 @@ from datetime import date, datetime
 import psycopg2
 from psycopg2 import extras
 import os
+import json
 from openpyxl import Workbook
 
 # from apps.consultasge.models import CapaUnicaOfertas
@@ -1794,6 +1795,8 @@ def analisis_segundo_grado_grafico(grado_seleccionado, cueanexo, secciones, turn
         ],
         "etiqueta_promedios_segundo": "Promedio de Palabras Leídas Correctamente por Minuto",
         "valor_promedio_segundo": [promedio],
+        "dni_alumnos_segundo": json.dumps([str(ev.alumno.dni) if ev.alumno.dni else "Sin DNI" for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
+        "valores_fluidez_segundo": json.dumps([float(ev.cantidad_palabras_leidas) for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
     }
     return contexto
 
@@ -1949,6 +1952,8 @@ def analisis_tercer_grado_grafico(grado_seleccionado, cueanexo, secciones, turno
         ],
         "etiqueta_promedios_tercero": "Promedio de Palabras Leídas Correctamente por Minuto",
         "valor_promedio_tercero": [promedio],
+        "dni_alumnos_tercero": json.dumps([str(ev.alumno.dni) if ev.alumno.dni else "Sin DNI" for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
+        "valores_fluidez_tercero": json.dumps([float(ev.cantidad_palabras_leidas) for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
     }
     return contexto
 
