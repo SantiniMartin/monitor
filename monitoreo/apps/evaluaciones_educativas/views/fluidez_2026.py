@@ -144,7 +144,7 @@ def lista(request, fid_actual=None):
 
         lista_dnis.extend(lista)
         alumnos_qs = AlumnoFluidez2026.objects.filter(dni__in=lista_dnis)
-        print(alumnos_qs)
+        # print(alumnos_qs)
 
         qs_secciones = SeccionFluidez2026.objects.filter(
             grado__public_id=grado.public_id
@@ -606,7 +606,7 @@ def editar_alumno(request, alumno_public_id, fid_actual):
 # @login_required
 def carga_evaluacion(request, alumno_public_id, fid_actual):
     # fid_actual = request.POST.get('fid')
-    print(fid_actual)
+    # print(fid_actual)
     alumno_id = get_object_or_404(AlumnoFluidez2026, public_id=alumno_public_id)
     instancia_seccion = get_object_or_404(SeccionFluidez2026, id=alumno_id.seccion_id)
     instancia_grado = get_object_or_404(GradoFluidez2026, id=instancia_seccion.grado_id)
@@ -1010,7 +1010,7 @@ def monitoreo(request):
             temporal_dict[k] = set()
         if item["numero_de_documento"]:
             temporal_dict[k].add(item["numero_de_documento"])
-        print(k, item)
+        # print(k, item)
 
     # 3. Consultar en bloque todos los alumnos registrados para estos cueanexos
     alumnos_qs = AlumnoFluidez2026.objects.filter(
@@ -1039,7 +1039,7 @@ def monitoreo(request):
             )
             dnis_temporales = temporal_dict.get((cueanexo, anio_temporal), set())
             grado.alumnos_esperados = len(dnis_temporales)
-            print("alumnos esperados", len(dnis_temporales))
+            # print("alumnos esperados", len(dnis_temporales))
             alumnos_del_grado = alumnos_por_grado.get((cueanexo, nombre_grado), [])
 
             dnis_extras = {
@@ -1795,8 +1795,22 @@ def analisis_segundo_grado_grafico(grado_seleccionado, cueanexo, secciones, turn
         ],
         "etiqueta_promedios_segundo": "Promedio de Palabras Leídas Correctamente por Minuto",
         "valor_promedio_segundo": [promedio],
-        "dni_alumnos_segundo": json.dumps([str(ev.alumno.dni) if ev.alumno.dni else "Sin DNI" for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
-        "valores_fluidez_segundo": json.dumps([float(ev.cantidad_palabras_leidas) for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
+        "dni_alumnos_segundo": json.dumps(
+            [
+                str(ev.alumno.dni) if ev.alumno.dni else "Sin DNI"
+                for ev in evaluaciones_con_comprension
+                if ev.asistencia == "PRESENTE"
+                and ev.cantidad_palabras_leidas is not None
+            ]
+        ),
+        "valores_fluidez_segundo": json.dumps(
+            [
+                float(ev.cantidad_palabras_leidas)
+                for ev in evaluaciones_con_comprension
+                if ev.asistencia == "PRESENTE"
+                and ev.cantidad_palabras_leidas is not None
+            ]
+        ),
     }
     return contexto
 
@@ -1952,8 +1966,22 @@ def analisis_tercer_grado_grafico(grado_seleccionado, cueanexo, secciones, turno
         ],
         "etiqueta_promedios_tercero": "Promedio de Palabras Leídas Correctamente por Minuto",
         "valor_promedio_tercero": [promedio],
-        "dni_alumnos_tercero": json.dumps([str(ev.alumno.dni) if ev.alumno.dni else "Sin DNI" for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
-        "valores_fluidez_tercero": json.dumps([float(ev.cantidad_palabras_leidas) for ev in evaluaciones_con_comprension if ev.asistencia == "PRESENTE" and ev.cantidad_palabras_leidas is not None]),
+        "dni_alumnos_tercero": json.dumps(
+            [
+                str(ev.alumno.dni) if ev.alumno.dni else "Sin DNI"
+                for ev in evaluaciones_con_comprension
+                if ev.asistencia == "PRESENTE"
+                and ev.cantidad_palabras_leidas is not None
+            ]
+        ),
+        "valores_fluidez_tercero": json.dumps(
+            [
+                float(ev.cantidad_palabras_leidas)
+                for ev in evaluaciones_con_comprension
+                if ev.asistencia == "PRESENTE"
+                and ev.cantidad_palabras_leidas is not None
+            ]
+        ),
     }
     return contexto
 
