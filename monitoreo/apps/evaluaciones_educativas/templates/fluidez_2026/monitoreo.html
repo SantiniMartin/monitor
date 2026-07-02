@@ -262,6 +262,7 @@
                               {% endif %}
                             </div>
                             <div class="d-flex justify-content-between align-items-center text-muted ps-4" style="font-size: 0.8rem;">
+                              <span>Esperados: <strong>{{ grado.alumnos_esperados|default:0 }}</strong></span>
                               <span>Alumnos: <strong>{{ grado.total_alumnos|default:0 }}</strong></span>
                               <span>Evaluados: <strong>{{ grado.total_evaluados|default:0 }}</strong></span>
                             </div>

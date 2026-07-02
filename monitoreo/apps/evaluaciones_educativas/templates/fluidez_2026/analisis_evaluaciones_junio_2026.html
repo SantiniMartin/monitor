@@ -318,8 +318,7 @@
                 <label>Sección y Turno:</label>
                 <select name="{{ form_seccion.seleccion.name }}" id="{{ form_seccion.seleccion.id_for_label }}">
                     {% for value, label in form_seccion.seleccion.field.choices %}
-                    <option value="{{ value }}" {% if
-                        form_seccion.seleccion.value|stringformat:"s"==value|stringformat:"s" %}selected{% endif %}>
+                    <option value="{{ value }}" {% if form_seccion.seleccion.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>
                         {{ label }}
                     </option>
                     {% endfor %}

@@ -20,9 +20,9 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, "static"),
 ]
 
 
@@ -30,98 +30,98 @@ STATICFILES_DIRS = [
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['https://localhost','https://monitoreo-2026.onrender.com']
+ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://monitoreo-2026.onrender.com"]
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'apps.evaluaciones_educativas'
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "apps.evaluaciones_educativas",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'monitoreo.urls'
+ROOT_URLCONF = "monitoreo.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'monitoreo.wsgi.application'
+WSGI_APPLICATION = "monitoreo.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB_RENDER'),
-        'USER': os.environ.get('POSTGRES_USER_RENDER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD_RENDER'),
-        'HOST': os.environ.get('POSTGRES_HOST_RENDER'),
-        'PORT': os.environ.get('POSTGRES_PORT_RENDER'),
-    },   
-    'Evaluacion': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB_EVALUACION'),
-        'USER': os.environ.get('POSTGRES_USER_EVALUACION'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD_EVALUACION'),
-        'HOST': os.environ.get('POSTGRES_HOST_EVALUACION'),
-        'PORT': os.environ.get('POSTGRES_PORT_EVALUACION'),
-        'OPTIONS': {
-            'options': '-c search_path=evaluacion,public,diagnostico_2026,fluidez_2026',
-        }
-    }
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB_RENDER"),
+        "USER": os.environ.get("POSTGRES_USER_RENDER"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD_RENDER"),
+        "HOST": os.environ.get("POSTGRES_HOST_RENDER"),
+        "PORT": os.environ.get("POSTGRES_PORT_RENDER"),
+    },
+    "Evaluacion": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB_EVALUACION"),
+        "USER": os.environ.get("POSTGRES_USER_EVALUACION"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD_EVALUACION"),
+        "HOST": os.environ.get("POSTGRES_HOST_EVALUACION"),
+        "PORT": os.environ.get("POSTGRES_PORT_EVALUACION"),
+        "OPTIONS": {
+            "options": "-c search_path=evaluacion,public,diagnostico_2026,fluidez_2026",
+        },
+    },
 }
 
-DATABASE_ROUTERS = ['apps.evaluaciones_educativas.routers.SecondaryDBRouter']
+DATABASE_ROUTERS = ["apps.evaluaciones_educativas.routers.SecondaryDBRouter"]
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -129,9 +129,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
