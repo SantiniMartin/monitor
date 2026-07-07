@@ -135,6 +135,9 @@
               <h3 class="text-primary fw-bold mb-0">
                 <i class="bi bi-building-check me-2"></i>Monitoreo de Carga por Escuela
               </h3>
+              <a href="{% url 'evaluaciones_educativas:fluidez_2026:monitoreo_regiones' %}" class="btn btn-secondary btn-custom shadow-sm px-4">
+                  <i class="bi bi-search me-1"></i> Monitoreo Regional
+                </a>
               <div class="d-flex gap-2">
                 <a href="{% url 'evaluaciones_educativas:fluidez_2026:descargar_excel_monitoreo' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-success btn-custom shadow-sm px-4">
                   <i class="bi bi-file-earmark-excel-fill me-1"></i> Descargar Excel
