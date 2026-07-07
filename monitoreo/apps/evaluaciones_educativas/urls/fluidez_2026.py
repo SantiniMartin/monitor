@@ -36,6 +36,8 @@ urlpatterns = [
         name="descargar_excel_monitoreo",
     ),
     path("monitoreo_alumno/", fluidez_2026.monitoreo_alumno, name="monitoreo_alumno"),
+    path("monitoreo_regiones/", fluidez_2026.monitoreo_regiones, name="monitoreo_regiones"),
+    path("descargar_excel_regiones/", fluidez_2026.descargar_excel_regiones, name="descargar_excel_regiones"),
     path('analisis_evaluacion/',fluidez_2026.analisis_evaluaciones_junio_2026, name='analisis_evaluacion'),
     path('analisis_evaluacion_regional/',fluidez_2026.analisis_evaluaciones_regional_junio_2026, name='analisis_evaluacion_regional'),
     path('analisis_evaluacion_ministros/',fluidez_2026.analisis_evaluaciones_ministros_junio_2026, name='analisis_evaluacion_ministros'),

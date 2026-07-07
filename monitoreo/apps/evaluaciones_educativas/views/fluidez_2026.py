@@ -2047,3 +2047,98 @@ def comprension_lectora(alumnos, grado_seleccionado):
             # print(f'{i.puntaje_comprension} alumno:{i.alumno.nombre}' )
 
     return evaluaciones, conteos  # Devolvemos la lista completa
+
+
+def monitoreo_regiones(request):
+    regiones = EstablecimientosFluidez2026.objects.values_list('region', flat=True).distinct()
+    
+    datos_regiones = []
+    
+    for region in regiones:
+        if not region:
+            continue
+            
+        cueanexos = EstablecimientosFluidez2026.objects.filter(region=region).values_list('cueanexo', flat=True)
+        cueanexos_int = [int(c) for c in cueanexos]
+        esperados = TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo__in=cueanexos_int).count()
+        cargados = AlumnoFluidez2026.objects.filter(seccion__grado__Establecimiento__region=region).count()
+        evaluados = EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__seccion__grado__Establecimiento__region=region).count()
+    
+        datos_regiones.append({
+            'region': region,
+            'esperados': esperados,
+            'cargados': cargados,
+            'evaluados': evaluados
+        })
+        
+    total_alumnos_esperados=0
+    total_alumnos_cargados=0
+    total_alumnos_evaluados=0
+    for i in datos_regiones:
+        total_alumnos_esperados+=i['esperados']
+        total_alumnos_cargados+=i['cargados']
+        total_alumnos_evaluados+=i['evaluados']
+
+    context = {
+        'datos_regiones': datos_regiones,
+        'total_alumnos_esperados': total_alumnos_esperados,
+        'total_alumnos_cargados': total_alumnos_cargados,
+        'total_alumnos_evaluados': total_alumnos_evaluados
+    }
+    return render(request, 'fluidez_2026/monitoreo_regiones.html', context)
+
+
+def descargar_excel_regiones(request):
+    regiones = EstablecimientosFluidez2026.objects.values_list('region', flat=True).distinct()
+    
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="reporte_monitoreo_regiones.xlsx"'
+
+    wb = Workbook()
+    ws = wb.active
+    fecha_hora_actual = datetime.now()
+    ws["A1"] = "REPORTE DE MONITOREO POR REGIONES"
+    ws["D1"] = f'FECHA Y HORA:  {fecha_hora_actual.strftime("%d/%m/%Y %I:%M:%S %p")}'
+    
+    lista = [
+        "REGIÓN",
+        "ALUMNOS ESPERADOS",
+        "ALUMNOS CARGADOS",
+        "TOTAL EVALUADOS",
+    ]
+    ws.append(lista)
+    
+    row_idx = 3
+    total_esperados = 0
+    total_cargados = 0
+    total_evaluados = 0
+    
+    for region in regiones:
+        if not region:
+            continue
+            
+        cueanexos = EstablecimientosFluidez2026.objects.filter(region=region).values_list('cueanexo', flat=True)
+        cueanexos_int = [int(c) for c in cueanexos]
+        esperados = TablaTemporalAlumnoFluidez2026.objects.filter(cueanexo__in=cueanexos_int).count()
+        cargados = AlumnoFluidez2026.objects.filter(seccion__grado__Establecimiento__region=region).count()
+        evaluados = EvaluacionFluidezLectoraFluidez2026.objects.filter(alumno__seccion__grado__Establecimiento__region=region).count()
+        
+        total_esperados += esperados
+        total_cargados += cargados
+        total_evaluados += evaluados
+        
+        ws[f"A{row_idx}"] = region
+        ws[f"B{row_idx}"] = esperados
+        ws[f"C{row_idx}"] = cargados
+        ws[f"D{row_idx}"] = evaluados
+        row_idx += 1
+
+    ws[f"A{row_idx}"] = "TOTALES"
+    ws[f"B{row_idx}"] = total_esperados
+    ws[f"C{row_idx}"] = total_cargados
+    ws[f"D{row_idx}"] = total_evaluados
+
+    wb.save(response)
+    return response
