@@ -5,14 +5,16 @@ Requiere: pip install opencv-python-headless numpy
 
 Este módulo corre en el servidor Django, no en el navegador.
 El docente solo envía la foto → el servidor devuelve el JSON con respuestas.
+
+Diseñado para el examen "Evaluación Integral 2026" del Ministerio de Educación del Chaco:
+  - Ítems 1–9: Tabla 3×3, casillas cuadradas pequeñas (A/B/C/D), marcas = tachado diagonal
+  - Ítems 10–12: Sección docente separada (fila horizontal), siempre vacíos (completa el docente)
 """
 import numpy as np
 import cv2
 
 
 # ─── Configuración ────────────────────────────────────────────────────────────
-# Debe coincidir con CFG en omr_processor.js para que el overlay de debug
-# del frontend sea consistente.
 
 WORK_W, WORK_H = 900, 1200   # Canvas de trabajo (resize de la foto)
 WARP_W, WARP_H = 900, 700    # Tamaño de la imagen rectificada por perspectiva
@@ -22,13 +24,24 @@ ROWS         = 3             # Filas de la tabla
 OPTS         = 4             # Opciones por ítem (A/B/C/D)
 LETTERS      = ['A', 'B', 'C', 'D']
 
-MARK_THRESH  = 0.07          # Densidad mínima de px oscuros para "marcado"
-CONF_LOW     = 40            # Confianza < 40 → ítem "dudoso"
+# Umbral de densidad de píxeles oscuros para considerar un casillero como marcado.
+# Se reduce a 0.035 y se ajusta la ventana X para enfocar solo el cuadradito.
+MARK_THRESH  = 0.035
 
-HEADER_RATIO = 0.22          # Fracción del alto de celda ocupado por la cabecera (n° ítem)
-CHECK_X_START = 0.12         # Zona del casillero: empieza en 12% del ancho de celda
-CHECK_X_END   = 0.80         # Termina en 80%
-CHECK_Y_MARGIN = 0.05        # Margen vertical dentro de la fila de opción
+# Confianza < CONF_LOW → ítem "dudoso" (requiere revisión manual)
+CONF_LOW     = 40
+
+# Fracción del alto de celda ocupada por la cabecera (número de ítem).
+# El examen tiene el número en la parte superior de cada celda.
+HEADER_RATIO = 0.20
+
+# Zona horizontal del casillero a analizar.
+# Ajustado para envolver exclusivamente el cuadradito y maximizar la densidad del tachado.
+CHECK_X_START  = 0.22
+CHECK_X_END    = 0.50
+
+# Margen vertical dentro de cada fila de opción
+CHECK_Y_MARGIN = 0.08        # antes: 0.05 — más margen para evitar ruido de bordes
 
 
 # ─── Funciones privadas ───────────────────────────────────────────────────────
@@ -55,11 +68,50 @@ def _find_largest_rect(binary: np.ndarray, img_w: int, img_h: int):
     Busca el contorno rectangular más grande en la imagen binaria.
     Retorna las 4 esquinas ordenadas (TL/TR/BR/BL) como ndarray float32,
     o None si no se encuentra ningún rectángulo válido.
+
+    Estrategia mejorada: prueba también con imagen de Canny edges para capturar
+    casos donde el threshold no delimita bien la tabla.
     """
     min_area = img_w * img_h * 0.04
     max_area = img_w * img_h * 0.98
 
-    contours, _ = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    best_area = 0
+    best_pts  = None
+
+    for source in [binary]:
+        contours, _ = cv2.findContours(source, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if not (min_area < area < max_area):
+                continue
+
+            peri   = cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
+
+            if len(approx) == 4 and area > best_area:
+                best_area = area
+                best_pts  = approx
+
+    if best_pts is None:
+        return None
+
+    return _sort_corners(best_pts)
+
+
+def _find_rect_with_canny(gray: np.ndarray, img_w: int, img_h: int):
+    """
+    Intenta detectar el rectángulo de la tabla usando Canny edges + dilatación.
+    Útil cuando el threshold adaptativo no cierra bien los contornos de la tabla.
+    """
+    min_area = img_w * img_h * 0.04
+    max_area = img_w * img_h * 0.98
+
+    edges = cv2.Canny(gray, 50, 150)
+    kernel = np.ones((5, 5), np.uint8)
+    dilated = cv2.dilate(edges, kernel, iterations=2)
+
+    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     best_area = 0
     best_pts  = None
@@ -70,7 +122,7 @@ def _find_largest_rect(binary: np.ndarray, img_w: int, img_h: int):
             continue
 
         peri   = cv2.arcLength(cnt, True)
-        approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
+        approx = cv2.approxPolyDP(cnt, 0.025 * peri, True)
 
         if len(approx) == 4 and area > best_area:
             best_area = area
@@ -85,9 +137,9 @@ def _find_largest_rect(binary: np.ndarray, img_w: int, img_h: int):
 def _measure_density(binary: np.ndarray, x: int, y: int, w: int, h: int) -> float:
     """
     Mide la proporción de píxeles marcados (255 en THRESH_BINARY_INV)
-    dentro de la región (x, y, w, h), con un margen interno del 7%.
+    dentro de la región (x, y, w, h), con un margen interno del 8%.
     """
-    m  = 0.07
+    m  = 0.08
     x1 = max(0, int(x + w * m))
     y1 = max(0, int(y + h * m))
     x2 = min(binary.shape[1], int(x + w * (1 - m)))
@@ -100,6 +152,31 @@ def _measure_density(binary: np.ndarray, x: int, y: int, w: int, h: int) -> floa
     dark  = int(np.count_nonzero(roi))
     total = (y2 - y1) * (x2 - x1)
     return dark / total if total > 0 else 0.0
+
+
+def _compute_confidence(max_dens: float, second_dens: float, is_marked: bool) -> int:
+    """
+    Calcula la confianza de la detección (0–100).
+
+    Fórmula mejorada: penaliza más cuando la diferencia entre la mayor y segunda
+    densidad es pequeña (ambiguedad), y cuando la marca está justo en el umbral.
+    """
+    if max_dens <= 0:
+        return 0
+
+    # Ratio de diferencia entre 1er y 2do candidato
+    diff_ratio = (max_dens - second_dens) / (max_dens + 1e-6)
+
+    if is_marked:
+        # Bonus por margen claro (diff_ratio alto = menos ambigüedad)
+        conf = int(diff_ratio * 85 + min(max_dens * 200, 15))
+        conf = min(100, max(conf, 0))
+    else:
+        # Sin marca: confianza baja (el ítem está vacío)
+        conf = int(diff_ratio * 25)
+        conf = min(35, max(conf, 0))
+
+    return conf
 
 
 def _analyze_grid(binary: np.ndarray, img_w: int, img_h: int) -> tuple[dict, dict]:
@@ -147,16 +224,42 @@ def _analyze_grid(binary: np.ndarray, img_w: int, img_h: int) -> tuple[dict, dic
 
             is_marked = max_dens >= MARK_THRESH
             respuestas[item_num] = LETTERS[max_idx] if is_marked else ''
-
-            if max_dens > 0:
-                conf = min(100, int(((max_dens - second_dens) / (max_dens + 1e-6)) * 100))
-                if not is_marked:
-                    conf = int(conf * 0.4)
-            else:
-                conf = 0
-            confianza[item_num] = conf
+            confianza[item_num]  = _compute_confidence(max_dens, second_dens, is_marked)
 
     return respuestas, confianza
+
+
+def _preprocess(gray: np.ndarray) -> np.ndarray:
+    """
+    Preprocesa la imagen en escala de grises para mejorar la detección de marcas.
+
+    Pipeline:
+      1. Normalización CLAHE (equalización local de histograma) — compensa
+         fotos oscuras, sobreexpuestas o con luz no uniforme.
+      2. GaussianBlur — reduce ruido de sensor.
+      3. adaptiveThreshold — binariza respetando variaciones locales de iluminación.
+      4. morphologyEx CLOSE — une bordes interrumpidos del casillero.
+    """
+    # 1. CLAHE: ecualización adaptativa del histograma (mejor que normalize() para OMR)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+
+    # 2. Blur suave para reducir ruido
+    blurred = cv2.GaussianBlur(enhanced, (5, 5), 0)
+
+    # 3. Threshold adaptativo (bloque 19x19 para casillas pequeñas)
+    binary = cv2.adaptiveThreshold(
+        blurred, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        19, 6,
+    )
+
+    # 4. Cierre morfológico para unir trazos interrumpidos del tachado
+    kernel = np.ones((2, 2), np.uint8)
+    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+    return closed
 
 
 # ─── API pública ──────────────────────────────────────────────────────────────
@@ -165,15 +268,17 @@ def procesar_imagen(imagen_bytes: bytes) -> dict:
     """
     Procesa los bytes de la imagen de un examen OMR y retorna las respuestas detectadas.
 
+    Diseñado para el examen "Evaluación Integral 2026" del Ministerio de Educación del Chaco:
+    - Ítems 1–9: tabla 3×3 con casillas cuadradas (marcas = tachado diagonal/cruzado)
+    - Ítems 10–12: sección docente separada — siempre vacíos (se completan a mano)
+
     Pipeline:
       1. Decodificar → resize a WORK_W × WORK_H
-      2. Grayscale → GaussianBlur (reduce ruido de cámara)
-      3. adaptiveThreshold (tolera sombras e iluminación irregular)
-      4. morphologyEx CLOSE (une bordes interrumpidos)
-      5. findContours + approxPolyDP → detectar tabla (CLAVE DE RESPUESTAS)
-      6. warpPerspective → rectificar perspectiva de fotos torcidas
-      7. Grilla fija 3×3 → medir densidad de marcas por ítem
-      8. Ítems 10-12 → vacíos (sección docente, se completa manualmente)
+      2. Grayscale → CLAHE → GaussianBlur → adaptiveThreshold → CLOSE
+      3. Detección de tabla: intenta con threshold primero, luego Canny como fallback
+      4. warpPerspective → rectificar perspectiva si se encontró la tabla
+      5. Grilla fija 3×3 → medir densidad de marcas por ítem (1–9)
+      6. Ítems 10–12 → vacíos (sección docente, se completa manualmente)
 
     Returns:
         {
@@ -196,26 +301,31 @@ def procesar_imagen(imagen_bytes: bytes) -> dict:
 
     img = cv2.resize(img, (WORK_W, WORK_H), interpolation=cv2.INTER_AREA)
 
-    # ── 2-4. Preprocessing ────────────────────────────────────────────────────
-    gray    = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+    # ── 2. Preprocessing ──────────────────────────────────────────────────────
+    gray   = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    binary = _preprocess(gray)
 
-    binary = cv2.adaptiveThreshold(
-        blurred, 255,
+    # Para detección de contornos usamos un threshold con bloque más grande (detecta mejor bordes de tabla)
+    blurred_big = cv2.GaussianBlur(gray, (7, 7), 0)
+    binary_big  = cv2.adaptiveThreshold(
+        blurred_big, 255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY_INV,
         21, 5,
     )
+    kernel_big = np.ones((3, 3), np.uint8)
+    closed_big = cv2.morphologyEx(binary_big, cv2.MORPH_CLOSE, kernel_big)
 
-    kernel = np.ones((3, 3), np.uint8)
-    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-
-    # ── 5. Detectar tabla ─────────────────────────────────────────────────────
-    corners   = _find_largest_rect(closed, WORK_W, WORK_H)
+    # ── 3. Detectar tabla: threshold primero, luego Canny como fallback ───────
+    corners   = _find_largest_rect(closed_big, WORK_W, WORK_H)
     used_warp = False
 
+    if corners is None:
+        # Segundo intento: Canny edges (más robusto con fotos de bajo contraste)
+        corners = _find_rect_with_canny(gray, WORK_W, WORK_H)
+
     if corners is not None:
-        # ── 6. Corrección de perspectiva ──────────────────────────────────────
+        # ── 4. Corrección de perspectiva ──────────────────────────────────────
         dst_pts = np.array([
             [0,      0      ],
             [WARP_W, 0      ],
@@ -225,42 +335,42 @@ def procesar_imagen(imagen_bytes: bytes) -> dict:
 
         M           = cv2.getPerspectiveTransform(corners, dst_pts)
         warped_gray = cv2.warpPerspective(gray, M, (WARP_W, WARP_H))
-        warped_blur = cv2.GaussianBlur(warped_gray, (7, 7), 0)
-        warped_bin  = cv2.adaptiveThreshold(
-            warped_blur, 255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV,
-            21, 5,
-        )
-
-        analysis_mat = warped_bin
+        analysis_mat = _preprocess(warped_gray)
         analysis_w   = WARP_W
         analysis_h   = WARP_H
         used_warp    = True
 
     else:
-        # Fallback: recorte heurístico basado en el layout conocido del examen
-        rx = int(WORK_W * 0.04)
-        ry = int(WORK_H * 0.28)
-        rw = int(WORK_W * 0.92)
-        rh = int(WORK_H * 0.42)
+        # ── Fallback: recorte heurístico basado en el layout del examen Chaco 2026
+        # La tabla "CLAVE DE RESPUESTAS" ocupa aproximadamente:
+        #   - horizontal: 3% → 97% del ancho
+        #   - vertical:   25% → 72% del alto de la página
+        rx = int(WORK_W * 0.03)
+        ry = int(WORK_H * 0.25)
+        rw = int(WORK_W * 0.94)
+        rh = int(WORK_H * 0.47)
         analysis_mat = binary[ry:ry + rh, rx:rx + rw]
         analysis_w   = rw
         analysis_h   = rh
 
-    # ── 7. Analizar grilla ────────────────────────────────────────────────────
+    # ── 5. Analizar grilla 3×3 (ítems 1–9) ───────────────────────────────────
     respuestas, confianza = _analyze_grid(analysis_mat, analysis_w, analysis_h)
 
-    # ── 8. Ítems 10-12 (sección docente) → vacíos por defecto ────────────────
+    # ── 6. Ítems 10–12 (sección docente) → vacíos por defecto ─────────────────
+    # Esta sección está reservada para el "Docente Aplicador" y se completa
+    # manualmente desde el panel de resultados.
     for i in range(10, 13):
         respuestas[i] = ''
         confianza[i]  = 0
 
-    items_dudosos = [k for k, v in confianza.items() if v < CONF_LOW]
+    # ── 7. Calcular ítems dudosos ─────────────────────────────────────────────
+    # Solo marcar como dudosos los ítems 1–9 (los docente son siempre 0)
+    items_dudosos = [k for k, v in confianza.items() if k <= 9 and v < CONF_LOW]
 
     return {
         'respuestas':    {str(k): v for k, v in respuestas.items()},
         'confianza':     {str(k): v for k, v in confianza.items()},
         'items_dudosos': items_dudosos,
         'used_warp':     used_warp,
+        'corners':       corners.tolist() if corners is not None else None,
     }

@@ -406,6 +406,7 @@
           </svg>
         </div>
         <p>Usá la cámara o subí una foto<br>de la hoja de respuestas del examen.</p>
+        <p style="font-size: 0.8rem; margin-top: 12px; color: var(--warning);">Asegurate de que la foto incluya bien<br>toda la tabla de los ítems 1 al 9.</p>
       </div>
 
       <!-- Badge procesando -->
@@ -680,8 +681,16 @@
 
       // Fila por cada ítem
       for (let i = 1; i <= 12; i++) {
+        if (i === 10) {
+          const docHeader = document.createElement('div');
+          docHeader.style = 'margin-top: 16px; margin-bottom: 4px; padding: 10px; background: rgba(14,165,233,.1); border: 1px dashed rgba(14,165,233,.4); border-radius: 8px; text-align: center; font-size: 0.85rem; color: var(--accent); font-weight: 600;';
+          docHeader.innerHTML = '📋 Sección Docente (completar manual)';
+          itemsGrid.appendChild(docHeader);
+        }
+
         const resp = respuestas[i] || '';
-        const conf = confianza[i] !== undefined ? confianza[i] : null;
+        // Ocultar barra de confianza para sección docente
+        const conf = i >= 10 ? null : (confianza[i] !== undefined ? confianza[i] : null);
         const isDudoso = itemsDudosos.includes(i);
         const isSinResp = !resp;
 
@@ -727,8 +736,17 @@
           confWrap.innerHTML = `
             <div class="conf-bar"><div class="conf-fill ${nivel}" style="width:${conf}%"></div></div>
             <span class="conf-label">${conf}%</span>`;
+        } else if (i >= 10) {
+          // Placeholder para la barra de confianza en sección docente
+          confWrap.innerHTML = `<span class="conf-label" style="font-size: 0.6rem; color: var(--accent); opacity: 0.7;">DOC</span>`;
         }
         row.appendChild(confWrap);
+
+        if (i >= 10) {
+          row.style.borderStyle = 'dashed';
+          row.style.borderColor = 'rgba(14,165,233,.3)';
+          if (!resp) row.style.opacity = '1'; // No atenuar tanto si no hay respuesta en DOC
+        }
 
         itemsGrid.appendChild(row);
       }
