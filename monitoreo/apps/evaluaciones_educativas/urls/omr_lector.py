@@ -18,4 +18,7 @@ urlpatterns = [
 
     # 5. Detalle de una lectura
     path('historial/<uuid:public_id>/', omr_lector.detalle_lectura, name='detalle_lectura'),
+
+    # 6. Procesar imagen OMR con OpenCV backend (no requiere OpenCV.js en el browser)
+    path('procesar-imagen/', omr_lector.procesar_imagen_omr, name='procesar_imagen_omr'),
 ]

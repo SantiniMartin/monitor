@@ -257,3 +257,65 @@ def detalle_lectura(request, public_id):
         'opciones': ['A', 'B', 'C', 'D'],
     }
     return render(request, 'omr_lector/detalle_lectura.html', contexto)
+
+
+# ─── 6. Procesar imagen con OpenCV (backend) ──────────────────────────────────
+
+@require_POST
+def procesar_imagen_omr(request):
+    """
+    Endpoint de procesamiento OMR server-side.
+
+    Recibe: multipart/form-data con campo 'imagen' (File de foto del examen)
+    Retorna: JSON con las respuestas detectadas por ítem.
+
+    Ventaja frente al procesamiento en el navegador (OpenCV.js):
+    - No requiere descargar ~8MB de WASM al celular del docente.
+    - Procesamiento más rápido y preciso en servidor.
+    - Funciona en celulares viejos y con mala conexión.
+
+    Respuesta exitosa:
+    {
+        "ok": true,
+        "respuestas": {"1": "A", "2": "C", ...},
+        "confianza":  {"1": 85,  "2": 40, ...},
+        "items_dudosos": [3, 7],
+        "used_warp": true
+    }
+
+    Si opencv-python-headless no está instalado:
+    {"ok": false, "cv_not_installed": true, "error": "..."}
+    """
+    if 'imagen' not in request.FILES:
+        return JsonResponse({'ok': False, 'error': 'No se recibió ninguna imagen.'}, status=400)
+
+    imagen_file = request.FILES['imagen']
+
+    # Validar que sea una imagen
+    content_type = imagen_file.content_type or ''
+    if not content_type.startswith('image/'):
+        return JsonResponse({'ok': False, 'error': f'Tipo de archivo no válido: {content_type}'}, status=400)
+
+    # Límite de tamaño: 20 MB
+    if imagen_file.size > 20 * 1024 * 1024:
+        return JsonResponse({'ok': False, 'error': 'La imagen supera el límite de 20 MB.'}, status=400)
+
+    try:
+        from apps.evaluaciones_educativas.views.omr_utils import procesar_imagen
+        imagen_bytes = imagen_file.read()
+        resultado    = procesar_imagen(imagen_bytes)
+        return JsonResponse({'ok': True, **resultado})
+
+    except ImportError as e:
+        # opencv-python-headless no instalado → el frontend usa fallback JS
+        return JsonResponse({
+            'ok': False,
+            'cv_not_installed': True,
+            'error': f'opencv-python-headless no instalado: {e}',
+        }, status=503)
+
+    except ValueError as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': f'Error interno: {e}'}, status=500)

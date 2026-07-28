@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
+
       --primary: #1a56db;
       --primary-dark: #1e429f;
       --accent: #0ea5e9;
@@ -511,11 +512,17 @@
   <!-- Canvas oculto de trabajo OMR -->
   <canvas id="canvas-omr" style="display:none;"></canvas>
 
+  <!-- omr_processor.js: cliente liviano del backend OMR, sin librerías externas -->
   <script src="{% static 'evaluaciones_educativas/js/omr_processor.js' %}"></script>
+
   <script>
     // ── Estado global ──────────────────────────────────────────────────────
-    const SAVE_URL = "{% url 'evaluaciones_educativas:omr_lector:guardar_lectura' alumno.public_id %}";
-    const CSRF_TOKEN = "{{ csrf_token }}";
+    const SAVE_URL    = "{% url 'evaluaciones_educativas:omr_lector:guardar_lectura' alumno.public_id %}";
+    const PROCESS_URL = "{% url 'evaluaciones_educativas:omr_lector:procesar_imagen_omr' %}";
+    const CSRF_TOKEN  = "{{ csrf_token }}";
+
+    // Inicializar el cliente OMR con el endpoint del backend y el CSRF token
+    OMRProcessor.init(PROCESS_URL, CSRF_TOKEN);
 
     let respuestasActuales = {};
     let confianzaActual = {};
@@ -523,21 +530,21 @@
     let streamActivo = null;
 
     // ── Elementos DOM ──────────────────────────────────────────────────────
-    const videoEl      = document.getElementById('video-live');
+    const videoEl       = document.getElementById('video-live');
     const canvasPreview = document.getElementById('canvas-preview');
-    const canvasOMR    = document.getElementById('canvas-omr');
-    const placeholder  = document.getElementById('placeholder');
-    const guideOverlay = document.getElementById('guide-overlay');
-    const procBadge    = document.getElementById('processing-badge');
-    const panelEmpty   = document.getElementById('panel-empty');
-    const itemsGrid    = document.getElementById('items-grid');
-    const statusBadge  = document.getElementById('panel-status-badge');
-    const btnGuardar   = document.getElementById('btn-guardar');
-    const btnAbrirCam  = document.getElementById('btn-abrir-camara');
-    const btnCapLive   = document.getElementById('btn-capturar-live');
-    const btnSubir     = document.getElementById('btn-subir-foto');
-    const inputFoto    = document.getElementById('input-foto');
-    const toastEl      = document.getElementById('toast-success');
+    const canvasOMR     = document.getElementById('canvas-omr');
+    const placeholder   = document.getElementById('placeholder');
+    const guideOverlay  = document.getElementById('guide-overlay');
+    const procBadge     = document.getElementById('processing-badge');
+    const panelEmpty    = document.getElementById('panel-empty');
+    const itemsGrid     = document.getElementById('items-grid');
+    const statusBadge   = document.getElementById('panel-status-badge');
+    const btnGuardar    = document.getElementById('btn-guardar');
+    const btnAbrirCam   = document.getElementById('btn-abrir-camara');
+    const btnCapLive    = document.getElementById('btn-capturar-live');
+    const btnSubir      = document.getElementById('btn-subir-foto');
+    const inputFoto     = document.getElementById('input-foto');
+    const toastEl       = document.getElementById('toast-success');
 
     // ── Manejo de cámara en vivo ──────────────────────────────────────────
 
