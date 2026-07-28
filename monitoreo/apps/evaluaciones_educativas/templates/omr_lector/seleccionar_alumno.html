@@ -1,0 +1,345 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OMR — Seleccionar Alumno</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1e429f;
+      --accent: #0ea5e9;
+      --bg: #f0f4ff;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+      color: var(--text);
+    }
+
+    /* ── Header ── */
+    .page-header {
+      max-width: 860px;
+      margin: 0 auto 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(26,86,219,.35);
+    }
+    .header-icon svg { color: white; }
+    .page-header h1 {
+      font-size: 1.5rem; font-weight: 700; margin: 0;
+      background: linear-gradient(135deg, var(--primary-dark), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header p { margin: 2px 0 0; color: var(--muted); font-size: .9rem; }
+
+    /* ── Card ── */
+    .card {
+      max-width: 860px;
+      margin: 0 auto 20px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+    .card-header-custom {
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+      color: white;
+      padding: 16px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-body { padding: 24px; background: var(--card-bg); }
+
+    /* ── Búsqueda ── */
+    .search-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+    @media (max-width: 600px) {
+      .search-grid { grid-template-columns: 1fr; }
+    }
+    .form-label { font-size: .85rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+    .form-control, .form-select {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .95rem;
+      transition: border-color .2s;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,86,219,.12);
+      outline: none;
+    }
+    .btn-buscar {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border: none;
+      color: white;
+      border-radius: 10px;
+      padding: 10px 24px;
+      font-weight: 600;
+      font-size: .95rem;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      white-space: nowrap;
+    }
+    .btn-buscar:hover { opacity: .9; transform: translateY(-1px); }
+
+    /* ── Tabla de alumnos ── */
+    .results-info {
+      font-size: .85rem; color: var(--muted); margin-bottom: 14px; padding: 0 2px;
+    }
+    .alumnos-table { width: 100%; border-collapse: collapse; }
+    .alumnos-table thead th {
+      background: #f8fafc;
+      font-size: .8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted);
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      text-align: left;
+    }
+    .alumnos-table tbody tr {
+      transition: background .15s;
+      cursor: pointer;
+    }
+    .alumnos-table tbody tr:hover { background: #eef2ff; }
+    .alumnos-table tbody td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: .92rem;
+    }
+    .badge-grado {
+      background: #dbeafe; color: #1e40af;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .78rem; font-weight: 600;
+    }
+    .badge-seccion {
+      background: #d1fae5; color: #065f46;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: .78rem; font-weight: 600;
+    }
+    .btn-seleccionar {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: .82rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background .2s, transform .15s;
+      display: inline-block;
+    }
+    .btn-seleccionar:hover {
+      background: var(--primary-dark); color: white;
+      transform: translateY(-1px);
+    }
+
+    /* ── Estado vacío ── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+    }
+    .empty-state svg { opacity: .35; margin-bottom: 16px; }
+    .empty-state p { font-size: .95rem; margin: 0; }
+
+    /* ── Aviso inicial ── */
+    .hint-box {
+      background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 18px 20px;
+      font-size: .9rem;
+      color: #1e40af;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .hint-box svg { flex-shrink: 0; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    </div>
+    <div>
+      <h1>Lector OMR de Exámenes</h1>
+      <p>Optical Mark Recognition — Paso 1 de 2: seleccioná el alumno</p>
+    </div>
+  </div>
+
+  <!-- Búsqueda -->
+  <div class="card">
+    <div class="card-header-custom">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+      </svg>
+      Buscar alumno
+    </div>
+    <div class="card-body">
+      <form method="POST" id="form-busqueda">
+        {% csrf_token %}
+        <div class="search-grid">
+          <div>
+            <label class="form-label" for="cueanexo-select">Escuela (Cueanexo)</label>
+            <select name="cueanexo" id="cueanexo-select" class="form-select">
+              <option value="">— Todas las escuelas —</option>
+              {% for est in establecimientos %}
+                <option value="{{ est.cueanexo }}" {% if est.cueanexo == cueanexo_seleccionado %}selected{% endif %}>
+                  {{ est.escuela }} ({{ est.cueanexo }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="q-input">Nombre, apellido o DNI</label>
+            <input
+              type="text" name="q" id="q-input"
+              class="form-control" placeholder="Ej: García, Juan, 12345678"
+              value="{{ query }}"
+              autocomplete="off"
+            />
+          </div>
+          <div>
+            <button type="submit" class="btn-buscar" id="btn-buscar">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:5px">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+              </svg>
+              Buscar
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Resultados -->
+  {% if alumnos is not None %}
+    <div class="card">
+      <div class="card-header-custom">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Resultados
+      </div>
+      <div class="card-body" style="padding: 16px 24px 24px;">
+        {% if alumnos %}
+          <p class="results-info">
+            Se encontraron <strong>{{ alumnos|length }}</strong> alumno(s)
+            {% if query %} para "<em>{{ query }}</em>"{% endif %}
+          </p>
+          <div style="overflow-x: auto;">
+            <table class="alumnos-table">
+              <thead>
+                <tr>
+                  <th>Apellido y Nombre</th>
+                  <th>DNI</th>
+                  <th>Grado</th>
+                  <th>Sección</th>
+                  <th>Escuela</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for alumno in alumnos %}
+                <tr onclick="window.location='{% url "evaluaciones_educativas:omr_lector:lector_omr" alumno.public_id %}'">
+                  <td><strong>{{ alumno.apellido }}, {{ alumno.nombre }}</strong></td>
+                  <td>{{ alumno.dni|default:"—" }}</td>
+                  <td>
+                    {% if alumno.seccion %}
+                      <span class="badge-grado">{{ alumno.seccion.grado.nombre_grado }}</span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td>
+                    {% if alumno.seccion %}
+                      <span class="badge-seccion">{{ alumno.seccion.seccion }} — {{ alumno.seccion.turno }}</span>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td style="font-size:.85rem; color: var(--muted);">
+                    {% if alumno.seccion.grado.Establecimiento %}
+                      {{ alumno.seccion.grado.Establecimiento.escuela }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td>
+                    <a href="{% url "evaluaciones_educativas:omr_lector:lector_omr" alumno.public_id %}"
+                       class="btn-seleccionar"
+                       onclick="event.stopPropagation()">
+                      Escanear examen →
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p>No se encontraron alumnos con esos criterios.<br>
+            <small>Intentá con otro nombre, DNI o cambiando la escuela.</small></p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <!-- Estado inicial -->
+    <div class="card" style="max-width:860px; margin:0 auto;">
+      <div class="card-body">
+        <div class="hint-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <strong>¿Cómo funciona?</strong><br>
+            Buscá al alumno por nombre, apellido o DNI. Seleccioná una escuela para acotar los resultados.
+            Luego hacé clic en <em>"Escanear examen →"</em> para abrir el lector de fotos de su examen.
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Auto-submit al cambiar escuela si ya hay una búsqueda activa
+    document.getElementById('cueanexo-select').addEventListener('change', function() {
+      const q = document.getElementById('q-input').value.trim();
+      if (q || this.value) {
+        document.getElementById('form-busqueda').submit();
+      }
+    });
+  </script>
+</body>
+</html>
