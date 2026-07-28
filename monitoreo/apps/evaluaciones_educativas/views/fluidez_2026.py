@@ -48,7 +48,7 @@ from urllib.parse import urlencode  # Necesario para armar los parámetros de la
 
 
 def lista(request, fid_actual=None):
-    cuil = 20422632264
+    cuil = 27275780559
 
     if not fid_actual:
         # 1. Variables por defecto
@@ -233,7 +233,7 @@ def actualizar_seccion(request, alumno_public_id):
 # TODO HACER DOS VISTA LISTA UNA QUE FUNCIONE CON PUBLIC_ID Y LA INICIAL SIN PUBLIC_ID
 # @login_required
 def lista_examen(request, fid_actual=None):
-    cuil = 20422632264
+    cuil = 27275780559
     if not fid_actual:
         # 1. Variables por defecto
         fid_actual = request.GET.get("fid")
@@ -1528,7 +1528,8 @@ def analisis_evaluaciones_ministros_junio_2026(request):
     cuil = usuario.username
     # Formateo de CUIL
     # cuil_con_caracter = f"{cuil[:2]}-{cuil[2:10]}-{cuil[10:]}"
-    nivel_acceso = request.user.nivelacceso_id
+    # nivel_acceso = request.user.nivelacceso_id
+    nivel_acceso = "Funcionario"
     # print(f'REGIONALLLLL{nivel_acceso}')
     contexto["rol"] = nivel_acceso
     # Inicializamos el primer formulario siempre
@@ -1576,7 +1577,7 @@ def analisis_evaluaciones_ministros_junio_2026(request):
                         # transformar varibale cueanexo a lista
                         # lista_cueanexos=[cueanexo]
                         # Usamos filter().first() para evitar errores si no existe
-                        grado_obj = Grado.objects.filter(
+                        grado_obj = GradoFluidez2026.objects.filter(
                             nombre_grado=nombre_grado, cueanexo__in=lista_cueanexos
                         )
                         # print(len(grado_obj))
@@ -1620,13 +1621,13 @@ def analisis_evaluaciones_ministros_junio_2026(request):
 
     contexto["form_director_nivel"] = form_director_nivel
     # contexto["form_cueanexo"] = form_cueanexo
-    nombre_archivo = (
-        "evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2026.pdf"
-    )
-    # Generamos la URL y le pegamos los parámetros del visor
-    contexto["material_pdf"] = static(nombre_archivo)
+    # nombre_archivo = (
+    #     "evaluaciones_educativas/pdf/INFORME-FLUIDEZ-LECTORA-NOVIEMBRE2026.pdf"
+    # )
+    # # Generamos la URL y le pegamos los parámetros del visor
+    # contexto["material_pdf"] = static(nombre_archivo)
     return render(
-        request, "fluidez_2026/analisis_evaluaciones_noviembre_2026.html", contexto
+        request, "fluidez_2026/analisis_evaluaciones_junio_2026.html", contexto
     )
 
 
@@ -1993,7 +1994,7 @@ def comprension_lectora(alumnos, grado_seleccionado):
     # resultados = [] # Usamos una lista para guardar a todos
     evaluaciones = EvaluacionFluidezLectoraFluidez2026.objects.filter(
         alumno__in=alumnos, asistencia="PRESENTE"
-    )
+    ).select_related("alumno")
     conteos = {"debajo_del_basico": 0, "basico": 0, "satisfactorio": 0, "avanzado": 0}
     if grado_seleccionado == "2do Año/Grado":
         # print('entre en 2 comprensio')
@@ -2047,6 +2048,201 @@ def comprension_lectora(alumnos, grado_seleccionado):
             # print(f'{i.puntaje_comprension} alumno:{i.alumno.nombre}' )
 
     return evaluaciones, conteos  # Devolvemos la lista completa
+
+
+def pagina_descarga_excel(request):
+    """Renderiza la página con el botón para descargar el Excel de todos los alumnos."""
+    return render(request, "fluidez_2026/descarga_excel_datos.html", {})
+
+
+def _calcular_nivel_fluidez(palabras, nombre_grado):
+    """Devuelve el nivel de desempeño en fluidez lectora según el grado y palabras leídas."""
+    if palabras is None:
+        return "-"
+    if nombre_grado == "2do Año/Grado":
+        if palabras < 21:
+            return "Debajo del Básico"
+        elif palabras <= 46:
+            return "Básico"
+        elif palabras <= 70:
+            return "Satisfactorio"
+        else:
+            return "Avanzado"
+    else:  # 3er Año/Grado
+        if palabras < 30:
+            return "Debajo del Básico"
+        elif palabras <= 60:
+            return "Básico"
+        elif palabras <= 90:
+            return "Satisfactorio"
+        else:
+            return "Avanzado"
+
+
+def _calcular_puntaje_comprension(evaluacion, nombre_grado):
+    """Devuelve el puntaje de comprensión según el grado y las respuestas del alumno."""
+    if evaluacion.asistencia != "PRESENTE":
+        return None
+    if nombre_grado == "2do Año/Grado":
+        p1 = 1 if evaluacion.pregunta_1 == "B" else 0
+        p2 = 1 if evaluacion.pregunta_2 == "C" else 0
+        p3 = 1 if evaluacion.pregunta_3 == "A" else 0
+        p4 = 1.50 if evaluacion.pregunta_4 == "D" else 0
+        p5 = 1.50 if evaluacion.pregunta_5 == "A" else 0
+        p6 = 1.50 if evaluacion.pregunta_6 == "A" else 0
+    else:  # 3er Año/Grado
+        p1 = 1 if evaluacion.pregunta_1 == "D" else 0
+        p2 = 1 if evaluacion.pregunta_2 == "C" else 0
+        p3 = 1.50 if evaluacion.pregunta_3 == "B" else 0
+        p4 = 1 if evaluacion.pregunta_4 == "B" else 0
+        p5 = 1.50 if evaluacion.pregunta_5 == "D" else 0
+        p6 = 1.50 if evaluacion.pregunta_6 == "A" else 0
+    return p1 + p2 + p3 + p4 + p5 + p6
+
+
+def _calcular_nivel_comprension(puntaje):
+    """Devuelve el nivel de desempeño en comprensión lectora según el puntaje."""
+    if puntaje is None:
+        return "-"
+    if puntaje < 3.40:
+        return "Debajo del Básico"
+    elif puntaje <= 5.20:
+        return "Básico"
+    elif puntaje <= 6.75:
+        return "Satisfactorio"
+    else:
+        return "Avanzado"
+
+
+def descargar_excel_datos_alumnos(request):
+    """Genera y devuelve un archivo Excel con todos los alumnos, secciones, escuelas y evaluaciones."""
+    # --- Filtro por grado: clave simple para evitar problemas de encoding con 'ñ' ---
+    # El template envía 'grado=2do' o 'grado=3er'
+    GRADO_MAP = {
+        "2do": "2do Año/Grado",
+        "3er": "3er Año/Grado",
+    }
+    grado_key = request.GET.get("grado", "").strip()
+    grado_param = GRADO_MAP.get(grado_key, "")  # valor exacto tal como está en la BD
+
+    # --- Todos los alumnos con sus relaciones ---
+    alumnos_qs = (
+        AlumnoFluidez2026.objects.select_related(
+            "seccion__grado__Establecimiento",
+            "evaluacionfluidezlectorafluidez2026",
+        )
+        .order_by(
+            "seccion__grado__Establecimiento__escuela",
+            "seccion__grado__nombre_grado",
+            "seccion__seccion",
+            "apellido",
+            "nombre",
+        )
+    )
+
+    if grado_param:
+        alumnos_qs = alumnos_qs.filter(seccion__grado__nombre_grado=grado_param)
+
+
+    # --- Nombre de archivo según grado ---
+    fecha_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if grado_param == "2do Año/Grado":
+        nombre_archivo = f"datos_2do_grado_fluidez_{fecha_str}.xlsx"
+        titulo_reporte = "REPORTE 2DO GRADO - FLUIDEZ LECTORA 2026"
+    elif grado_param == "3er Año/Grado":
+        nombre_archivo = f"datos_3er_grado_fluidez_{fecha_str}.xlsx"
+        titulo_reporte = "REPORTE 3ER GRADO - FLUIDEZ LECTORA 2026"
+    else:
+        nombre_archivo = f"datos_todos_grados_fluidez_{fecha_str}.xlsx"
+        titulo_reporte = "REPORTE TODOS LOS GRADOS - FLUIDEZ LECTORA 2026"
+
+    # --- Configurar respuesta HTTP ---
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{nombre_archivo}"'
+    )
+
+    # --- Crear Workbook ---
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Datos Alumnos"
+
+    fecha_hora_actual = datetime.now()
+    ws["A1"] = titulo_reporte
+    ws["K1"] = f'Generado: {fecha_hora_actual.strftime("%d/%m/%Y %H:%M:%S")}'
+
+    headers = [
+        "DNI Estudiante",
+        "Apellido y Nombres",
+        "Asistencia",
+        "Cant. Palabras Leídas por Minuto",
+        "Nivel de Desempeño (Fluidez)",
+        "Puntaje de Comprensión",
+        "Nivel de Desempeño (Comprensión)",
+        "Discapacidad",
+        "Pertenencia a Comunidad Indígena",
+        "Cueanexo",
+        "Escuela",
+        "Curso",
+        "Sección",
+        "Turno",
+        "Regional",
+        "Ámbito",
+        "Sector de Gestión",
+        "Localidad",
+        "Departamento",
+    ]
+    ws.append(headers)
+
+    for alumno in alumnos_qs:
+        seccion = alumno.seccion
+        grado = seccion.grado if seccion else None
+        establecimiento = grado.Establecimiento if grado else None
+        nombre_grado = grado.nombre_grado if grado else ""
+
+        # Datos de evaluación
+        try:
+            ev = alumno.evaluacionfluidezlectorafluidez2026
+            asistencia = ev.asistencia
+            palabras_leidas = ev.cantidad_palabras_leidas if asistencia == "PRESENTE" else None
+            nivel_fluidez = _calcular_nivel_fluidez(palabras_leidas, nombre_grado) if asistencia == "PRESENTE" else "Ausente"
+            puntaje_comp = _calcular_puntaje_comprension(ev, nombre_grado)
+            nivel_comp = _calcular_nivel_comprension(puntaje_comp)
+            puntaje_comp_str = str(round(puntaje_comp, 2)) if puntaje_comp is not None else "-"
+        except Exception:
+            ev = None
+            asistencia = "Sin evaluación"
+            palabras_leidas = None
+            nivel_fluidez = "-"
+            puntaje_comp_str = "-"
+            nivel_comp = "-"
+
+        ws.append([
+            alumno.dni or "-",
+            f"{alumno.apellido}, {alumno.nombre}",
+            asistencia,
+            palabras_leidas if palabras_leidas is not None else "-",
+            nivel_fluidez,
+            puntaje_comp_str,
+            nivel_comp,
+            alumno.get_discapacidad_display() if alumno.discapacidad else "Ninguna",
+            alumno.get_comunidad_indigena_display() if alumno.comunidad_indigena else "Ninguna",
+            establecimiento.cueanexo if establecimiento else "-",
+            establecimiento.escuela if establecimiento else "-",
+            nombre_grado,
+            seccion.seccion if seccion else "-",
+            seccion.turno if seccion else "-",
+            establecimiento.region if establecimiento else "-",
+            establecimiento.ambito if establecimiento else "-",
+            establecimiento.sector if establecimiento else "-",
+            establecimiento.localidad if establecimiento else "-",
+            establecimiento.departamento if establecimiento else "-",
+        ])
+
+    wb.save(response)
+    return response
 
 
 def monitoreo_regiones(request):

@@ -680,7 +680,11 @@ class SeccionTurnoForm(forms.Form):
 # 	# 1. Limpieza total de los parámetros que llegan del form
 # 	s = sector.strip() if (sector and str(sector).strip()) else None
 # 	a = ambito.strip() if (ambito and str(ambito).strip()) else None
-# 	r = region.strip() if (region and str(region).strip()) else None
+# 	# region puede llegar como string o como lista de strings
+# 	if isinstance(region, list):
+# 		r = [v.strip() for v in region if v and str(v).strip()] or None
+# 	else:
+# 		r = region.strip() if (region and str(region).strip()) else None
 	
 # 	# Filtro base obligatorio para tu reporte
 # 	oferta_val = '%Común - Primaria de 7 años%'
@@ -706,9 +710,15 @@ class SeccionTurnoForm(forms.Form):
 # 				parametros.append(f"{a}%")
 				
 # 			# Si el usuario eligió REGIÓN, la sumamos
-# 			if r and r!='TODOS':
-# 				condiciones.append("TRIM(region_loc) ILIKE %s")
-# 				parametros.append(r)
+# 			if r and r != 'TODOS':
+# 				if isinstance(r, list):
+# 					# Lista: genera IN (%s, %s, ...) con un %s por cada elemento
+# 					placeholders = ', '.join(['%s'] * len(r))
+# 					condiciones.append(f"TRIM(region_loc) IN ({placeholders})")
+# 					parametros.extend(r)  # extend agrega cada valor por separado
+# 				else:
+# 					condiciones.append("TRIM(region_loc) ILIKE %s")
+# 					parametros.append(r)
 
 # 			# 3. ARMADO FINAL DE LA QUERY
 # 			# Join une la lista con " AND ". Si hay 1 filtro, no pone AND. 
@@ -777,4 +787,4 @@ class SeccionTurnoForm(forms.Form):
 #         if conn: conn.close()
 
 #     return cueanexos
-# #-----------------------------------------------------------------------------------
+# # #-----------------------------------------------------------------------------------
