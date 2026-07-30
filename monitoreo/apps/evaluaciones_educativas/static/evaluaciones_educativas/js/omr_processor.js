@@ -87,12 +87,10 @@ const OMRProcessor = (() => {
       if (!data.ok) {
         // Backend sin opencv instalado
         if (data.cv_not_installed) {
-          console.warn('[OMR] opencv-python-headless no instalado en el servidor.');
-          return _errorResult(
-            'El servidor no tiene OpenCV instalado. ' +
-            'Ejecutá: pip install opencv-python-headless'
-          );
+          alert('ATENCIÓN: El servidor no tiene OpenCV instalado.\n\nPara que el escáner funcione, abrí una terminal y ejecutá:\npip install opencv-python-headless numpy');
+          return _errorResult('El servidor no tiene OpenCV instalado.');
         }
+        alert('Error en el servidor: ' + (data.error || 'Desconocido'));
         return _errorResult(data.error || 'Error desconocido en el servidor');
       }
 
@@ -109,7 +107,7 @@ const OMRProcessor = (() => {
 
       // Overlay de debug: marcar las celdas detectadas sobre el preview
       if (canvasPreview && canvasPreview.width > 0) {
-        _drawOverlay(canvasPreview, respuestas, confianza, data.used_warp, data.corners);
+        _drawOverlay(canvasPreview, respuestas, confianza, data.used_warp);
       }
 
       return {
@@ -123,6 +121,7 @@ const OMRProcessor = (() => {
 
     } catch (err) {
       console.error('[OMR] Error de red o parsing:', err);
+      alert('Error crítico de red o de código al procesar la imagen: ' + err.message);
       return _errorResult(`Error de red: ${err.message}`);
     }
   }
@@ -145,18 +144,22 @@ const OMRProcessor = (() => {
   /**
    * Dibuja un overlay de debug sobre el canvas de preview.
    * Muestra la grilla 3×3 con etiquetas de los ítems detectados.
+   * Si el backend aplicó corrección de perspectiva (used_warp = true),
+   * la imagen en el canvas ya está rectificada, así que la grilla
+   * se dibuja directamente encima.
    */
-  function _drawOverlay(canvas, respuestas, confianza, usedWarp, corners) {
+  function _drawOverlay(canvas, respuestas, confianza, usedWarp) {
     const ctx  = canvas.getContext('2d');
     const W    = canvas.width;
     const H    = canvas.height;
     const COLS = 3, ROWS = 3, CONF_LOW = 40;
 
-    // Si la imagen fue rectificada y tenemos corners, dibujamos el polígono exacto
+    // Si la imagen fue rectificada, la grilla cubre todo el canvas
+    // Si no (fallback), la grilla es la región heurística (04% → 96% × 28% → 70%)
     let gx = 0, gy = 0, gw = W, gh = H;
     if (!usedWarp) {
-      gx = W * 0.03; gy = H * 0.25;
-      gw = W * 0.94; gh = H * 0.47;
+      gx = W * 0.04; gy = H * 0.28;
+      gw = W * 0.92; gh = H * 0.42;
       // Dibujar aviso de que no se corrigió perspectiva
       ctx.fillStyle = 'rgba(255, 165, 0, 0.85)';
       ctx.font = 'bold 13px sans-serif';
@@ -165,32 +168,10 @@ const OMRProcessor = (() => {
       ctx.lineWidth = 2;
       ctx.strokeRect(gx, gy, gw, gh);
     } else {
-      // Borde verde sobre el área detectada
-      ctx.strokeStyle = 'rgba(0, 255, 100, 0.7)';
-      ctx.lineWidth = 3;
-      if (corners && corners.length === 4) {
-        // corners vienen en coordenadas (WORK_W=900, WORK_H=1200)
-        const scaleX = W / 900.0;
-        const scaleY = H / 1200.0;
-        
-        ctx.beginPath();
-        ctx.moveTo(corners[0][0] * scaleX, corners[0][1] * scaleY);
-        ctx.lineTo(corners[1][0] * scaleX, corners[1][1] * scaleY);
-        ctx.lineTo(corners[2][0] * scaleX, corners[2][1] * scaleY);
-        ctx.lineTo(corners[3][0] * scaleX, corners[3][1] * scaleY);
-        ctx.closePath();
-        ctx.stroke();
-
-        // En modo warp, para el debug aproximamos la grilla al bounding box de la tabla
-        const minX = Math.min(...corners.map(p => p[0] * scaleX));
-        const minY = Math.min(...corners.map(p => p[1] * scaleY));
-        const maxX = Math.max(...corners.map(p => p[0] * scaleX));
-        const maxY = Math.max(...corners.map(p => p[1] * scaleY));
-        gx = minX; gy = minY;
-        gw = maxX - minX; gh = maxY - minY;
-      } else {
-        ctx.strokeRect(1, 1, W - 2, H - 2);
-      }
+      // Borde verde = perspectiva corregida OK
+      ctx.strokeStyle = 'rgba(0, 255, 100, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, W - 2, H - 2);
     }
 
     const cellW = gw / COLS;
