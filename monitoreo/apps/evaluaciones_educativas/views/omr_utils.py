@@ -240,6 +240,93 @@ def _option_score(binary: np.ndarray, cell_x: float, cell_y: float, cell_w: floa
     return band + box_center * 0.95
 
 
+def _checkbox_darkness_scores(gray_cell: np.ndarray, binary_cell: np.ndarray) -> list[float | None]:
+    """Mide el interior del cuadrado real, incluso con lápiz muy tenue.
+
+    Se localizan los cuatro bordes impresos en vez de asumir una coordenada X
+    fija. La media de oscuridad del interior ignora el borde del casillero.
+    """
+    cell_h, cell_w = binary_cell.shape
+    contours, _ = cv2.findContours(binary_cell, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    scores: list[float | None] = []
+
+    for option in range(4):
+        expected_y = cell_h * (.30 + option * .18)
+        candidates = []
+        for contour in contours:
+            x, y, width, height = cv2.boundingRect(contour)
+            aspect = width / max(height, 1)
+            center_y = y + height / 2
+            if (
+                cell_w * .085 <= width <= cell_w * .14
+                and cell_h * .11 <= height <= cell_h * .19
+                and .68 <= aspect <= 1.38
+                and cell_w * .10 <= x <= cell_w * .38
+                and abs(center_y - expected_y) <= cell_h * .10
+            ):
+                candidates.append((cv2.contourArea(contour), x, y, width, height))
+
+        if not candidates:
+            scores.append(None)
+            continue
+
+        _, x, y, width, height = max(candidates)
+        margin = .25
+        x1, x2 = int(x + width * margin), int(x + width * (1 - margin))
+        y1, y2 = int(y + height * margin), int(y + height * (1 - margin))
+        interior = gray_cell[y1:y2, x1:x2]
+        if interior.size == 0:
+            scores.append(None)
+        else:
+            scores.append(float(np.mean(255 - interior) / 255))
+    return scores
+
+
+def _decide_checkbox(scores: list[float | None]) -> tuple[str, int] | None:
+    """Decide por relleno interior o devuelve None para usar otro detector."""
+    if sum(score is not None for score in scores) < 3:
+        return None
+
+    numeric = [score if score is not None else 0.0 for score in scores]
+    order = np.argsort(numeric)[::-1]
+    first, second, third = (float(numeric[index]) for index in order[:3])
+    present = [float(score) for score in scores if score is not None]
+    baseline = float(np.median(present))
+
+    # Dos interiores claramente más oscuros representan una respuesta múltiple.
+    if first - second < .10 and second - third >= .10:
+        return "", 39
+
+    if first - baseline >= .10 and first - second >= .085:
+        confidence = int(np.clip(58 + (first - second) * 180, 58, 99))
+        return LETTERS[int(order[0])], confidence
+    return None
+
+
+def _letter_circle_scores(binary_cell: np.ndarray) -> list[float]:
+    """Detecta círculos o trazos hechos sobre la letra, fuera del cuadrado."""
+    cell_h, cell_w = binary_cell.shape
+    scores = []
+    for option in range(4):
+        center_y = cell_h * (.30 + option * .18)
+        scores.append(_region_density(
+            binary_cell,
+            cell_w * .01, center_y - cell_h * .073,
+            cell_w * .19, center_y + cell_h * .073,
+        ))
+    return scores
+
+
+def _decide_letter_circle(scores: list[float]) -> tuple[str, int] | None:
+    order = np.argsort(scores)[::-1]
+    first, second = float(scores[order[0]]), float(scores[order[1]])
+    baseline = float(np.median(scores))
+    if first - second >= .045 and first - baseline >= .045:
+        confidence = int(np.clip(55 + (first - second) * 260, 55, 90))
+        return LETTERS[int(order[0])], confidence
+    return None
+
+
 def _decide(scores: list[float]) -> tuple[str, int]:
     order = np.argsort(scores)[::-1]
     first, second = float(scores[order[0]]), float(scores[order[1]])
@@ -265,13 +352,29 @@ def _decide(scores: list[float]) -> tuple[str, int]:
     return LETTERS[int(order[0])], confidence
 
 
-def _read_student(binary: np.ndarray) -> tuple[dict[int, str], dict[int, int]]:
+def _read_student(gray: np.ndarray, binary: np.ndarray) -> tuple[dict[int, str], dict[int, int]]:
     responses: dict[int, str] = {}
     confidence: dict[int, int] = {}
     cell_w, cell_h = GRID_W / 3, GRID_H / 3
     for row in range(3):
         for col in range(3):
             item = row * 3 + col + 1
+            y1, y2 = row * GRID_H // 3, (row + 1) * GRID_H // 3
+            x1, x2 = col * GRID_W // 3, (col + 1) * GRID_W // 3
+            box_decision = _decide_checkbox(_checkbox_darkness_scores(
+                gray[y1:y2, x1:x2], binary[y1:y2, x1:x2],
+            ))
+            if box_decision is not None:
+                responses[item], confidence[item] = box_decision
+                continue
+
+            circle_decision = _decide_letter_circle(
+                _letter_circle_scores(binary[y1:y2, x1:x2])
+            )
+            if circle_decision is not None:
+                responses[item], confidence[item] = circle_decision
+                continue
+
             scores = [
                 _option_score(binary, col * cell_w, row * cell_h, cell_w, cell_h, option)
                 for option in range(4)
@@ -298,7 +401,7 @@ def _read_teacher(binary: np.ndarray) -> tuple[dict[int, str], dict[int, int]]:
         first, second = float(scores[order[0]]), float(scores[order[1]])
         # Esta sección tiene letras muy juntas. Sólo aceptamos un relleno claro;
         # tildes tenues quedan como dudosas para no inventar una respuesta.
-        if first >= .40 and first - second >= .08:
+        if first >= .29 and first - second >= .07:
             responses[item] = LETTERS[int(order[0])]
             confidence[item] = int(np.clip(60 + (first - second) * 180, 60, 99))
         else:
@@ -333,7 +436,7 @@ def procesar_imagen(imagen_bytes: bytes) -> dict:
         warped, matrix = _warp(gray, corners, EXTENDED_H)
     binary = _binarize(warped)
 
-    responses, confidence = _read_student(binary)
+    responses, confidence = _read_student(warped[:GRID_H], binary)
     teacher_responses, teacher_confidence = _read_teacher(binary)
     responses.update(teacher_responses)
     confidence.update(teacher_confidence)

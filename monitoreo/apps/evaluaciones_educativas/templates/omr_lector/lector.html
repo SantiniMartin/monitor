@@ -321,6 +321,7 @@
       width: 100%; height: 100%;
       pointer-events: none; /* No bloquear clicks al video */
       z-index: 10;
+      display: none;
     }
 
     /* Estado vacío */
@@ -862,7 +863,7 @@
   <canvas id="canvas-omr" style="display:none;"></canvas>
 
   <!-- omr_processor.js: cliente liviano del backend OMR, sin librerías externas -->
-  <script src="{% static 'evaluaciones_educativas/js/omr_processor.js' %}"></script>
+  <script src="{% static 'evaluaciones_educativas/js/omr_processor.js' %}?v=5"></script>
 
   <script>
     // ── Estado global ──────────────────────────────────────────────────────
@@ -1250,21 +1251,7 @@
         const guideHint      = document.getElementById('guide-inner-hint');
 
         if (bestApprox) {
-          // ✅ Examen detectado: trazar contorno en verde sobre el smart-overlay
-          smartCtx.beginPath();
-          smartCtx.moveTo(bestApprox[0].x / scale, bestApprox[0].y / scale);
-          for (let i = 1; i < 4; i++) {
-            smartCtx.lineTo(bestApprox[i].x / scale, bestApprox[i].y / scale);
-          }
-          smartCtx.closePath();
-          smartCtx.lineWidth   = 3;
-          smartCtx.strokeStyle = 'rgba(16,185,129,0.90)';
-          smartCtx.stroke();
-          smartCtx.fillStyle   = 'rgba(16,185,129,0.12)';
-          smartCtx.fill();
-
-          // Actualizar UI del frame de guía → estado "encontrado"
-          guideRect.classList.add('detected');
+          // Mantener la vista limpia: sólo se actualiza el texto de estado.
           guideChip.classList.add('found');
           guideStatusTxt.textContent = '✓ Examen detectado — tomá la foto';
         } else {
