@@ -94,7 +94,7 @@ const OMRProcessor = (() => {
         return _errorResult(data.error || 'Error desconocido en el servidor');
       }
 
-      // Normalizar claves de respuestas/confianza a enteros
+      // Normalizar claves de respuestas/confianza a enteros (12 ítems: 4 filas × 3 cols)
       const respuestas = {};
       const confianza  = {};
       for (let i = 1; i <= 12; i++) {
@@ -105,17 +105,17 @@ const OMRProcessor = (() => {
       const itemsDudosos    = (data.items_dudosos || []).map(Number);
       const totalDetectados = Object.values(respuestas).filter(Boolean).length;
 
-      // Overlay de debug: marcar las celdas detectadas sobre el preview
-      if (canvasPreview && canvasPreview.width > 0) {
-        _drawOverlay(canvasPreview, respuestas, confianza, data.used_warp);
-      }
-
       return {
         respuestas,
         confianza,
-        itemsDudosos,
-        totalDetectados,
-        used_warp: data.used_warp,
+        itemsDudosos: data.items_dudosos || [],
+        totalDetectados: Object.values(data.respuestas || {}).filter(r => r).length,
+        used_warp: data.used_warp || false,
+        student_box: data.student_box,
+        doc_box: data.doc_box,
+        image_size: data.image_size,
+        detection_method: data.detection_method,
+        detection_score: data.detection_score,
         error: null,
       };
 
@@ -137,46 +137,57 @@ const OMRProcessor = (() => {
       itemsDudosos: Array.from({ length: 12 }, (_, i) => i + 1),
       totalDetectados: 0,
       used_warp: false,
+      student_box: null,
+      doc_box: null,
       error: message,
     };
   }
 
   /**
    * Dibuja un overlay de debug sobre el canvas de preview.
-   * Muestra la grilla 3×3 con etiquetas de los ítems detectados.
-   * Si el backend aplicó corrección de perspectiva (used_warp = true),
-   * la imagen en el canvas ya está rectificada, así que la grilla
-   * se dibuja directamente encima.
+   * Utiliza las coordenadas exactas de las tablas devueltas por el backend,
+   * garantizando que el dibujo coincida perfectamente con la zona analizada.
    */
-  function _drawOverlay(canvas, respuestas, confianza, usedWarp) {
-    const ctx  = canvas.getContext('2d');
-    const W    = canvas.width;
-    const H    = canvas.height;
-    const COLS = 3, ROWS = 3, CONF_LOW = 40;
+  function _drawOverlay(canvas, data) {
+    const { respuestas, confianza, student_box, doc_box, image_size } = data;
+    const ctx     = canvas.getContext('2d');
+    const W       = canvas.width;
+    const H       = canvas.height;
+    // 3 filas × 3 columnas = 9 ítems del alumno
+    const COLS    = 3, ROWS = 3, CONF_LOW = 40;
 
-    // Si la imagen fue rectificada, la grilla cubre todo el canvas
-    // Si no (fallback), la grilla es la región heurística (04% → 96% × 28% → 70%)
     let gx = 0, gy = 0, gw = W, gh = H;
-    if (!usedWarp) {
-      gx = W * 0.04; gy = H * 0.28;
-      gw = W * 0.92; gh = H * 0.42;
-      // Dibujar aviso de que no se corrigió perspectiva
-      ctx.fillStyle = 'rgba(255, 165, 0, 0.85)';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText('⚠ Sin corrección de perspectiva — usá bounds heurísticos', gx, gy - 8);
-      ctx.strokeStyle = 'rgba(255, 165, 0, 0.7)';
+    
+    // Si el backend devolvió la caja exacta, la escalamos al tamaño del canvas actual
+    if (student_box && student_box.length === 4) {
+      const BACKEND_W = image_size?.[0] || W;
+      const BACKEND_H = image_size?.[1] || H;
+      
+      gx = (student_box[0] / BACKEND_W) * W;
+      gy = (student_box[1] / BACKEND_H) * H;
+      gw = (student_box[2] / BACKEND_W) * W;
+      gh = (student_box[3] / BACKEND_H) * H;
+      
+      ctx.strokeStyle = 'rgba(0, 255, 100, 0.8)'; // Verde vivo = Detección exacta
       ctx.lineWidth = 2;
       ctx.strokeRect(gx, gy, gw, gh);
     } else {
-      // Borde verde = perspectiva corregida OK
-      ctx.strokeStyle = 'rgba(0, 255, 100, 0.6)';
+      // Fallback a posiciones heurísticas
+      gx = W * 0.05; gy = H * 0.31;
+      gw = W * 0.90; gh = H * 0.35;
+      
+      ctx.strokeStyle = 'rgba(255, 165, 0, 0.7)'; // Naranja = Detección heurística
       ctx.lineWidth = 2;
-      ctx.strokeRect(1, 1, W - 2, H - 2);
+      ctx.strokeRect(gx, gy, gw, gh);
+      ctx.fillStyle = 'rgba(255, 165, 0, 0.85)';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('⚠ Usando bounds heurísticos', gx, gy - 8);
     }
 
     const cellW = gw / COLS;
     const cellH = gh / ROWS;
 
+    // Dibujar grilla 3×3 (items 1-9)
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
         const itemNum = row * COLS + col + 1;
@@ -186,12 +197,10 @@ const OMRProcessor = (() => {
         const conf = confianza[itemNum] ?? 0;
         const isDudoso = conf < CONF_LOW;
 
-        // Borde de celda
         ctx.strokeStyle = 'rgba(0, 200, 255, 0.4)';
         ctx.lineWidth = 1;
         ctx.strokeRect(cx, cy, cellW, cellH);
 
-        // Etiqueta del resultado
         const color = resp
           ? (isDudoso ? 'rgba(255,165,0,0.98)' : 'rgba(0,255,100,0.98)')
           : 'rgba(255,80,80,0.95)';
@@ -199,6 +208,40 @@ const OMRProcessor = (() => {
         ctx.font = `bold ${Math.round(cellW * 0.12)}px sans-serif`;
         ctx.fillText(`${itemNum}: ${resp || '?'}  (${conf}%)`, cx + 6, cy + 22);
       }
+    }
+
+    // Sección docente: items 10-12
+    let docY = H * 0.73;
+    let docX = W * 0.05;
+    let docW = W * 0.90;
+    
+    if (doc_box && doc_box.length === 4) {
+      const BACKEND_W = image_size?.[0] || W;
+      const BACKEND_H = image_size?.[1] || H;
+      docX = (doc_box[0] / BACKEND_W) * W;
+      docY = (doc_box[1] / BACKEND_H) * H;
+      docW = (doc_box[2] / BACKEND_W) * W;
+      const docH = (doc_box[3] / BACKEND_H) * H;
+      ctx.strokeStyle = 'rgba(0, 255, 100, 0.5)';
+      ctx.strokeRect(docX, docY, docW, docH);
+    }
+    
+    ctx.fillStyle = 'rgba(14, 165, 233, 0.85)';
+    ctx.fillRect(docX, docY - 4, docW, 22);
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('SECCIÓN DOCENTE:', docX + W * 0.01, docY + 13);
+
+    const docRowH = 20;
+    for (let i = 10; i <= 12; i++) {
+      const resp = respuestas[i] || '?';
+      const conf = confianza[i] ?? 0;
+      const isDudoso = conf < CONF_LOW;
+      ctx.fillStyle = resp !== '?'
+        ? (isDudoso ? 'rgba(255,165,0,0.98)' : 'rgba(0,255,100,0.98)')
+        : 'rgba(255,80,80,0.95)';
+      ctx.font = `bold 11px sans-serif`;
+      ctx.fillText(`ítem ${i}: ${resp}  (${conf}%)`, W * 0.06, docY + 22 + (i - 10) * docRowH + 13);
     }
   }
 

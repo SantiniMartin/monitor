@@ -93,39 +93,217 @@
       display: none;
     }
     .camera-guide-overlay.visible { display: block; }
+    /* ── Guía de encuadre (frame de cámara) ───────────────────── */
     .guide-rect {
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: min(92%, 700px);
-      aspect-ratio: 1.5; /* Forma apaisada de la tabla de respuestas */
-      border: 3px dashed rgba(14,165,233,0.9);
+      width: 92%;
+      max-width: 520px;
+      aspect-ratio: 0.66;   /* Oficio/Legal portrait adaptado al marco completo */
+      border: 2.5px solid rgba(14,165,233,0.75);
       border-radius: 8px;
-      box-shadow: 0 0 0 9999px rgba(0,0,0,.65); /* Fondo oscuro para resaltar la grilla */
+      /* Oscurece el exterior manteniendo el interior claro */
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.60);
+      background: rgba(14,165,233,0.04);
+      overflow: hidden;     /* Para clip de la línea de escaneo */
+      pointer-events: none;
+      transition: border-color .4s, box-shadow .4s;
+    }
+    /* Estado: examen detectado → borde verde */
+    .guide-rect.detected {
+      border-color: rgba(16,185,129,0.95);
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.60), 0 0 0 4px rgba(16,185,129,.5);
+    }
+    /* Marcadores de esquina */
+    .guide-corner {
+      position: absolute;
+      width: 26px; height: 26px;
+      border-color: rgba(14,165,233,1);
+      border-style: solid;
+      transition: border-color .4s;
+    }
+    .guide-corner.tl { top: -1px; left: -1px; border-width: 4px 0 0 4px; border-radius: 6px 0 0 0; }
+    .guide-corner.tr { top: -1px; right: -1px; border-width: 4px 4px 0 0; border-radius: 0 6px 0 0; }
+    .guide-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 4px 4px; border-radius: 0 0 0 6px; }
+    .guide-corner.br { bottom: -1px; right: -1px; border-width: 0 4px 4px 0; border-radius: 0 0 6px 0; }
+    .guide-rect.detected .guide-corner { border-color: rgba(16,185,129,1); }
+    /* Línea de escaneo animada */
+    @keyframes scan-sweep {
+      0%   { top: -2px; opacity: 0; }
+      5%   { opacity: 1; }
+      95%  { opacity: 1; }
+      100% { top: calc(100% + 2px); opacity: 0; }
+    }
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0; height: 2px;
+      background: linear-gradient(to right,
+        transparent 0%,
+        rgba(14,165,233,.5) 20%,
+        rgba(14,165,233,1) 50%,
+        rgba(14,165,233,.5) 80%,
+        transparent 100%
+      );
+      animation: scan-sweep 2.6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .guide-rect.detected .scan-line {
+      background: linear-gradient(to right,
+        transparent 0%,
+        rgba(16,185,129,.5) 20%,
+        rgba(16,185,129,1) 50%,
+        rgba(16,185,129,.5) 80%,
+        transparent 100%
+      );
+    }
+    /* Mini-preview del examen dentro del frame ──────────────── */
+    .exam-preview {
+      display: none;
+    }
+    
+    /* Grilla 3×3 (items 1-9) alineada exactamente del 31% al 66% de la hoja */
+    .ep-grid {
+      position: absolute;
+      top: 30%; bottom: 32%;
+      left: 14%; right: 14%;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(3, 1fr);
-      background: rgba(14,165,233,0.1);
+      border: 2px dashed rgba(255, 255, 255, 0.85); /* Blanco muy visible */
+      border-radius: 4px;
+      background: rgba(14, 165, 233, 0.15); /* Fondo azulado semi-transparente */
+      box-shadow: 0 0 10px rgba(0,0,0,0.5); /* Sombra para que resalte sobre papeles blancos */
+      overflow: hidden;
     }
-    .guide-cell {
-      border: 1.5px dashed rgba(14,165,233,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: rgba(255, 255, 255, 0.35); /* Marca de agua */
-      text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
+    .ep-cell {
+      border: 1px dashed rgba(255, 255, 255, 0.4); /* Líneas divisorias blancas */
+      display: flex; flex-direction: column;
     }
-
+    .ep-cell-num {
+      font-size: 0.42rem; font-weight: 700;
+      color: rgba(14,165,233,0.55);
+      line-height: 1;
+      padding: 2px 4px;
+      border-bottom: 0.75px solid rgba(14,165,233,0.35);
+    }
+    .ep-opts {
+      display: flex; flex-direction: column;
+      flex: 1;
+      justify-content: space-evenly;
+      padding: 1px 0;
+    }
+    .ep-opt {
+      display: flex; align-items: center; 
+      flex: 1;
+    }
+    .ep-opt-letter {
+      font-size: 0.30rem; font-weight: 700;
+      color: rgba(14,165,233,0.38);
+      line-height: 1;
+      width: 45%;
+      text-align: center;
+      border-right: 0.75px solid rgba(14,165,233,0.35);
+    }
+    .ep-opt-box-container {
+      width: 55%;
+      display: flex; justify-content: center; align-items: center;
+    }
+    .ep-opt-box {
+      width: 5px; height: 5px;
+      border: 0.75px solid rgba(14,165,233,0.35);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    /* Sección docente */
+    .ep-docente {
+      position: absolute;
+      top: 72%; bottom: 20%;
+      left: 14%; right: 14%;
+      border: 2px dashed rgba(255, 255, 255, 0.85); /* Blanco muy visible */
+      border-radius: 3px;
+      background: rgba(14, 165, 233, 0.15); /* Fondo azulado semi-transparente */
+      box-shadow: 0 0 10px rgba(0,0,0,0.5); /* Sombra para que resalte sobre papeles blancos */
+      padding: 3px 15px;
+      display: flex; flex-direction: column; justify-content: space-evenly;
+    }
+    .ep-doc-row {
+      display: flex; align-items: center; gap: 4px;
+    }
+    .ep-doc-label {
+      font-size: 0.32rem; font-weight: 700;
+      color: rgba(14,165,233,0.45);
+      min-width: 14px;
+    }
+    .ep-doc-group {
+      display: flex; align-items: center; gap: 2.5px;
+    }
+    .ep-doc-opt {
+      display: flex; align-items: center; gap: 1px;
+    }
+    .ep-doc-opt-letter {
+      font-size: 0.28rem; color: rgba(14,165,233,0.40);
+    }
+    .ep-doc-box {
+      width: 5px; height: 5px;
+      border: 0.75px solid rgba(14,165,233,0.32);
+      border-radius: 50%; flex-shrink: 0;
+    }
+    /* Transición al estado detectado: shift a verde */
+    .guide-rect.detected .ep-grid         { border-color: rgba(16,185,129,0.70); background: rgba(16,185,129,0.08); }
+    .guide-rect.detected .ep-cell         { border-color: rgba(16,185,129,0.22); }
+    .guide-rect.detected .ep-cell-num     { color: rgba(16,185,129,0.65); }
+    .guide-rect.detected .ep-opt-letter   { color: rgba(16,185,129,0.48); }
+    .guide-rect.detected .ep-opt-box      { border-color: rgba(16,185,129,0.45); }
+    .guide-rect.detected .ep-docente      { border-color: rgba(16,185,129,0.70); background: rgba(16,185,129,0.08); }
+    .guide-rect.detected .ep-doc-label    { color: rgba(16,185,129,0.55); }
+    .guide-rect.detected .ep-doc-opt-letter { color: rgba(16,185,129,0.45); }
+    .guide-rect.detected .ep-doc-box      { border-color: rgba(16,185,129,0.38); }
+    /* Chip de estado debajo del frame */
+    .guide-status-chip {
+      position: absolute;
+      bottom: 18%; left: 50%; /* Más arriba para no tapar los botones de foto */
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 18px;
+      border-radius: 24px;
+      font-size: 0.82rem; font-weight: 700;
+      white-space: nowrap;
+      transition: background .4s, color .4s, box-shadow .4s;
+      /* Estado por defecto: buscando */
+      background: rgba(15,23,42,.85);
+      color: rgba(148,163,184,.9);
+      border: 1px solid rgba(148,163,184,.25);
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    }
+    .guide-status-chip.found {
+      background: rgba(16,185,129,.18);
+      color: rgba(16,185,129,1);
+      border-color: rgba(16,185,129,.45);
+      box-shadow: 0 4px 20px rgba(16,185,129,.25);
+    }
+    /* Dot pulsante del chip */
+    @keyframes dot-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(.7); }
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: currentColor;
+      animation: dot-pulse 1.4s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .guide-status-chip.found .status-dot { animation-duration: .8s; }
+    /* Label superior */
     .guide-label {
       position: absolute;
-      top: 12%; left: 50%;
+      top: 4%; left: 50%;
       transform: translateX(-50%);
-      background: rgba(14,165,233,.95);
-      color: white; font-size: 1rem; font-weight: 700;
-      padding: 8px 18px; border-radius: 24px; white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      background: rgba(14,165,233,.92);
+      color: white; font-size: .88rem; font-weight: 700;
+      padding: 7px 18px; border-radius: 24px; white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0,0,0,.35);
+      letter-spacing: 0.01em;
     }
 
     /* Canvas de preview procesado */
@@ -420,11 +598,147 @@
 
       <!-- Overlay guía encuadre -->
       <div class="camera-guide-overlay" id="guide-overlay">
-        <div class="guide-label">📋 Encuadrá la tabla de 9 respuestas aquí</div>
-        <div class="guide-rect">
-          <div class="guide-cell">1</div><div class="guide-cell">2</div><div class="guide-cell">3</div>
-          <div class="guide-cell">4</div><div class="guide-cell">5</div><div class="guide-cell">6</div>
-          <div class="guide-cell">7</div><div class="guide-cell">8</div><div class="guide-cell">9</div>
+        <div class="guide-label">📋 Encuadrá todo el examen</div>
+
+        <div class="guide-rect" id="guide-rect">
+          <!-- Esquinas de alineación -->
+          <div class="guide-corner tl"></div>
+          <div class="guide-corner tr"></div>
+          <div class="guide-corner bl"></div>
+          <div class="guide-corner br"></div>
+
+          <!-- Línea de escaneo animada -->
+          <div class="scan-line"></div>
+
+          <!-- Mini-preview del examen — guía visual de encuadre EXACTA -->
+          <div class="exam-preview" id="guide-inner-hint">
+            
+            <!-- Grilla 3×3 items 1-9 -->
+            <div class="ep-grid">
+              <!-- Fila 1: items 1, 2, 3 -->
+              <div class="ep-cell">
+                <div class="ep-cell-num">1)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-cell">
+                <div class="ep-cell-num">2)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-cell">
+                <div class="ep-cell-num">3)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <!-- Fila 2: items 4, 5, 6 -->
+              <div class="ep-cell">
+                <div class="ep-cell-num">4)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-cell">
+                <div class="ep-cell-num">5)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-cell">
+                <div class="ep-cell-num">6)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <!-- Fila 3: items 7, 8, 9 -->
+              <div class="ep-cell">
+                <div class="ep-cell-num">7)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-cell">
+                <div class="ep-cell-num">8)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-cell">
+                <div class="ep-cell-num">9)</div>
+                <div class="ep-opts">
+                  <div class="ep-opt"><span class="ep-opt-letter">A</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">B</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">C</span><div class="ep-opt-box"></div></div>
+                  <div class="ep-opt"><span class="ep-opt-letter">D</span><div class="ep-opt-box"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ep-docente">
+              <div class="ep-doc-row">
+                <div class="ep-doc-label">10)</div>
+                <div class="ep-doc-group">
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">A</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">B</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">C</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">D</span><div class="ep-doc-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-doc-row">
+                <span class="ep-doc-label">11)</span>
+                <div class="ep-doc-group">
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">A</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">B</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">C</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">D</span><div class="ep-doc-box"></div></div>
+                </div>
+              </div>
+              <div class="ep-doc-row">
+                <span class="ep-doc-label">12)</span>
+                <div class="ep-doc-group">
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">A</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">B</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">C</span><div class="ep-doc-box"></div></div>
+                  <div class="ep-doc-opt"><span class="ep-doc-opt-letter">D</span><div class="ep-doc-box"></div></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <!-- /exam-preview -->
+        </div>
+
+        <!-- Chip de estado debajo del frame -->
+        <div class="guide-status-chip" id="guide-status-chip">
+          <div class="status-dot"></div>
+          <span id="guide-status-text">Buscando hoja de examen…</span>
         </div>
       </div>
 
@@ -439,8 +753,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
-        <p>Usá la cámara o subí una foto<br>de la tabla de respuestas del examen.</p>
-        <p style="font-size: 0.8rem; margin-top: 12px; color: var(--warning);">Asegurate de acercar la cámara para que<br>la tabla de los ítems 1 al 9 llene la cuadrícula.</p>
+        <p>Usá la cámara o subí una foto<br>del examen completo.</p>
+        <p style="font-size: 0.8rem; margin-top: 12px; color: var(--warning);">Encuadrá toda la hoja en el rectángulo<br>incluyendo los 12 ítems.</p>
       </div>
 
       <!-- Badge procesando -->
@@ -917,7 +1231,8 @@
               let h = Math.hypot(sorted[0].x - sorted[3].x, sorted[0].y - sorted[3].y);
               let aspect = h > 0 ? w / h : 0;
               
-              if (aspect > 1.1) {
+              // Aceptar rectángulos tanto portrait (hoja A4) como landscape (tabla sola)
+              if (aspect > 0.4 && aspect < 2.5) {
                   bestArea = area;
                   bestApprox = sorted;
               }
@@ -927,26 +1242,42 @@
         }
         
         smartCtx.clearRect(0, 0, smartCanvas.width, smartCanvas.height);
-        
+
+        // Referencias al frame de guía
+        const guideRect      = document.getElementById('guide-rect');
+        const guideChip      = document.getElementById('guide-status-chip');
+        const guideStatusTxt = document.getElementById('guide-status-text');
+        const guideHint      = document.getElementById('guide-inner-hint');
+
         if (bestApprox) {
+          // ✅ Examen detectado: trazar contorno en verde sobre el smart-overlay
           smartCtx.beginPath();
           smartCtx.moveTo(bestApprox[0].x / scale, bestApprox[0].y / scale);
           for (let i = 1; i < 4; i++) {
             smartCtx.lineTo(bestApprox[i].x / scale, bestApprox[i].y / scale);
           }
           smartCtx.closePath();
-          
-          smartCtx.lineWidth = 4;
-          smartCtx.strokeStyle = 'rgba(16, 185, 129, 0.95)'; // Verde vibrante
+          smartCtx.lineWidth   = 3;
+          smartCtx.strokeStyle = 'rgba(16,185,129,0.90)';
           smartCtx.stroke();
-          smartCtx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+          smartCtx.fillStyle   = 'rgba(16,185,129,0.12)';
           smartCtx.fill();
+
+          // Actualizar UI del frame de guía → estado "encontrado"
+          guideRect.classList.add('detected');
+          guideChip.classList.add('found');
+          guideStatusTxt.textContent = '✓ Examen detectado — tomá la foto';
+        } else {
+          // ❌ No detectado → volver al estado de búsqueda
+          guideRect.classList.remove('detected');
+          guideChip.classList.remove('found');
+          guideStatusTxt.textContent = 'Buscando hoja de examen…';
         }
-        
+
         src.delete(); gray.delete(); blurred.delete(); edges.delete();
         contours.delete(); hierarchy.delete();
       }
-      
+
       scannerRaf = requestAnimationFrame(startSmartScanner);
     }
 
