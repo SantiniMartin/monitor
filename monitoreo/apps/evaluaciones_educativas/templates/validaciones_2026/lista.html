@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Validación de Secciones 2026</title>
+    <meta name="description" content="Panel de validación de matrículas y secciones educativas 2026." />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+      /* =============================================
+         BASE
+      ============================================= */
+      body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #eef2ff, #ffffff);
+        min-height: 100vh;
+        padding: 30px 15px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0;
+        letter-spacing: -0.5px;
+      }
+
+      /* =============================================
+         CARD PRINCIPAL
+      ============================================= */
+      .card {
+        border-radius: 18px;
+        border: none;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+      }
+
+      .card-header {
+        background: linear-gradient(90deg, #0066cc, #004a99);
+        color: white;
+        padding: 20px 25px;
+      }
+
+      .badge-region {
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+        font-size: 0.75rem;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      /* =============================================
+         BARRA DE PROGRESO
+      ============================================= */
+      .progress-bar-custom {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.2);
+        overflow: hidden;
+        margin-top: 10px;
+      }
+      .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+
+      /* =============================================
+         TABLA
+      ============================================= */
+      .table-container {
+        max-height: 65vh;
+        overflow-y: auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 0 0 18px 18px;
+      }
+
+      .table-fixed {
+        table-layout: fixed;
+        width: 100%;
+        min-width: 1100px;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+
+      .table-fixed thead th {
+        position: sticky;
+        top: 0;
+        background: #1e3a5f;
+        color: #fff;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 12px 10px;
+        border-bottom: none;
+        z-index: 10;
+        font-weight: 600;
+      }
+
+      .table-fixed tbody tr {
+        transition: background 0.2s ease;
+      }
+
+      .table-fixed tbody tr:nth-child(even) {
+        background: #f8fafc;
+      }
+
+      .table-fixed tbody tr:hover {
+        background: #eff6ff;
+      }
+
+      .table-fixed tbody td {
+        padding: 10px 10px;
+        font-size: 0.85rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #e2e8f0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* =============================================
+         ESTADOS DE FILA
+      ============================================= */
+      /* Aprobado */
+      .fila-aprobada {
+        background: #f0fdf4 !important;
+        border-left: 4px solid #22c55e;
+      }
+      .fila-aprobada:hover {
+        background: #dcfce7 !important;
+      }
+
+      /* No existe */
+      .fila-no-existe {
+        background: #fff1f2 !important;
+        border-left: 4px solid #f43f5e;
+        opacity: 0.75;
+      }
+      .fila-no-existe:hover {
+        background: #ffe4e6 !important;
+      }
+      .fila-no-existe td {
+        text-decoration: line-through;
+        color: #94a3b8;
+      }
+
+      /* Con cabecera asignada */
+      .fila-con-cabecera {
+        background: linear-gradient(90deg, #f0fdf4, #eff6ff) !important;
+        border-left: 4px solid #6366f1;
+      }
+      .fila-con-cabecera:hover {
+        background: #e0e7ff !important;
+      }
+
+      /* =============================================
+         BADGES DE ESTADO
+      ============================================= */
+      .estado-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        border-radius: 20px;
+        padding: 3px 10px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .estado-pendiente  { background: #fef3c7; color: #92400e; }
+      .estado-aprobado   { background: #dcfce7; color: #166534; }
+      .estado-no-existe  { background: #ffe4e6; color: #9f1239; }
+      .estado-cabecera   { background: #e0e7ff; color: #3730a3; }
+
+      /* =============================================
+         BOTONES DE ACCIÓN
+      ============================================= */
+      .btn-aprobar {
+        background: #22c55e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 5px 12px;
+        transition: all 0.2s ease;
+      }
+      .btn-aprobar:hover { background: #16a34a; transform: scale(1.04); }
+
+      .btn-no-existe {
+        background: #f43f5e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 5px 12px;
+        transition: all 0.2s ease;
+      }
+      .btn-no-existe:hover { background: #be123c; transform: scale(1.04); }
+
+      .btn-editar {
+        background: #6366f1;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 5px 12px;
+        transition: all 0.2s ease;
+      }
+      .btn-editar:hover { background: #4f46e5; transform: scale(1.04); }
+
+      .btn-cabecera {
+        background: linear-gradient(135deg, #6366f1, #0066cc);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 5px 14px;
+        transition: all 0.2s ease;
+      }
+      .btn-cabecera:hover { opacity: 0.88; transform: scale(1.04); }
+
+      /* =============================================
+         CAMPO MATRÍCULA INLINE
+      ============================================= */
+      .matricula-input {
+        width: 90px;
+        border-radius: 6px;
+        border: 1.5px solid #cbd5e1;
+        padding: 4px 8px;
+        font-size: 0.85rem;
+        transition: border-color 0.2s;
+      }
+      .matricula-input:focus {
+        border-color: #0066cc;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0,102,204,0.12);
+      }
+      .matricula-input.changed {
+        border-color: #f59e0b;
+        background: #fffbeb;
+      }
+
+      /* =============================================
+         MODALES
+      ============================================= */
+      .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      }
+      .modal-header {
+        background: linear-gradient(90deg, #0066cc, #004a99);
+        color: #fff;
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+      }
+      .modal-header .btn-close {
+        filter: invert(1);
+      }
+      .modal-title { font-weight: 700; font-size: 1.1rem; }
+
+      /* =============================================
+         ALERTA SIN ACCESO
+      ============================================= */
+      .alert-sin-acceso {
+        border-radius: 14px;
+        border: none;
+        background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+        color: #9f1239;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 4px 14px rgba(244,63,94,0.15);
+      }
+
+      /* =============================================
+         BANNER TODAS PROCESADAS
+      ============================================= */
+      .banner-procesadas {
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        border: 1.5px solid #22c55e;
+        border-radius: 12px;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        color: #166534;
+        margin-bottom: 16px;
+      }
+      .banner-procesadas i { font-size: 1.4rem; }
+
+      /* =============================================
+         SPINNER DE CARGA
+      ============================================= */
+      .spinner-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+      }
+      .spinner-overlay.active { display: flex; }
+    </style>
+  </head>
+
+  <body>
+    <!-- Spinner global -->
+    <div class="spinner-overlay" id="spinnerOverlay">
+      <div class="spinner-border text-light" style="width:3rem;height:3rem;" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+
+    <div class="container-fluid px-2">
+
+      <!-- ============================================================
+           CARD PRINCIPAL
+      ============================================================ -->
+      <div class="card">
+
+        <!-- HEADER -->
+        <div class="card-header">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+              <h1><i class="bi bi-check2-square me-2"></i>Validación de Secciones 2026</h1>
+              <small class="opacity-75">Referente: <strong>{{ cuil }}</strong>
+                {% if regiones %}
+                  — Regiones:
+                  {% for r in regiones %}
+                    <span class="badge-region ms-1">{{ r }}</span>
+                  {% endfor %}
+                {% endif %}
+              </small>
+            </div>
+            {% if not sin_acceso %}
+            <div class="text-end">
+              <div class="fw-semibold" style="font-size:0.9rem;">
+                {{ total|default:"0" }} secciones &nbsp;|&nbsp;
+                <span class="text-warning-emphasis">{{ pendientes|default:"0" }} pendientes</span>
+              </div>
+              <div class="progress-bar-custom" style="width:200px;">
+                <div class="progress-bar-fill" id="barraProgreso"
+                  style="width: {% if total %}{% widthratio total|add:"-"|add:pendientes total 100 %}{% else %}0{% endif %}%">
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- BODY -->
+        <div class="card-body p-0">
+
+          {% if sin_acceso %}
+          <!-- ── SIN ACCESO ── -->
+          <div class="p-4">
+            <div class="alert-sin-acceso">
+              <i class="bi bi-shield-lock-fill" style="font-size:2.5rem;display:block;margin-bottom:12px;"></i>
+              <h4 class="fw-bold mb-2">Acceso no autorizado</h4>
+              <p class="mb-0">El CUIL <strong>{{ cuil }}</strong> no está registrado como referente de carga.<br>
+              Comunicate con el administrador del sistema.</p>
+            </div>
+          </div>
+
+          {% else %}
+
+          <div class="p-3">
+
+            <!-- Banner: todas procesadas -->
+            {% if todas_procesadas %}
+            <div class="banner-procesadas" id="bannerProcesadas">
+              <i class="bi bi-patch-check-fill"></i>
+              <span>¡Todas las secciones están procesadas! Ahora podés asignar la cabecera a cada sección aprobada.</span>
+            </div>
+            {% endif %}
+
+            <!-- Tabla -->
+            <div class="table-container">
+              <table class="table table-fixed mb-0" id="tablaSecciones">
+                <thead>
+                  <tr>
+                    <th style="width:100px;">CUE/Anexo</th>
+                    <th style="width:220px;">Establecimiento</th>
+                    <th style="width:70px;">Región</th>
+                    <th style="width:100px;">Grado</th>
+                    <th style="width:60px;">Sección</th>
+                    <th style="width:80px;">Turno</th>
+                    <th style="width:90px;">Matrícula</th>
+                    <th style="width:90px;">Estado</th>
+                    <th style="width:220px;">Cabecera</th>
+                    <th style="width:210px;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for seccion in secciones %}
+                  <tr id="fila-{{ seccion.public_id }}"
+                    class="{% if seccion.cabecera %}fila-con-cabecera{% elif seccion.estado_validacion == 'APROBADO' %}fila-aprobada{% elif seccion.estado_validacion == 'NO_EXISTE' %}fila-no-existe{% endif %}">
+
+                    <!-- CUE -->
+                    <td class="fw-semibold text-secondary" title="{{ seccion.grado.establecimiento.cueanexo }}">
+                      {{ seccion.grado.establecimiento.cueanexo }}
+                    </td>
+
+                    <!-- Establecimiento -->
+                    <td title="{{ seccion.grado.establecimiento.escuela }}">
+                      {{ seccion.grado.establecimiento.escuela }}
+                    </td>
+
+                    <!-- Región -->
+                    <td>{{ seccion.grado.establecimiento.region }}</td>
+
+                    <!-- Grado -->
+                    <td>{{ seccion.grado.nombre_grado }}</td>
+
+                    <!-- Sección -->
+                    <td class="text-center fw-bold">{{ seccion.seccion }}</td>
+
+                    <!-- Turno -->
+                    <td>{{ seccion.turno }}</td>
+
+                    <!-- Matrícula -->
+                    <td>
+                      <span class="matricula-display-{{ seccion.public_id }}">
+                        {% if seccion.matricula is not None %}{{ seccion.matricula }}{% else %}<em class="text-muted">—</em>{% endif %}
+                      </span>
+                      {% if seccion.estado_validacion == 'APROBADO' and not seccion.cabecera %}
+                      <input type="number"
+                        class="matricula-input d-none"
+                        id="matricula-{{ seccion.public_id }}"
+                        value="{{ seccion.matricula|default:'' }}"
+                        data-original="{{ seccion.matricula|default:'' }}"
+                        min="0"
+                        title="Matrícula"
+                      />
+                      {% endif %}
+                    </td>
+
+                    <!-- Estado -->
+                    <td id="estado-badge-{{ seccion.public_id }}">
+                      {% if seccion.cabecera %}
+                        <span class="estado-badge estado-cabecera"><i class="bi bi-building-check me-1"></i>Con cabecera</span>
+                      {% elif seccion.estado_validacion == 'APROBADO' %}
+                        <span class="estado-badge estado-aprobado"><i class="bi bi-check-circle me-1"></i>Aprobado</span>
+                      {% elif seccion.estado_validacion == 'NO_EXISTE' %}
+                        <span class="estado-badge estado-no-existe"><i class="bi bi-x-circle me-1"></i>No existe</span>
+                      {% else %}
+                        <span class="estado-badge estado-pendiente"><i class="bi bi-clock me-1"></i>Pendiente</span>
+                      {% endif %}
+                    </td>
+
+                    <!-- Cabecera -->
+                    <td id="cabecera-nombre-{{ seccion.public_id }}" title="{{ seccion.cabecera }}">
+                      {% if seccion.cabecera %}
+                        <span class="fw-semibold text-indigo-600" style="color:#4f46e5;">
+                          <i class="bi bi-building me-1"></i>{{ seccion.cabecera.nombre_cabecera }}
+                        </span>
+                      {% else %}
+                        <em class="text-muted" style="font-size:0.8rem;">Sin asignar</em>
+                      {% endif %}
+                    </td>
+
+                    <!-- Acciones -->
+                    <td>
+                      <div class="d-flex gap-1 flex-wrap acciones-{{ seccion.public_id }}">
+
+                        {% if seccion.cabecera %}
+                          <!-- Con cabecera: solo botón Editar -->
+                          <button class="btn-editar btn"
+                            onclick="deshacerCabecera('{{ seccion.public_id }}')"
+                            title="Editar / volver a procesar">
+                            <i class="bi bi-pencil-fill me-1"></i>Editar
+                          </button>
+
+                        {% elif seccion.estado_validacion == 'PENDIENTE' %}
+                          <!-- PENDIENTE: Aprobar + No existe -->
+                          <button class="btn-aprobar btn"
+                            onclick="abrirModalAprobar('{{ seccion.public_id }}', {{ seccion.matricula|default:'null' }})"
+                            title="Aprobar esta sección">
+                            <i class="bi bi-check-lg me-1"></i>Aprobar
+                          </button>
+                          <button class="btn-no-existe btn"
+                            onclick="abrirModalNoExiste('{{ seccion.public_id }}')"
+                            title="Marcar como no existe">
+                            <i class="bi bi-x-lg me-1"></i>No existe
+                          </button>
+
+                        {% elif seccion.estado_validacion == 'APROBADO' and not todas_procesadas %}
+                          <!-- APROBADO pero aún hay pendientes -->
+                          <button class="btn-editar btn"
+                            onclick="editarSeccion('{{ seccion.public_id }}')"
+                            title="Volver a procesar">
+                            <i class="bi bi-pencil-fill me-1"></i>Editar
+                          </button>
+
+                        {% elif seccion.estado_validacion == 'APROBADO' and todas_procesadas %}
+                          <!-- APROBADO + todas procesadas: Seleccionar cabecera + Editar -->
+                          <button class="btn-cabecera btn"
+                            onclick="abrirModalCabecera('{{ seccion.public_id }}')"
+                            title="Asignar cabecera">
+                            <i class="bi bi-building-add me-1"></i>Cabecera
+                          </button>
+                          <button class="btn-editar btn"
+                            onclick="editarSeccion('{{ seccion.public_id }}')"
+                            title="Volver a procesar">
+                            <i class="bi bi-pencil-fill me-1"></i>Editar
+                          </button>
+
+                        {% elif seccion.estado_validacion == 'NO_EXISTE' %}
+                          <!-- NO EXISTE: solo Editar -->
+                          <button class="btn-editar btn"
+                            onclick="editarSeccion('{{ seccion.public_id }}')"
+                            title="Volver a procesar">
+                            <i class="bi bi-pencil-fill me-1"></i>Editar
+                          </button>
+                        {% endif %}
+
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="10" class="text-center text-muted py-5">
+                      <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                      No hay secciones registradas para tus regiones.
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div><!-- /table-container -->
+          </div><!-- /p-3 -->
+          {% endif %}
+
+        </div><!-- /card-body -->
+      </div><!-- /card -->
+    </div><!-- /container -->
+
+
+    <!-- ================================================================
+         MODAL: Aprobar sección (+ matrícula)
+    ================================================================ -->
+    <div class="modal fade" id="modalAprobar" tabindex="-1" aria-labelledby="modalAprobarLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAprobarLabel">
+              <i class="bi bi-check2-circle me-2"></i>Aprobar sección
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted mb-3" style="font-size:0.9rem;">
+              Verificá la matrícula inicial. Si el valor es correcto, guardá directamente.
+              Si necesitás modificarlo, ingresá el nuevo valor y justificá el cambio.
+            </p>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Matrícula <small class="text-muted">(puede estar vacía)</small></label>
+              <input type="number" class="form-control" id="modalMatriculaNueva"
+                placeholder="Ingresá la matrícula" min="0" />
+              <small class="text-muted">Matrícula original: <strong id="matriculaOriginalLabel">—</strong></small>
+            </div>
+
+            <div class="mb-2" id="bloqueJustificacionAprobar" style="display:none;">
+              <label class="form-label fw-semibold text-warning-emphasis">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                La matrícula cambió — justificá el cambio
+              </label>
+              <textarea class="form-control" id="modalJustificacionAprobar" rows="3"
+                placeholder="Explicá por qué cambió la matrícula..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-success fw-bold" id="btnConfirmarAprobar">
+              <i class="bi bi-check-lg me-1"></i>Guardar y Aprobar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         MODAL: No existe (✖)
+    ================================================================ -->
+    <div class="modal fade" id="modalNoExiste" tabindex="-1" aria-labelledby="modalNoExisteLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" style="background: linear-gradient(90deg,#f43f5e,#be123c);">
+            <h5 class="modal-title" id="modalNoExisteLabel">
+              <i class="bi bi-x-octagon-fill me-2"></i>Marcar como "No existe"
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted mb-3" style="font-size:0.9rem;">
+              Explicá por qué esta sección / establecimiento ya no existe o fue dado de baja.
+            </p>
+            <label class="form-label fw-semibold">Justificación <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="modalJustificacionNoExiste" rows="4"
+              placeholder="Motivo de la baja..."></textarea>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger fw-bold" id="btnConfirmarNoExiste">
+              <i class="bi bi-x-lg me-1"></i>Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         MODAL: Seleccionar Cabecera (pantalla final)
+    ================================================================ -->
+    <div class="modal fade" id="modalCabecera" tabindex="-1" aria-labelledby="modalCabeceraLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" style="background: linear-gradient(90deg,#6366f1,#0066cc);">
+            <h5 class="modal-title" id="modalCabeceraLabel">
+              <i class="bi bi-building-add me-2"></i>Seleccionar Cabecera
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted mb-3" style="font-size:0.9rem;">
+              Seleccioná la cabecera correspondiente a esta sección aprobada.
+            </p>
+            <label class="form-label fw-semibold">Cabecera <span class="text-danger">*</span></label>
+            {{ forma_cabecera.cabecera }}
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn fw-bold text-white" id="btnConfirmarCabecera"
+              style="background:linear-gradient(135deg,#6366f1,#0066cc);">
+              <i class="bi bi-save me-1"></i>Asignar cabecera
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ================================================================
+         SCRIPTS
+    ================================================================ -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // ── CSRF TOKEN ──────────────────────────────────────────────────
+      function getCsrfToken() {
+        return document.cookie.split(';')
+          .find(c => c.trim().startsWith('csrftoken='))
+          ?.split('=')[1] || '';
+      }
+
+      // ── SPINNER ─────────────────────────────────────────────────────
+      const spinner = document.getElementById('spinnerOverlay');
+      function showSpinner() { spinner.classList.add('active'); }
+      function hideSpinner() { spinner.classList.remove('active'); }
+
+      // ── VARIABLES DE ESTADO ─────────────────────────────────────────
+      let seccionActual = null;
+      let matriculaOriginal = null;
+      let totalSecciones = {{ total|default:0 }};
+      let pendientes = {{ pendientes|default:0 }};
+
+      // ── MODALES ─────────────────────────────────────────────────────
+      const modalAprobarBS    = new bootstrap.Modal(document.getElementById('modalAprobar'));
+      const modalNoExisteBS   = new bootstrap.Modal(document.getElementById('modalNoExiste'));
+      const modalCabeceraBS   = new bootstrap.Modal(document.getElementById('modalCabecera'));
+
+      // ── UTILIDADES ──────────────────────────────────────────────────
+
+      function actualizarBarra() {
+        const procesadas = totalSecciones - pendientes;
+        const pct = totalSecciones > 0 ? Math.round((procesadas / totalSecciones) * 100) : 0;
+        const barra = document.getElementById('barraProgreso');
+        if (barra) barra.style.width = pct + '%';
+      }
+
+      function verificarTodasProcesadas() {
+        // Verifica si quedaron 0 pendientes y muestra/habilita botones de cabecera
+        if (pendientes <= 0) {
+          // Mostrar banner si no existe
+          if (!document.getElementById('bannerProcesadas')) {
+            const banner = document.createElement('div');
+            banner.id = 'bannerProcesadas';
+            banner.className = 'banner-procesadas';
+            banner.innerHTML = '<i class="bi bi-patch-check-fill"></i><span>¡Todas las secciones están procesadas! Ahora podés asignar la cabecera a cada sección aprobada.</span>';
+            document.querySelector('.p-3').prepend(banner);
+          }
+          // Actualizar botones de filas APROBADAS → agregar botón Cabecera
+          document.querySelectorAll('[id^="fila-"]').forEach(fila => {
+            const pid = fila.id.replace('fila-', '');
+            const badge = document.getElementById(`estado-badge-${pid}`);
+            if (badge && badge.innerHTML.includes('aprobado')) {
+              const accionesDiv = fila.querySelector(`.acciones-${pid}`);
+              if (accionesDiv && !accionesDiv.querySelector('.btn-cabecera')) {
+                const btnCab = document.createElement('button');
+                btnCab.className = 'btn-cabecera btn';
+                btnCab.innerHTML = '<i class="bi bi-building-add me-1"></i>Cabecera';
+                btnCab.title = 'Asignar cabecera';
+                btnCab.onclick = () => abrirModalCabecera(pid);
+                accionesDiv.prepend(btnCab);
+              }
+            }
+          });
+        }
+      }
+
+      // ── MODAL APROBAR ───────────────────────────────────────────────
+
+      function abrirModalAprobar(pid, matOriginal) {
+        seccionActual = pid;
+        matriculaOriginal = matOriginal;
+
+        const inputMat = document.getElementById('modalMatriculaNueva');
+        const labelOrig = document.getElementById('matriculaOriginalLabel');
+        const bloqueJust = document.getElementById('bloqueJustificacionAprobar');
+        const textareaJust = document.getElementById('modalJustificacionAprobar');
+
+        inputMat.value = matOriginal !== null ? matOriginal : '';
+        labelOrig.textContent = matOriginal !== null ? matOriginal : '(vacía)';
+        bloqueJust.style.display = 'none';
+        textareaJust.value = '';
+
+        // Mostrar justificación solo si cambia la matrícula
+        inputMat.oninput = () => {
+          const nueva = inputMat.value.trim();
+          const original = matOriginal !== null ? String(matOriginal) : '';
+          bloqueJust.style.display = (nueva !== original) ? 'block' : 'none';
+        };
+
+        modalAprobarBS.show();
+      }
+
+      document.getElementById('btnConfirmarAprobar').addEventListener('click', async () => {
+        const matriculaNueva = document.getElementById('modalMatriculaNueva').value.trim();
+        const justificacion  = document.getElementById('modalJustificacionAprobar').value.trim();
+        const bloqueJust     = document.getElementById('bloqueJustificacionAprobar');
+
+        // Si el bloque de justificación está visible y está vacío, alerta
+        if (bloqueJust.style.display !== 'none' && !justificacion) {
+          document.getElementById('modalJustificacionAprobar').classList.add('is-invalid');
+          return;
+        }
+
+        showSpinner();
+        modalAprobarBS.hide();
+
+        const body = new FormData();
+        body.append('matricula_nueva', matriculaNueva);
+        body.append('justificacion', justificacion);
+        body.append('csrfmiddlewaretoken', getCsrfToken());
+
+        try {
+          const resp = await fetch(`{% url 'evaluaciones_educativas:validaciones_2026:aprobar_seccion' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', seccionActual), {
+            method: 'POST',
+            body: body,
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            actualizarFilaAprobada(seccionActual, matriculaNueva);
+            pendientes = Math.max(0, pendientes - 1);
+            actualizarBarra();
+            verificarTodasProcesadas();
+          } else {
+            alert('Error: ' + (data.error || 'Ocurrió un problema.'));
+          }
+        } catch(e) {
+          alert('Error de conexión. Intentá nuevamente.');
+        } finally {
+          hideSpinner();
+        }
+      });
+
+      function actualizarFilaAprobada(pid, matriculaNueva) {
+        const fila = document.getElementById(`fila-${pid}`);
+        fila.className = 'fila-aprobada';
+
+        // Actualizar display matrícula
+        const displayMat = fila.querySelector(`.matricula-display-${pid}`);
+        if (displayMat) displayMat.innerHTML = matriculaNueva !== '' ? matriculaNueva : '<em class="text-muted">—</em>';
+
+        // Badge estado
+        document.getElementById(`estado-badge-${pid}`).innerHTML =
+          '<span class="estado-badge estado-aprobado"><i class="bi bi-check-circle me-1"></i>Aprobado</span>';
+
+        // Botones: editar
+        const accionesDiv = fila.querySelector(`.acciones-${pid}`);
+        accionesDiv.innerHTML = `
+          <button class="btn-editar btn" onclick="editarSeccion('${pid}')" title="Volver a procesar">
+            <i class="bi bi-pencil-fill me-1"></i>Editar
+          </button>`;
+      }
+
+      // ── MODAL NO EXISTE ─────────────────────────────────────────────
+
+      function abrirModalNoExiste(pid) {
+        seccionActual = pid;
+        document.getElementById('modalJustificacionNoExiste').value = '';
+        modalNoExisteBS.show();
+      }
+
+      document.getElementById('btnConfirmarNoExiste').addEventListener('click', async () => {
+        const justificacion = document.getElementById('modalJustificacionNoExiste').value.trim();
+        if (!justificacion) {
+          document.getElementById('modalJustificacionNoExiste').classList.add('is-invalid');
+          return;
+        }
+
+        showSpinner();
+        modalNoExisteBS.hide();
+
+        const body = new FormData();
+        body.append('justificacion', justificacion);
+        body.append('csrfmiddlewaretoken', getCsrfToken());
+
+        try {
+          const resp = await fetch(`{% url 'evaluaciones_educativas:validaciones_2026:marcar_no_existe' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', seccionActual), {
+            method: 'POST',
+            body: body,
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            actualizarFilaNoExiste(seccionActual);
+            pendientes = Math.max(0, pendientes - 1);
+            actualizarBarra();
+            verificarTodasProcesadas();
+          } else {
+            alert('Error: ' + (data.error || 'Ocurrió un problema.'));
+          }
+        } catch(e) {
+          alert('Error de conexión. Intentá nuevamente.');
+        } finally {
+          hideSpinner();
+        }
+      });
+
+      function actualizarFilaNoExiste(pid) {
+        const fila = document.getElementById(`fila-${pid}`);
+        fila.className = 'fila-no-existe';
+
+        document.getElementById(`estado-badge-${pid}`).innerHTML =
+          '<span class="estado-badge estado-no-existe"><i class="bi bi-x-circle me-1"></i>No existe</span>';
+
+        const accionesDiv = fila.querySelector(`.acciones-${pid}`);
+        accionesDiv.innerHTML = `
+          <button class="btn-editar btn" onclick="editarSeccion('${pid}')" title="Volver a procesar">
+            <i class="bi bi-pencil-fill me-1"></i>Editar
+          </button>`;
+      }
+
+      // ── EDITAR (volver a PENDIENTE) ─────────────────────────────────
+
+      async function editarSeccion(pid) {
+        showSpinner();
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', getCsrfToken());
+
+        try {
+          const resp = await fetch(`{% url 'evaluaciones_educativas:validaciones_2026:editar_seccion' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', pid), {
+            method: 'POST',
+            body: body,
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            pendientes += 1;
+            actualizarBarra();
+            actualizarFilaPendiente(pid);
+          }
+        } catch(e) {
+          alert('Error de conexión.');
+        } finally {
+          hideSpinner();
+        }
+      }
+
+      function actualizarFilaPendiente(pid) {
+        const fila = document.getElementById(`fila-${pid}`);
+        fila.className = '';
+
+        document.getElementById(`estado-badge-${pid}`).innerHTML =
+          '<span class="estado-badge estado-pendiente"><i class="bi bi-clock me-1"></i>Pendiente</span>';
+
+        document.getElementById(`cabecera-nombre-${pid}`).innerHTML =
+          '<em class="text-muted" style="font-size:0.8rem;">Sin asignar</em>';
+
+        const accionesDiv = fila.querySelector(`.acciones-${pid}`);
+        accionesDiv.innerHTML = `
+          <button class="btn-aprobar btn" onclick="abrirModalAprobar('${pid}', null)" title="Aprobar esta sección">
+            <i class="bi bi-check-lg me-1"></i>Aprobar
+          </button>
+          <button class="btn-no-existe btn" onclick="abrirModalNoExiste('${pid}')" title="Marcar como no existe">
+            <i class="bi bi-x-lg me-1"></i>No existe
+          </button>`;
+      }
+
+      // ── MODAL CABECERA ──────────────────────────────────────────────
+
+      function abrirModalCabecera(pid) {
+        seccionActual = pid;
+        document.getElementById('id_cabecera').value = '';
+        modalCabeceraBS.show();
+      }
+
+      document.getElementById('btnConfirmarCabecera').addEventListener('click', async () => {
+        const cabeceraId = document.getElementById('id_cabecera').value;
+        if (!cabeceraId) {
+          document.getElementById('id_cabecera').classList.add('is-invalid');
+          return;
+        }
+
+        showSpinner();
+        modalCabeceraBS.hide();
+
+        const body = new FormData();
+        body.append('cabecera', cabeceraId);
+        body.append('csrfmiddlewaretoken', getCsrfToken());
+
+        try {
+          const resp = await fetch(`{% url 'evaluaciones_educativas:validaciones_2026:asignar_cabecera' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', seccionActual), {
+            method: 'POST',
+            body: body,
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            actualizarFilaConCabecera(seccionActual, data.cabecera_nombre);
+          } else {
+            alert('Error: ' + (data.error || 'Ocurrió un problema.'));
+          }
+        } catch(e) {
+          alert('Error de conexión.');
+        } finally {
+          hideSpinner();
+        }
+      });
+
+      function actualizarFilaConCabecera(pid, cabeceraNombre) {
+        const fila = document.getElementById(`fila-${pid}`);
+        fila.className = 'fila-con-cabecera';
+
+        document.getElementById(`estado-badge-${pid}`).innerHTML =
+          '<span class="estado-badge estado-cabecera"><i class="bi bi-building-check me-1"></i>Con cabecera</span>';
+
+        document.getElementById(`cabecera-nombre-${pid}`).innerHTML =
+          `<span class="fw-semibold" style="color:#4f46e5;"><i class="bi bi-building me-1"></i>${cabeceraNombre}</span>`;
+
+        const accionesDiv = fila.querySelector(`.acciones-${pid}`);
+        accionesDiv.innerHTML = `
+          <button class="btn-editar btn" onclick="deshacerCabecera('${pid}')" title="Editar / volver a procesar">
+            <i class="bi bi-pencil-fill me-1"></i>Editar
+          </button>`;
+      }
+
+      // Deshacer cabecera = volver a APROBADO sin cabecera
+      async function deshacerCabecera(pid) {
+        showSpinner();
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', getCsrfToken());
+
+        // Usamos editar_seccion para limpiar la cabecera también
+        try {
+          const resp = await fetch(`{% url 'evaluaciones_educativas:validaciones_2026:editar_seccion' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', pid), {
+            method: 'POST',
+            body: body,
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            pendientes += 1;
+            actualizarBarra();
+            actualizarFilaPendiente(pid);
+          }
+        } catch(e) {
+          alert('Error de conexión.');
+        } finally {
+          hideSpinner();
+        }
+      }
+
+      // ── INIT ────────────────────────────────────────────────────────
+      actualizarBarra();
+    </script>
+  </body>
+</html>
