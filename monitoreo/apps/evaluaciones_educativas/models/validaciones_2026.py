@@ -37,7 +37,18 @@ class ValEstablecimiento(models.Model):
 	region = models.CharField(max_length=255)
 	localidad = models.CharField(max_length=255)
 	departamento = models.CharField(max_length=255)
-
+	codigo_provincia = models.CharField(max_length=20, blank=True, null=True)
+	provincia = models.CharField(max_length=255, blank=True, null=True)
+	codigo_departamento = models.CharField(max_length=20, blank=True, null=True)
+	codigo_localidad = models.CharField(max_length=20, blank=True, null=True)
+	direccion = models.CharField(max_length=255, blank=True, null=True)
+	codigo_area = models.CharField(max_length=20, blank=True, null=True)
+	codigo_postal = models.CharField(max_length=20, blank=True, null=True)
+	telefono = models.CharField(max_length=20, blank=True, null=True)
+	nombre_director = models.CharField(max_length=255, blank=True, null=True)
+	apellido_director = models.CharField(max_length=255, blank=True, null=True)
+	telefono_director = models.CharField(max_length=20, blank=True, null=True)
+	correo_director = models.EmailField(max_length=255, blank=True, null=True)
 	# ── Participación en Aprender ──────────────────────────────────────
 	# None = sin procesar | True = participa | False = no participa
 	participa_aprender = models.BooleanField(
@@ -110,6 +121,11 @@ class ValCabecera(models.Model):
 	codigo_area_coordinador = models.CharField(max_length=10, blank=True, null=True)
 	telefono_coordinador = models.CharField(max_length=30, blank=True, null=True)
 	cuil_coordinador = models.CharField(max_length=20, blank=True, null=True)
+	provincia = models.CharField(max_length=100, blank=True, null=True)
+	cod_provincia = models.CharField(max_length=50, blank=True, null=True)
+	cantidad_establecimientos_asociados = models.IntegerField(default=0)
+	cantidad_secciones_asociadas = models.IntegerField(default=0)
+	cantidad_matriculas_por_seccion = models.IntegerField(default=0)
 
 	class Meta:
 		db_table = '"validaciones_2026"."cabeceras"'
@@ -157,15 +173,7 @@ class ValSeccion(models.Model):
 		default='PENDIENTE',
 		verbose_name='Estado de validación'
 	)
-	# Cabecera asignada (se asigna en la última pantalla, tras validar todo)
-	cabecera = models.ForeignKey(
-		ValCabecera,
-		on_delete=models.SET_NULL,
-		null=True,
-		blank=True,
-		related_name='secciones',
-		verbose_name='Cabecera asignada'
-	)
+	
 	# Auditoría
 	fecha_ultima_modificacion = models.DateTimeField(auto_now=True)
 	usuario_ultima_modificacion = models.CharField(max_length=50, blank=True, null=True)
@@ -192,6 +200,14 @@ class ValHistorialMatriculas(models.Model):
 	justificacion = models.TextField(verbose_name='Justificación del cambio')
 	fecha_cambio = models.DateTimeField(auto_now_add=True)
 	usuario_cambio = models.CharField(max_length=50, blank=True, null=True)
+	referente = models.ForeignKey(
+		ValReferenteCargaTemporal,
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name='historial_matriculas_modificadas',
+		verbose_name='Referente de Carga'
+	)
 
 	class Meta:
 		db_table = '"validaciones_2026"."historial_matriculas"'
@@ -217,6 +233,14 @@ class ValHistorialCambiosEstablecimiento(models.Model):
 	justificacion = models.TextField(verbose_name='Justificación de participación')
 	fecha = models.DateTimeField(auto_now_add=True)
 	usuario = models.CharField(max_length=50, blank=True, null=True)
+	referente = models.ForeignKey(
+		ValReferenteCargaTemporal,
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name='historial_establecimientos_modificados',
+		verbose_name='Referente de Carga'
+	)
 
 	class Meta:
 		db_table = '"validaciones_2026"."historial_cambios_establecimiento"'
