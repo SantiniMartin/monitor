@@ -11,17 +11,115 @@ Flujo:
   5. detalle_lectura     → detalle de una lectura específica
 """
 
+import io
 import json
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST, require_GET
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib import messages
-from django.db.models import Q
-from django.utils import timezone
+import logging
 
-from apps.evaluaciones_educativas.models.fluidez_2026 import AlumnoFluidez2026, SeccionFluidez2026, GradoFluidez2026, EstablecimientosFluidez2026
+from PIL import Image, UnidentifiedImageError
+from django.core.exceptions import RequestDataTooBig
+from django.core.paginator import Paginator
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.db.models import Q
+from django.urls import reverse
+
+from apps.evaluaciones_educativas.models.fluidez_2026 import AlumnoFluidez2026, EstablecimientosFluidez2026
 from apps.evaluaciones_educativas.models.omr_lector import LecturaOMR
+
+
+logger = logging.getLogger(__name__)
+ITEM_KEYS = {str(i) for i in range(1, 13)}
+SAVE_PAYLOAD_KEYS = {
+    'respuestas', 'confianza', 'modelo_examen',
+    'revisado_manualmente', 'observaciones',
+}
+MAX_JSON_BYTES = 32 * 1024
+MAX_UPLOAD_BYTES = 12 * 1024 * 1024
+MAX_IMAGE_PIXELS = 25_000_000
+ALLOWED_IMAGE_FORMATS = {'JPEG', 'PNG', 'WEBP'}
+ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+FORMAT_CONTENT_TYPES = {'JPEG': 'image/jpeg', 'PNG': 'image/png', 'WEBP': 'image/webp'}
+
+
+def _json_error(message, code, status=400):
+    return JsonResponse({'ok': False, 'error': message, 'code': code}, status=status)
+
+
+def _validar_payload_lectura(payload):
+    """Valida y normaliza el contrato JSON antes de tocar la base de datos."""
+    if not isinstance(payload, dict):
+        raise ValueError('El cuerpo JSON debe ser un objeto.')
+    unexpected = set(payload) - SAVE_PAYLOAD_KEYS
+    if unexpected:
+        raise ValueError(f'Campos no permitidos: {", ".join(sorted(unexpected))}.')
+    if set(payload) != SAVE_PAYLOAD_KEYS:
+        raise ValueError('Faltan campos obligatorios en la lectura.')
+
+    respuestas = payload['respuestas']
+    confianza = payload['confianza']
+    if not isinstance(respuestas, dict) or set(respuestas) != ITEM_KEYS:
+        raise ValueError('Las respuestas deben incluir exactamente los ítems 1 a 12.')
+    if not isinstance(confianza, dict) or set(confianza) != ITEM_KEYS:
+        raise ValueError('La confianza debe incluir exactamente los ítems 1 a 12.')
+
+    normalized_respuestas = {}
+    normalized_confianza = {}
+    for key in sorted(ITEM_KEYS, key=int):
+        response = respuestas[key]
+        if not isinstance(response, str) or response not in {'A', 'B', 'C', 'D'}:
+            raise ValueError(f'El ítem {key} debe tener una respuesta entre A y D.')
+        confidence = confianza[key]
+        if isinstance(confidence, bool) or not isinstance(confidence, int) or not 0 <= confidence <= 100:
+            raise ValueError(f'La confianza del ítem {key} debe ser un entero entre 0 y 100.')
+        normalized_respuestas[key] = response
+        normalized_confianza[key] = confidence
+
+    modelo = payload['modelo_examen']
+    if not isinstance(modelo, str) or modelo not in {'', 'A', 'B', 'C', 'D'}:
+        raise ValueError('El modelo de examen no es válido.')
+    revisado = payload['revisado_manualmente']
+    if not isinstance(revisado, bool):
+        raise ValueError('El indicador de revisión debe ser verdadero o falso.')
+    observaciones = payload['observaciones']
+    if not isinstance(observaciones, str) or len(observaciones) > 2000:
+        raise ValueError('Las observaciones no pueden superar los 2000 caracteres.')
+
+    return {
+        'respuestas': normalized_respuestas,
+        'confianza': normalized_confianza,
+        'modelo_examen': modelo,
+        'revisado_manualmente': revisado,
+        'observaciones': observaciones.strip(),
+    }
+
+
+def _validar_imagen_subida(upload):
+    """Comprueba tamaño, MIME, formato y dimensiones reales de una imagen."""
+    if not upload.size:
+        raise ValueError('La imagen está vacía.')
+    if upload.size > MAX_UPLOAD_BYTES:
+        raise ValueError('La imagen es demasiado grande. El límite es 12 MB.')
+    declared_content_type = (upload.content_type or '').lower()
+    if declared_content_type not in ALLOWED_CONTENT_TYPES:
+        raise ValueError('El archivo debe ser una imagen JPEG, PNG o WebP.')
+
+    image_bytes = upload.read(MAX_UPLOAD_BYTES + 1)
+    if len(image_bytes) > MAX_UPLOAD_BYTES:
+        raise ValueError('La imagen es demasiado grande. El límite es 12 MB.')
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            if image.format not in ALLOWED_IMAGE_FORMATS:
+                raise ValueError('El formato de imagen no está permitido.')
+            if FORMAT_CONTENT_TYPES[image.format] != declared_content_type:
+                raise ValueError('El tipo declarado no coincide con la imagen.')
+            width, height = image.size
+            if width < 1 or height < 1 or width * height > MAX_IMAGE_PIXELS:
+                raise ValueError('La imagen tiene dimensiones demasiado grandes.')
+            image.verify()
+    except (Image.DecompressionBombError, UnidentifiedImageError, OSError, SyntaxError) as exc:
+        raise ValueError('El archivo no contiene una imagen válida.') from exc
+    return image_bytes
 
 
 # ─── 1. Selección de alumno ───────────────────────────────────────────────────
@@ -124,37 +222,39 @@ def guardar_lectura(request, alumno_public_id):
         "observaciones": "..."
     }
     """
+    if request.content_type != 'application/json':
+        return _json_error('El contenido debe enviarse como JSON.', 'INVALID_CONTENT_TYPE', 415)
+    try:
+        content_length = int(request.META.get('CONTENT_LENGTH') or 0)
+    except (TypeError, ValueError):
+        return _json_error('El tamaño declarado no es válido.', 'INVALID_CONTENT_LENGTH')
+    if content_length > MAX_JSON_BYTES:
+        return _json_error('El JSON supera el tamaño permitido.', 'JSON_TOO_LARGE', 413)
+    try:
+        body = request.body
+        if len(body) > MAX_JSON_BYTES:
+            return _json_error('El JSON supera el tamaño permitido.', 'JSON_TOO_LARGE', 413)
+        payload = _validar_payload_lectura(json.loads(body))
+    except RequestDataTooBig:
+        return _json_error('El JSON supera el tamaño permitido.', 'JSON_TOO_LARGE', 413)
+    except json.JSONDecodeError:
+        return _json_error('El JSON enviado no es válido.', 'INVALID_JSON')
+    except (UnicodeDecodeError, ValueError) as exc:
+        return _json_error(str(exc), 'INVALID_PAYLOAD')
+
+    respuestas = payload['respuestas']
+    confianza = payload['confianza']
     alumno = get_object_or_404(
         AlumnoFluidez2026.objects.using('Evaluacion'),
         public_id=alumno_public_id,
     )
-
-    try:
-        payload = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
-
-    respuestas = payload.get('respuestas', {})
-    confianza = payload.get('confianza', {})
-    modelo_examen = payload.get('modelo_examen', '')
-    revisado = payload.get('revisado_manualmente', False)
-    observaciones = payload.get('observaciones', '')
-
-    # Validar que las respuestas sean A/B/C/D o vacío
-    opciones_validas = {'A', 'B', 'C', 'D', ''}
-    for item_num, resp in respuestas.items():
-        if resp not in opciones_validas:
-            return JsonResponse(
-                {'ok': False, 'error': f'Respuesta inválida en ítem {item_num}: "{resp}"'},
-                status=400,
-            )
 
     # Crear o actualizar la lectura OMR
     # Si ya existe una lectura para este alumno, se reemplaza (para permitir re-escaneo)
     lectura, creada = LecturaOMR.objects.using('Evaluacion').update_or_create(
         alumno=alumno,
         defaults={
-            'modelo_examen': modelo_examen[:1] if modelo_examen else '',
+            'modelo_examen': payload['modelo_examen'],
             'item_1':  respuestas.get('1', ''),
             'item_2':  respuestas.get('2', ''),
             'item_3':  respuestas.get('3', ''),
@@ -167,10 +267,10 @@ def guardar_lectura(request, alumno_public_id):
             'item_10': respuestas.get('10', ''),
             'item_11': respuestas.get('11', ''),
             'item_12': respuestas.get('12', ''),
-            'confianza_json': {str(k): int(v) for k, v in confianza.items()} if confianza else None,
-            'revisado_manualmente': bool(revisado),
-            'observaciones': observaciones,
-            'encargado_carga': str(request.user) if request.user.is_authenticated else '',
+            'confianza_json': confianza,
+            'revisado_manualmente': payload['revisado_manualmente'],
+            'observaciones': payload['observaciones'],
+            'encargado_carga': str(request.user)[:9] if request.user.is_authenticated else '',
         }
     )
 
@@ -178,7 +278,10 @@ def guardar_lectura(request, alumno_public_id):
         'ok': True,
         'creada': creada,
         'lectura_public_id': str(lectura.public_id),
-        'redirect_url': f'/evaluaciones_educativas/omr/historial/{lectura.public_id}/',
+        'redirect_url': reverse(
+            'evaluaciones_educativas:omr_lector:detalle_lectura',
+            kwargs={'public_id': lectura.public_id},
+        ),
     })
 
 
@@ -211,12 +314,15 @@ def lista_lecturas(request):
 
     establecimientos = EstablecimientosFluidez2026.objects.using('Evaluacion').order_by('escuela')
 
+    paginator = Paginator(lecturas, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
     contexto = {
-        'lecturas': lecturas[:100],
+        'lecturas': page_obj,
+        'page_obj': page_obj,
         'query': query,
         'cueanexo': cueanexo,
         'establecimientos': establecimientos,
-        'total': lecturas.count(),
+        'total': paginator.count,
     }
     return render(request, 'omr_lector/lista_lecturas.html', contexto)
 
@@ -287,35 +393,34 @@ def procesar_imagen_omr(request):
     {"ok": false, "cv_not_installed": true, "error": "..."}
     """
     if 'imagen' not in request.FILES:
-        return JsonResponse({'ok': False, 'error': 'No se recibió ninguna imagen.'}, status=400)
+        return _json_error('No se recibió ninguna imagen.', 'IMAGE_REQUIRED')
 
     imagen_file = request.FILES['imagen']
 
-    # Validar que sea una imagen
-    content_type = imagen_file.content_type or ''
-    if not content_type.startswith('image/'):
-        return JsonResponse({'ok': False, 'error': f'Tipo de archivo no válido: {content_type}'}, status=400)
-
-    # Límite de tamaño: 20 MB
-    if imagen_file.size > 20 * 1024 * 1024:
-        return JsonResponse({'ok': False, 'error': 'La imagen supera el límite de 20 MB.'}, status=400)
-
     try:
         from apps.evaluaciones_educativas.views.omr_utils import procesar_imagen
-        imagen_bytes = imagen_file.read()
-        resultado    = procesar_imagen(imagen_bytes)
+        imagen_bytes = _validar_imagen_subida(imagen_file)
+        resultado = procesar_imagen(imagen_bytes)
         return JsonResponse({'ok': True, **resultado})
 
-    except ImportError as e:
-        # opencv-python-headless no instalado → el frontend usa fallback JS
+    except ImportError:
+        # No se expone el detalle de instalación ni de rutas internas al cliente.
         return JsonResponse({
             'ok': False,
             'cv_not_installed': True,
-            'error': f'opencv-python-headless no instalado: {e}',
+            'error': 'El servicio de reconocimiento no está disponible.',
+            'code': 'SERVICE_UNAVAILABLE',
         }, status=503)
 
     except ValueError as e:
-        return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+        message = str(e)
+        code = 'IMAGE_TOO_LARGE' if 'demasiado grande' in message else 'INVALID_IMAGE'
+        return _json_error(message, code)
 
-    except Exception as e:
-        return JsonResponse({'ok': False, 'error': f'Error interno: {e}'}, status=500)
+    except Exception:
+        logger.exception('Error inesperado al procesar una imagen OMR')
+        return _json_error(
+            'No se pudo procesar la imagen. Intentá nuevamente.',
+            'PROCESSING_ERROR',
+            500,
+        )

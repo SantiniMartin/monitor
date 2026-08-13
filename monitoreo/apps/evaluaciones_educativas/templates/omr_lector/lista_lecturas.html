@@ -53,6 +53,10 @@
 
     .btn-ver { background: var(--primary); color: white; border: none; border-radius: 7px; padding: 6px 14px; font-size: .8rem; font-weight: 600; text-decoration: none; }
     .btn-ver:hover { background: var(--primary-dark); color: white; }
+    .pagination { display:flex; justify-content:center; align-items:center; gap:8px; padding:20px; flex-wrap:wrap; }
+    .page-link { padding:7px 11px; border:1px solid var(--border); border-radius:8px; color:var(--primary); text-decoration:none; font-size:.84rem; }
+    .page-link:hover { background:#eff6ff; }
+    .page-current { font-size:.84rem; color:var(--muted); padding:0 6px; }
 
     .empty-state { text-align: center; padding: 48px; color: var(--muted); }
 
@@ -115,7 +119,7 @@
   <div class="card">
     <div class="card-header-custom">
       <span>Lecturas</span>
-      <span style="font-size:.82rem; font-weight:400; opacity:.8;">Mostrando hasta 100 resultados</span>
+      <span style="font-size:.82rem; font-weight:400; opacity:.8;">25 resultados por página</span>
     </div>
     <div class="card-body" style="padding:14px 0 0;">
       {% if lecturas %}
@@ -158,12 +162,6 @@
                 </td>
                 <td>
                   <div class="resp-pills">
-                    {% for i in "123456789012" %}
-                      {% with item_num=forloop.counter %}
-                        {% with resp=lectura|getattr:"item_"|add:forloop.counter %}
-                        {% endwith %}
-                      {% endwith %}
-                    {% endfor %}
                     {# Mostrar resumen compacto de respuestas #}
                     {% with r=lectura %}
                       {% for item_val in r.respuestas_dict.values %}
@@ -193,6 +191,17 @@
             </tbody>
           </table>
         </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination" aria-label="Páginas del historial">
+          {% if page_obj.has_previous %}
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}&cueanexo={{ cueanexo|urlencode }}">← Anterior</a>
+          {% endif %}
+          <span class="page-current">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}&cueanexo={{ cueanexo|urlencode }}">Siguiente →</a>
+          {% endif %}
+        </nav>
+        {% endif %}
       {% else %}
         <div class="empty-state">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" style="opacity:.3;margin-bottom:16px;">

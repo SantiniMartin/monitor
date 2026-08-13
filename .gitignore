@@ -6,6 +6,4 @@ db.sqlite3
 __pycache__
 .pyc
 
-../static/evaluaciones_educativas/omr-mejorado
-
-.jpeg
+monitoreo/apps/evaluaciones_educativas/static/evaluaciones_educativas/omr-mejorado
