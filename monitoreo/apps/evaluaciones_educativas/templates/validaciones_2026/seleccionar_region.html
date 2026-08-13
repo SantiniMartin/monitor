@@ -1,0 +1,419 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seleccionar Región — Validación Aprender 2026</title>
+    <meta name="description" content="Paso 0: Seleccioná la región con la que vas a trabajar en el proceso de validación Aprender 2026." />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+      :root {
+        --blue-dark:  #0a1628;
+        --blue-mid:   #0d47a1;
+        --blue:       #1565c0;
+        --blue-light: #1976d2;
+        --accent:     #00bcd4;
+        --green:      #22c55e;
+        --red:        #f43f5e;
+        --amber:      #f59e0b;
+        --purple:     #6366f1;
+      }
+      * { box-sizing: border-box; }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #0a1628 0%, #0d47a1 50%, #1565c0 100%);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0;
+        margin: 0;
+      }
+
+      /* ─── HERO HEADER ─── */
+      .hero {
+        width: 100%;
+        padding: 52px 24px 40px;
+        text-align: center;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 30% 50%, rgba(0,188,212,0.15) 0%, transparent 60%),
+          radial-gradient(ellipse at 70% 30%, rgba(99,102,241,0.12) 0%, transparent 55%);
+        pointer-events: none;
+      }
+      .hero-logo {
+        width: 480px; max-width: 90%; height: auto;
+        background: transparent;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 10px;
+        position: relative;
+        z-index: 1;
+      }
+      .hero h1 {
+        font-size: clamp(1.5rem, 4vw, 2.4rem);
+        font-weight: 900;
+        letter-spacing: -1px;
+        margin-bottom: 10px;
+        position: relative; z-index: 1;
+      }
+      .hero h1 span { color: var(--accent); }
+      .hero p {
+        font-size: 1rem;
+        opacity: 0.75;
+        margin-bottom: 0;
+        position: relative; z-index: 1;
+        font-weight: 400;
+      }
+      .hero-cuil {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-top: 14px;
+        position: relative; z-index: 1;
+      }
+
+      /* ─── STEPPER ─── */
+      .stepper-wrap {
+        width: 100%;
+        background: rgba(255,255,255,0.08);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding: 14px 32px;
+      }
+      .stepper {
+        max-width: 700px;
+        margin: 0 auto;
+        display: flex; align-items: center; gap: 0;
+      }
+      .step { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.45); }
+      .step.active { color: #fff; }
+      .step-num {
+        width: 28px; height: 28px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; font-weight: 700;
+        background: rgba(255,255,255,0.15);
+        color: rgba(255,255,255,0.5);
+        flex-shrink: 0;
+        border: 1.5px solid rgba(255,255,255,0.2);
+        transition: all 0.3s;
+      }
+      .step.active .step-num {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px rgba(0,188,212,0.25);
+      }
+      .step-connector { flex: 1; height: 1px; background: rgba(255,255,255,0.15); margin: 0 10px; min-width: 24px; }
+
+      /* ─── CONTENIDO ─── */
+      .page-content {
+        width: 100%;
+        max-width: 980px;
+        padding: 36px 22px 60px;
+      }
+
+      /* ─── INSTRUCCIÓN ─── */
+      .instruccion {
+        text-align: center;
+        color: rgba(255,255,255,0.8);
+        font-size: 1.05rem;
+        font-weight: 500;
+        margin-bottom: 32px;
+      }
+      .instruccion strong { color: #fff; }
+
+      /* ─── GRID DE REGIONES ─── */
+      .regions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 18px;
+      }
+
+      /* ─── TARJETA DE REGIÓN ─── */
+      .region-card {
+        background: rgba(255,255,255,0.07);
+        border: 1.5px solid rgba(255,255,255,0.13);
+        border-radius: 20px;
+        padding: 28px 26px 22px;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+      }
+      .region-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(0,188,212,0.08) 0%, rgba(99,102,241,0.06) 100%);
+        opacity: 0;
+        transition: opacity 0.25s;
+      }
+      .region-card:hover {
+        transform: translateY(-5px) scale(1.01);
+        border-color: var(--accent);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,188,212,0.3);
+        text-decoration: none;
+      }
+      .region-card:hover::before { opacity: 1; }
+
+      .region-card-icon {
+        width: 52px; height: 52px;
+        background: linear-gradient(135deg, var(--accent), var(--purple));
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 16px rgba(0,188,212,0.25);
+        position: relative; z-index: 1;
+      }
+      .region-card-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 6px;
+        position: relative; z-index: 1;
+        letter-spacing: -0.3px;
+      }
+      .region-card-sub {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.55);
+        margin-bottom: 18px;
+        position: relative; z-index: 1;
+      }
+
+      /* Stats de la región */
+      .region-stats {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 14px;
+        position: relative; z-index: 1;
+      }
+      .r-stat {
+        background: rgba(255,255,255,0.08);
+        border-radius: 8px;
+        padding: 7px 12px;
+        text-align: center;
+        flex: 1;
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      .r-stat .v { font-size: 1.1rem; font-weight: 800; color: #fff; line-height: 1; }
+      .r-stat .l { font-size: 0.63rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+      /* Progress bar */
+      .region-progress { position: relative; z-index: 1; }
+      .rp-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 5px; }
+      .rp-bar { height: 5px; background: rgba(255,255,255,0.12); border-radius: 3px; overflow: hidden; }
+      .rp-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--purple)); transition: width 0.5s ease; }
+
+      /* Flecha de ir */
+      .region-card-arrow {
+        position: absolute;
+        top: 50%;
+        right: 22px;
+        transform: translateY(-50%);
+        width: 36px; height: 36px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem;
+        color: rgba(255,255,255,0.5);
+        transition: all 0.25s;
+        z-index: 2;
+      }
+      .region-card:hover .region-card-arrow {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 4px 12px rgba(0,188,212,0.4);
+      }
+
+      /* ─── SIN ACCESO ─── */
+      .sin-acceso-box {
+        background: rgba(244,63,94,0.15);
+        border: 1.5px solid rgba(244,63,94,0.4);
+        border-radius: 18px;
+        padding: 48px 36px;
+        text-align: center;
+        color: #fff;
+        max-width: 500px;
+        margin: 0 auto;
+        backdrop-filter: blur(8px);
+      }
+      .sin-acceso-box i { font-size: 3.5rem; display: block; margin-bottom: 16px; opacity: 0.7; }
+
+      /* ─── CARD ÚNICA (auto-redirect shown briefly) ─── */
+      .redirect-notice {
+        text-align: center;
+        color: rgba(255,255,255,0.8);
+        padding: 48px 20px;
+      }
+      .redirect-notice i { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+
+      /* ─── FOOTER ─── */
+      .page-footer {
+        margin-top: auto;
+        padding: 20px;
+        text-align: center;
+        color: rgba(255,255,255,0.3);
+        font-size: 0.72rem;
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ── HERO ── -->
+    <div class="hero">
+      <div class="hero-logo">
+        <img src="{% static 'evaluaciones_educativas/img/logo.png' %}" alt="Logo Departamento Evaluación Educativa" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+      </div>
+      <h1>Validación <span>Aprender</span> 2026</h1>
+      <p>Proceso de validación de matrículas y secciones educativas</p>
+      <div class="hero-cuil"><i class="bi bi-person-badge"></i>Referente: <strong>{{ cuil }}</strong></div>
+    </div>
+
+    <!-- ── STEPPER ── -->
+    <div class="stepper-wrap">
+      <div class="stepper">
+        <div class="step active">
+          <div class="step-num">0</div>
+          <span>Región</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+          <div class="step-num">1</div>
+          <span>Establecimientos</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <span>Cabecera</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <span>Secciones</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTENIDO ── -->
+    <div class="page-content">
+
+      {% if sin_acceso %}
+      <!-- SIN ACCESO -->
+      <div class="sin-acceso-box">
+        <i class="bi bi-shield-lock-fill"></i>
+        <h4 class="fw-bold mb-2">Acceso no autorizado</h4>
+        <p class="mb-0">
+          El CUIL <strong>{{ cuil }}</strong> no está registrado como referente de carga.<br>
+          Comunicate con el administrador del sistema.
+        </p>
+      </div>
+
+      {% else %}
+
+      <div class="instruccion">
+        Seleccioná la <strong>región</strong> con la que querés trabajar hoy:
+      </div>
+
+      <div class="regions-grid">
+        {% for r in regiones_info %}
+        <a href="{% url 'evaluaciones_educativas:validaciones_2026:lista_establecimientos' r.nombre %}"
+           class="region-card"
+           id="region-card-{{ forloop.counter }}">
+
+          <div class="region-card-icon">
+            <i class="bi bi-map"></i>
+          </div>
+
+          <div class="region-card-title">Región {{ r.nombre }}</div>
+          <div class="region-card-sub">
+            {{ r.total }} establecimiento{{ r.total|pluralize:"s" }}
+          </div>
+
+          <div class="region-stats">
+            <div class="r-stat">
+              <div class="v">{{ r.total }}</div>
+              <div class="l">Total</div>
+            </div>
+            <div class="r-stat">
+              <div class="v" style="color: #22c55e;">{{ r.procesados }}</div>
+              <div class="l">Procesados</div>
+            </div>
+            <div class="r-stat">
+              <div class="v" style="color: #f59e0b;">{{ r.sin_procesar }}</div>
+              <div class="l">Pendientes</div>
+            </div>
+          </div>
+
+          <div class="region-progress">
+            <div class="rp-label">
+              <span>Progreso</span>
+              <span>{{ r.pct }}%</span>
+            </div>
+            <div class="rp-bar">
+              <div class="rp-fill" style="width: {{ r.pct }}%"></div>
+            </div>
+          </div>
+
+          <div class="region-card-arrow">
+            <i class="bi bi-arrow-right"></i>
+          </div>
+        </a>
+        {% empty %}
+        <div class="redirect-notice">
+          <i class="bi bi-inbox"></i>
+          <p>No hay regiones disponibles para tu usuario.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% endif %}
+    </div>
+
+    <div class="page-footer">
+      Validación Aprender 2026 &mdash; Sistema de monitoreo educativo
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Animación de entrada de las tarjetas
+      document.querySelectorAll('.region-card').forEach((card, i) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, 80 * i);
+      });
+    </script>
+  </body>
+</html>

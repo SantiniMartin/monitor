@@ -59,6 +59,6 @@ class ValHistorialMatriculasAdmin(admin.ModelAdmin):
 
 @admin.register(ValHistorialCambiosEstablecimiento)
 class ValHistorialCambiosEstablecimientoAdmin(admin.ModelAdmin):
-    list_display = ('seccion', 'usuario', 'fecha')
-    search_fields = ('seccion__grado__establecimiento__escuela', 'usuario')
+    list_display = ('establecimiento', 'usuario', 'fecha')
+    search_fields = ('establecimiento__escuela', 'usuario')
     readonly_fields = ('fecha',)

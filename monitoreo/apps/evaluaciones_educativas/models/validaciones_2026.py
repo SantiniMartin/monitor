@@ -25,6 +25,10 @@ class ValEstablecimiento(models.Model):
 	"""
 	Establecimientos educativos para el proceso de validación 2026.
 	Equivalente a EstablecimientosFluidez2026 pero en esquema validaciones_2026.
+
+	Campos de participación Aprender:
+	  participa_aprender: None = no procesado, True = participa, False = no participa.
+	  cabecera: FK a ValCabecera (solo si participa).
 	"""
 	cueanexo = models.CharField(primary_key=True, max_length=9)
 	escuela = models.CharField(max_length=255)
@@ -33,6 +37,24 @@ class ValEstablecimiento(models.Model):
 	region = models.CharField(max_length=255)
 	localidad = models.CharField(max_length=255)
 	departamento = models.CharField(max_length=255)
+
+	# ── Participación en Aprender ──────────────────────────────────────
+	# None = sin procesar | True = participa | False = no participa
+	participa_aprender = models.BooleanField(
+		null=True,
+		blank=True,
+		default=None,
+		verbose_name='Participa en Aprender',
+		help_text='None = sin procesar, True = participa, False = no participa'
+	)
+	cabecera = models.ForeignKey(
+		'ValCabecera',
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name='establecimientos',
+		verbose_name='Cabecera asignada',
+	)
 
 	class Meta:
 		db_table = '"validaciones_2026"."establecimientos"'
@@ -118,7 +140,8 @@ class ValSeccion(models.Model):
 	OPCIONES_ESTADO = [
 		('PENDIENTE', 'Pendiente'),
 		('APROBADO', 'Aprobado'),
-		('NO_EXISTE', 'No existe'),
+		('SIN_MATRICULA', 'Sin matrícula'),   # antes NO_EXISTE
+		('MODIFICADO', 'Modificado'),          # nuevo: matrícula modificada con justificación
 	]
 
 	public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -129,7 +152,7 @@ class ValSeccion(models.Model):
 	matricula = models.IntegerField(null=True, blank=True, verbose_name='Matrícula cargada')
 	# Estado de validación de esta sección
 	estado_validacion = models.CharField(
-		max_length=10,
+		max_length=13,
 		choices=OPCIONES_ESTADO,
 		default='PENDIENTE',
 		verbose_name='Estado de validación'
@@ -182,15 +205,16 @@ class ValHistorialMatriculas(models.Model):
 
 class ValHistorialCambiosEstablecimiento(models.Model):
 	"""
-	Registra cuando una sección es marcada como 'no existe' (✖).
-	Referencia la sección y guarda la justificación del usuario.
+	Registra la justificación al validar la participación del establecimiento.
 	"""
-	seccion = models.ForeignKey(
-		ValSeccion,
+	establecimiento = models.ForeignKey(
+		ValEstablecimiento,
 		on_delete=models.CASCADE,
-		related_name='historial_cambios'
+		related_name='historial_cambios',
+		null=True,
+		blank=True
 	)
-	justificacion = models.TextField(verbose_name='Justificación de por qué no existe')
+	justificacion = models.TextField(verbose_name='Justificación de participación')
 	fecha = models.DateTimeField(auto_now_add=True)
 	usuario = models.CharField(max_length=50, blank=True, null=True)
 
@@ -201,4 +225,4 @@ class ValHistorialCambiosEstablecimiento(models.Model):
 		verbose_name_plural = 'Historial de Cambios de Establecimiento'
 
 	def __str__(self):
-		return f"Sección {self.seccion} marcada como NO EXISTE — {self.fecha}"
+		return f"Establecimiento {self.establecimiento} validado — {self.fecha}"
