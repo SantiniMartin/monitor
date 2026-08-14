@@ -46,10 +46,10 @@ class ValCabeceraAdmin(admin.ModelAdmin):
 
 @admin.register(ValSeccion)
 class ValSeccionAdmin(admin.ModelAdmin):
-    list_display = ('public_id', 'seccion', 'turno', 'grado', 'matricula', 'estado_validacion', 'cabecera')
+    list_display = ('public_id', 'seccion', 'turno', 'grado', 'matricula', 'estado_validacion')
     search_fields = ('seccion', 'grado__establecimiento__escuela')
     list_filter = ('estado_validacion', 'turno', 'seccion')
-    readonly_fields = ('public_id', 'fecha_ultima_modificacion')
+    readonly_fields = ('public_id',)
 
 @admin.register(ValHistorialMatriculas)
 class ValHistorialMatriculasAdmin(admin.ModelAdmin):

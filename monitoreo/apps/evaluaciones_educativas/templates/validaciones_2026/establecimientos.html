@@ -6,546 +6,293 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Validación Aprender 2026 — Establecimientos</title>
     <meta name="description" content="Paso 1: Selección y validación de establecimientos para Aprender 2026." />
-
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-
     <style>
-      /* ─── BASE ─── */
       :root {
-        --blue-dark:  #0a1628;
-        --blue-mid:   #0d47a1;
-        --blue:       #1565c0;
-        --blue-light: #1976d2;
-        --accent:     #00bcd4;
+        --primary:    #2d77e6;
+        --primary-dk: #1a5abf;
+        --primary-lt: #5899f0;
         --green:      #22c55e;
+        --green-dk:   #16a34a;
         --red:        #f43f5e;
+        --red-dk:     #be123c;
         --amber:      #f59e0b;
+        --amber-dk:   #d97706;
         --purple:     #6366f1;
+        --gray-50:    #f8fafc;
+        --gray-100:   #f1f5f9;
+        --gray-200:   #e2e8f0;
+        --gray-400:   #94a3b8;
+        --gray-600:   #475569;
+        --gray-800:   #1e293b;
         --radius-lg:  18px;
         --radius-md:  12px;
-        --shadow-card: 0 4px 20px rgba(0,0,0,0.10);
-        --shadow-hover: 0 10px 40px rgba(21,101,192,0.18);
+        --shadow-card: 0 3px 16px rgba(0,0,0,0.09);
+        --shadow-hover: 0 10px 36px rgba(45,119,230,0.18);
       }
-
       * { box-sizing: border-box; }
-
       body {
         font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #e8f0fe 0%, #f8faff 60%, #fff 100%);
-        min-height: 100vh;
-        padding: 0;
-        margin: 0;
+        background: linear-gradient(135deg, #eef4ff 0%, #f8faff 60%, #fff 100%);
+        min-height: 100vh; margin: 0; padding: 0;
       }
 
-      /* ─── TOPBAR ─── */
+      /* ── TOPBAR ── */
       .topbar {
-        background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
-        color: #fff;
-        padding: 18px 32px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
-        box-shadow: 0 4px 24px rgba(10,22,40,0.3);
-        position: sticky;
-        top: 0;
-        z-index: 100;
+        background: linear-gradient(135deg, #0a1e40, var(--primary));
+        color: #fff; padding: 14px 28px;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 14px; flex-wrap: wrap;
+        box-shadow: 0 4px 24px rgba(10,30,64,0.28);
+        position: sticky; top: 0; z-index: 100;
       }
-      .topbar-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .topbar-brand .icon-wrap {
-        background: rgba(255,255,255,0.12);
-        border-radius: 10px;
-        width: 44px; height: 44px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.3rem;
-      }
-      .topbar-brand h1 {
-        font-size: 1.15rem;
-        font-weight: 800;
-        margin: 0;
-        letter-spacing: -0.3px;
-        line-height: 1.2;
-      }
-      .topbar-brand small {
-        font-size: 0.75rem;
-        opacity: 0.7;
-        display: block;
-        font-weight: 400;
-      }
-      .topbar-meta {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .badge-region {
-        background: rgba(255,255,255,0.15);
-        border: 1px solid rgba(255,255,255,0.25);
-        color: #fff;
-        font-size: 0.72rem;
-        border-radius: 20px;
-        padding: 4px 12px;
-        font-weight: 600;
+      .topbar-left { display: flex; align-items: center; gap: 14px; }
+      .topbar-logo { width: 200px; height: auto; display: flex; align-items: center; flex-shrink: 0; }
+      .topbar-logo img { width: 100%; height: auto; object-fit: contain; }
+      .topbar h1 { font-size: 1rem; font-weight: 800; margin: 0; letter-spacing: -0.2px; }
+      .topbar small { font-size: 0.72rem; opacity: 0.7; display: block; }
+      .topbar-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .badge-top {
+        background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+        color: #fff; font-size: 0.7rem; border-radius: 20px; padding: 4px 12px; font-weight: 600;
       }
       .btn-back {
-        background: rgba(255,255,255,0.12);
-        border: 1px solid rgba(255,255,255,0.2);
-        color: #fff;
-        border-radius: 8px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        padding: 7px 13px;
-        display: inline-flex; align-items: center; gap: 5px;
-        text-decoration: none;
-        transition: background 0.2s;
+        background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+        color: #fff; border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+        padding: 7px 13px; display: inline-flex; align-items: center; gap: 5px;
+        text-decoration: none; transition: background 0.2s;
       }
       .btn-back:hover { background: rgba(255,255,255,0.22); color: #fff; }
 
-      /* ─── STEPPER ─── */
+      /* ── STEPPER ── */
       .stepper {
-        background: #fff;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 14px 32px;
-        display: flex;
-        align-items: center;
-        gap: 0;
+        background: #fff; border-bottom: 1px solid var(--gray-200);
+        padding: 12px 28px; display: flex; align-items: center; gap: 0;
       }
-      .step {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #94a3b8;
-        position: relative;
-      }
-      .step.active { color: var(--blue-light); }
+      .step { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; font-weight: 600; color: var(--gray-400); }
+      .step.active { color: var(--primary); }
       .step.done   { color: var(--green); }
       .step-num {
-        width: 28px; height: 28px;
-        border-radius: 50%;
+        width: 26px; height: 26px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
-        font-size: 0.78rem;
-        font-weight: 700;
-        background: #e2e8f0;
-        color: #94a3b8;
-        flex-shrink: 0;
-        transition: all 0.3s;
+        font-size: 0.72rem; font-weight: 700;
+        background: var(--gray-200); color: var(--gray-400); flex-shrink: 0; transition: all 0.3s;
       }
-      .step.active .step-num {
-        background: var(--blue-light);
-        color: #fff;
-        box-shadow: 0 0 0 4px rgba(25,118,210,0.2);
-      }
-      .step.done .step-num {
-        background: var(--green);
-        color: #fff;
-      }
-      .step-connector {
-        flex: 1;
-        height: 2px;
-        background: #e2e8f0;
-        margin: 0 10px;
-        min-width: 30px;
-      }
+      .step.active .step-num { background: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(45,119,230,0.2); }
+      .step.done   .step-num { background: var(--green); color: #fff; }
+      .step-connector { flex: 1; height: 2px; background: var(--gray-200); margin: 0 8px; min-width: 24px; }
       .step-connector.done { background: var(--green); }
 
-      /* ─── CONTENIDO ─── */
-      .page-content {
-        max-width: 1280px;
-        margin: 0 auto;
-        padding: 28px 24px 60px;
-      }
+      /* ── CONTENIDO ── */
+      .page-content { max-width: 1300px; margin: 0 auto; padding: 24px 20px 60px; }
 
-      /* ─── STATS BAR ─── */
+      /* ── STATS BAR ── */
       .stats-bar {
+        background: #fff; border-radius: var(--radius-md); padding: 16px 22px;
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 14px; box-shadow: var(--shadow-card); margin-bottom: 20px;
+      }
+      .stat-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+      .stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; color: var(--gray-800); }
+      .stat-label { font-size: 0.68rem; color: var(--gray-600); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+      .stat-divider { width: 1px; height: 36px; background: var(--gray-200); }
+      .progress-global { flex: 1; min-width: 160px; }
+      .progress-global-bar { height: 7px; background: var(--gray-200); border-radius: 4px; overflow: hidden; margin-top: 5px; }
+      .progress-global-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-lt)); border-radius: 4px; transition: width 0.6s ease; }
+
+      /* ── BUSCADOR ── */
+      .search-wrap { position: relative; margin-bottom: 18px; }
+      .search-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 0.95rem; }
+      .search-input {
+        width: 100%; border: 1.5px solid var(--gray-200); border-radius: 10px;
+        padding: 10px 14px 10px 38px; font-size: 0.88rem; font-family: 'Inter', sans-serif;
+        outline: none; transition: border-color 0.2s, box-shadow 0.2s;
         background: #fff;
-        border-radius: var(--radius-md);
-        padding: 18px 24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 16px;
-        box-shadow: var(--shadow-card);
-        margin-bottom: 24px;
       }
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-      }
-      .stat-value {
-        font-size: 1.6rem;
-        font-weight: 800;
-        line-height: 1;
-        color: var(--blue-dark);
-      }
-      .stat-label {
-        font-size: 0.72rem;
-        color: #64748b;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .stat-divider {
-        width: 1px;
-        height: 40px;
-        background: #e2e8f0;
-      }
-      .progress-global {
-        flex: 1;
-        min-width: 160px;
-      }
-      .progress-global-bar {
-        height: 8px;
-        background: #e2e8f0;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-top: 6px;
-      }
-      .progress-global-fill {
-        height: 100%;
-        background: linear-gradient(90deg, var(--blue-light), var(--accent));
-        border-radius: 4px;
-        transition: width 0.6s ease;
-      }
+      .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(45,119,230,0.12); }
 
-      /* ─── GRID DE TARJETAS ─── */
-      .cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
-      }
+      /* ── GRID ── */
+      .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
 
-      /* ─── TARJETA DE ESTABLECIMIENTO ─── */
+      /* ── TARJETA ── */
       .est-card {
-        background: #fff;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-card);
-        overflow: hidden;
+        background: #fff; border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-card); overflow: hidden;
         transition: transform 0.22s ease, box-shadow 0.22s ease;
-        cursor: pointer;
-        position: relative;
-        border: 2px solid transparent;
+        cursor: pointer; border: 2px solid transparent;
       }
-      .est-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-hover);
-      }
-      .est-card.participa {
-        border-color: var(--green);
-      }
-      .est-card.no-participa {
-        border-color: var(--red);
-        opacity: 0.8;
-      }
+      .est-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
+      /* Estados */
+      .est-card.sin-validar  { border-color: var(--amber); }
+      .est-card.validado     { border-color: var(--green); }
+      .est-card.no-participa { border-color: var(--red); opacity: 0.85; }
       .est-card.no-participa:hover { opacity: 1; }
 
-      .card-status-bar {
-        height: 5px;
-        width: 100%;
-      }
-      .card-status-bar.pendiente  { background: linear-gradient(90deg, #cbd5e1, #94a3b8); }
-      .card-status-bar.participa  { background: linear-gradient(90deg, var(--green), #16a34a); }
-      .card-status-bar.no-participa { background: linear-gradient(90deg, var(--red), #be123c); }
+      .card-status-bar { height: 5px; width: 100%; }
+      .card-status-bar.sin-validar  { background: linear-gradient(90deg, var(--amber), var(--amber-dk)); }
+      .card-status-bar.validado     { background: linear-gradient(90deg, var(--green), var(--green-dk)); }
+      .card-status-bar.no-participa { background: linear-gradient(90deg, var(--red), var(--red-dk)); }
 
-      .card-body-inner {
-        padding: 18px 20px 16px;
-      }
-
-      .card-header-row {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
-      }
-      .card-name {
-        font-size: 0.92rem;
-        font-weight: 700;
-        color: #1e293b;
-        line-height: 1.35;
-        flex: 1;
-      }
+      .card-body-inner { padding: 16px 18px 14px; }
+      .card-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+      .card-name { font-size: 0.88rem; font-weight: 700; color: var(--gray-800); line-height: 1.35; flex: 1; }
       .card-cue {
-        font-size: 0.7rem;
-        color: #64748b;
-        font-weight: 600;
-        font-family: 'Courier New', monospace;
-        background: #f1f5f9;
-        border-radius: 6px;
-        padding: 3px 8px;
-        flex-shrink: 0;
-        margin-top: 2px;
+        font-size: 0.68rem; color: var(--gray-600); font-weight: 600;
+        font-family: 'Courier New', monospace; background: var(--gray-100);
+        border-radius: 6px; padding: 3px 7px; flex-shrink: 0; margin-top: 2px;
       }
+      .card-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+      .card-meta-item { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--gray-600); }
+      .card-meta-item i { color: var(--gray-400); font-size: 0.8rem; }
 
-      .card-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        margin-bottom: 14px;
-      }
-      .card-meta-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.78rem;
-        color: #64748b;
-      }
-      .card-meta-item i { color: #94a3b8; font-size: 0.82rem; }
-
-      /* Badge de estado de participación */
+      /* Badges */
       .badge-estado {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        border-radius: 20px;
-        padding: 4px 12px;
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 0.7rem; font-weight: 700; border-radius: 20px; padding: 4px 11px;
         letter-spacing: 0.3px;
       }
-      .badge-pendiente  { background: #fef3c7; color: #92400e; }
-      .badge-participa  { background: #dcfce7; color: #14532d; }
+      .badge-sin-validar  { background: #fef3c7; color: #92400e; }
+      .badge-validado     { background: #dcfce7; color: #14532d; }
       .badge-no-participa { background: #ffe4e6; color: #9f1239; }
 
-      /* Info cabecera en la tarjeta */
+      /* Info cabecera */
       .card-cabecera-info {
         background: linear-gradient(135deg, #eff6ff, #e0e7ff);
-        border-radius: 10px;
-        padding: 10px 14px;
-        margin-top: 10px;
+        border-radius: 9px; padding: 9px 12px; margin-top: 10px;
         border-left: 3px solid var(--purple);
       }
-      .card-cabecera-info .cabecera-label {
-        font-size: 0.67rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: var(--purple);
-        margin-bottom: 3px;
-      }
-      .card-cabecera-info .cabecera-nombre {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #1e293b;
-      }
-      .card-cabecera-info .cabecera-detalle {
-        font-size: 0.72rem;
-        color: #64748b;
-        margin-top: 2px;
-      }
+      .card-cabecera-info .cab-label { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--purple); margin-bottom: 2px; }
+      .card-cabecera-info .cab-nombre { font-size: 0.8rem; font-weight: 700; color: var(--gray-800); }
+      .card-cabecera-info .cab-detalle { font-size: 0.7rem; color: var(--gray-600); margin-top: 1px; }
 
-      /* Progreso de secciones */
-      .card-progress {
-        margin-top: 12px;
+      /* Info motivo no participa */
+      .card-motivo-info {
+        background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+        border-radius: 9px; padding: 9px 12px; margin-top: 10px;
+        border-left: 3px solid var(--red);
+        font-size: 0.76rem; color: #9f1239;
       }
-      .card-progress-label {
-        font-size: 0.72rem;
-        color: #64748b;
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 4px;
-      }
-      .card-progress-bar {
-        height: 5px;
-        background: #e2e8f0;
-        border-radius: 3px;
-        overflow: hidden;
-      }
-      .card-progress-fill {
-        height: 100%;
-        border-radius: 3px;
-        background: linear-gradient(90deg, var(--blue-light), var(--accent));
-        transition: width 0.5s ease;
-      }
+      .card-motivo-info i { margin-right: 4px; }
 
+      /* Progreso secciones */
+      .card-progress { margin-top: 10px; }
+      .card-progress-label { font-size: 0.7rem; color: var(--gray-600); display: flex; justify-content: space-between; margin-bottom: 4px; }
+      .card-progress-bar { height: 5px; background: var(--gray-200); border-radius: 3px; overflow: hidden; }
+      .card-progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-lt)); transition: width 0.5s ease; }
+
+      /* Footer de tarjeta */
       .card-footer-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 14px;
-        padding-top: 12px;
-        border-top: 1px solid #f1f5f9;
-        gap: 8px;
-        flex-wrap: wrap;
+        display: flex; align-items: center; justify-content: space-between;
+        margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--gray-100);
+        gap: 7px; flex-wrap: wrap;
       }
       .btn-ir-secciones {
-        background: linear-gradient(135deg, var(--blue-light), var(--blue-mid));
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        padding: 7px 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        text-decoration: none;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dk));
+        color: #fff; border: none; border-radius: 7px; font-size: 0.76rem; font-weight: 600;
+        padding: 6px 13px; cursor: pointer; transition: all 0.2s;
+        display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
       }
-      .btn-ir-secciones:hover {
-        transform: scale(1.04);
-        color: #fff;
-        opacity: 0.9;
+      .btn-ir-secciones:hover { transform: scale(1.04); color: #fff; opacity: 0.9; }
+      .btn-ir-secciones:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+      .btn-modificar-cab {
+        background: linear-gradient(135deg, var(--purple), #4f46e5);
+        color: #fff; border: none; border-radius: 7px; font-size: 0.72rem; font-weight: 600;
+        padding: 5px 10px; cursor: pointer; transition: all 0.2s;
+        display: inline-flex; align-items: center; gap: 4px;
       }
-      .btn-ir-secciones:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-        transform: none;
-      }
+      .btn-modificar-cab:hover { opacity: 0.88; transform: scale(1.04); }
 
-      /* ─── MODAL PARTICIPACIÓN ─── */
-      .modal-content {
-        border-radius: 16px;
-        border: none;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-        overflow: hidden;
-      }
-      .modal-header {
-        background: linear-gradient(135deg, var(--blue-dark), var(--blue-mid));
-        color: #fff;
-        border-bottom: none;
-        padding: 20px 24px;
-      }
+      /* ── MODALES ── */
+      .modal-content { border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden; }
+      .modal-header { border-bottom: none; padding: 18px 22px; color: #fff; }
+      .mh-primary  { background: linear-gradient(135deg, #0a1e40, var(--primary)); }
+      .mh-cabecera { background: linear-gradient(135deg, var(--purple), #0066cc); }
+      .mh-no-part  { background: linear-gradient(135deg, var(--red-dk), var(--red)); }
       .modal-header .btn-close { filter: invert(1); }
-      .modal-title { font-weight: 700; font-size: 1.05rem; }
+      .modal-title { font-weight: 700; font-size: 1rem; }
 
-      .participacion-options {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-        margin-top: 4px;
-      }
+      .participacion-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
       .option-btn {
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 18px 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: center;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
+        border: 2px solid var(--gray-200); border-radius: 12px; padding: 16px 12px;
+        cursor: pointer; transition: all 0.2s; text-align: center; background: #fff;
+        display: flex; flex-direction: column; align-items: center; gap: 7px;
       }
       .option-btn:hover { transform: scale(1.02); }
-      .option-btn.selected { border-color: var(--blue-light); background: #eff6ff; }
-      .option-icon { font-size: 2rem; }
-      .option-title { font-weight: 700; font-size: 0.9rem; }
-      .option-sub { font-size: 0.75rem; color: #64748b; }
+      .option-btn.selected-si  { border-color: var(--green);  background: #f0fdf4; }
+      .option-btn.selected-no  { border-color: var(--red);    background: #fff1f2; }
+      .option-icon { font-size: 1.8rem; }
+      .option-title { font-weight: 700; font-size: 0.88rem; }
+      .option-sub   { font-size: 0.73rem; color: var(--gray-600); }
 
-      /* ─── MODAL CABECERA (tabla) ─── */
-      .modal-cabecera-header {
-        background: linear-gradient(135deg, #4f46e5, #0066cc);
-      }
+      /* Modal cabecera */
       .cabecera-search {
-        border: 1.5px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 8px 14px;
-        font-size: 0.88rem;
-        width: 100%;
-        outline: none;
-        transition: border-color 0.2s;
-        margin-bottom: 12px;
+        border: 1.5px solid var(--gray-200); border-radius: 8px;
+        padding: 8px 12px; font-size: 0.86rem; width: 100%; outline: none;
+        transition: border-color 0.2s; margin-bottom: 10px;
       }
-      .cabecera-search:focus { border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
-      .tabla-cabeceras-wrap {
-        max-height: 340px;
-        overflow-y: auto;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-      }
-      .tabla-cabeceras {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.82rem;
-      }
+      .cabecera-search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(45,119,230,0.1); }
+      .tabla-cabeceras-wrap { max-height: 320px; overflow-y: auto; border-radius: 9px; border: 1px solid var(--gray-200); }
+      .tabla-cabeceras { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
       .tabla-cabeceras thead th {
-        background: #1e3a5f;
-        color: #fff;
-        padding: 10px 12px;
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        font-weight: 600;
-        position: sticky;
-        top: 0;
+        background: #1e3a5f; color: #fff; padding: 9px 11px;
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
+        font-weight: 600; position: sticky; top: 0;
       }
-      .tabla-cabeceras tbody tr {
-        cursor: pointer;
-        transition: background 0.15s;
-        border-bottom: 1px solid #f1f5f9;
-      }
+      .tabla-cabeceras tbody tr { cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--gray-100); }
       .tabla-cabeceras tbody tr:hover { background: #eff6ff; }
       .tabla-cabeceras tbody tr.selected { background: #dbeafe; }
-      .tabla-cabeceras tbody td { padding: 10px 12px; color: #1e293b; }
-
-      .cabecera-seleccionada-preview {
+      .tabla-cabeceras tbody td { padding: 9px 11px; color: var(--gray-800); }
+      .cab-preview {
         background: linear-gradient(135deg, #eff6ff, #e0e7ff);
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin-top: 12px;
-        display: none;
-        font-size: 0.85rem;
-        border-left: 3px solid var(--purple);
+        border-radius: 9px; padding: 10px 14px; margin-top: 10px;
+        display: none; font-size: 0.83rem; border-left: 3px solid var(--purple);
       }
-      .cabecera-seleccionada-preview.visible { display: block; }
-      .cabecera-seleccionada-preview strong { color: #1e293b; }
-      .cabecera-seleccionada-preview small { color: #64748b; display: block; margin-top: 2px; }
+      .cab-preview.visible { display: block; }
+      .cab-preview strong { color: var(--gray-800); }
+      .cab-preview small { color: var(--gray-600); display: block; margin-top: 2px; }
 
-      /* ─── SPINNER ─── */
+      /* ── SPINNER ── */
       .spinner-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(10,22,40,0.45);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        gap: 14px;
+        display: none; position: fixed; inset: 0;
+        background: rgba(10,30,64,0.45); z-index: 9999;
+        align-items: center; justify-content: center; flex-direction: column; gap: 12px;
       }
       .spinner-overlay.active { display: flex; }
-      .spinner-overlay p { color: #fff; font-weight: 600; font-size: 0.9rem; }
+      .spinner-overlay p { color: #fff; font-weight: 600; font-size: 0.88rem; }
 
-      /* ─── TOAST ─── */
+      /* ── TOAST ── */
       .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9998; }
 
-      /* ─── SIN ACCESO ─── */
+      /* ── SIN ACCESO ── */
       .sin-acceso-box {
         background: linear-gradient(135deg, #fff1f2, #ffe4e6);
-        border-radius: 14px;
-        padding: 40px;
-        text-align: center;
-        color: #9f1239;
-        box-shadow: 0 4px 20px rgba(244,63,94,0.15);
+        border-radius: 14px; padding: 40px; text-align: center;
+        color: #9f1239; box-shadow: 0 4px 20px rgba(244,63,94,0.15);
       }
       .sin-acceso-box i { font-size: 3rem; display: block; margin-bottom: 14px; }
 
-      /* ─── EMPTY STATE ─── */
-      .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #94a3b8;
+      /* ── ALERTA SIN SECCIONES ── */
+      .alerta-sin-secciones {
+        background: linear-gradient(135deg, #fff7ed, #fef3c7);
+        border: 1.5px solid var(--amber); border-radius: 12px; padding: 14px 20px;
+        display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+        font-size: 0.86rem; font-weight: 600; color: #92400e;
       }
+      .alerta-sin-secciones i { font-size: 1.3rem; flex-shrink: 0; }
+
+      /* ── EMPTY ── */
+      .empty-state { text-align: center; padding: 60px 20px; color: var(--gray-400); }
       .empty-state i { font-size: 3rem; display: block; margin-bottom: 14px; }
+
+      /* Hidden card for search */
+      .est-card.hidden-search { display: none; }
     </style>
   </head>
-
   <body>
     {% csrf_token %}
 
@@ -557,31 +304,22 @@
 
     <!-- ── TOPBAR ── -->
     <div class="topbar">
-      <div class="topbar-brand">
-        <div class="icon-wrap">
-          <img src="{% static 'evaluaciones_educativas/img/logo.png' %}" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+      <div class="topbar-left">
+        <div class="topbar-logo">
+          <img src="{% static 'evaluaciones_educativas/img/logo.png' %}" alt="Logo" />
         </div>
         <div>
           <h1>Validación Aprender 2026</h1>
-          <small>
-            Referente: <strong>{{ cuil }}</strong>
-            {% if region_actual %}
-              &mdash; Región: <strong>{{ region_actual }}</strong>
-            {% endif %}
-          </small>
+          <small>Referente: <strong>{{ cuil }}</strong>{% if region_actual %} — Región: <strong>{{ region_actual }}</strong>{% endif %}</small>
         </div>
       </div>
       <div class="topbar-meta">
         <a href="{% url 'evaluaciones_educativas:validaciones_2026:lista' %}" class="btn-back">
-          <i class="bi bi-arrow-left me-1"></i>Cambiar región
+          <i class="bi bi-arrow-left"></i>Cambiar región
         </a>
         {% if not sin_acceso %}
-        <span class="badge-region">
-          <i class="bi bi-buildings me-1"></i>{{ total_est }} establecimiento{{ total_est|pluralize:"s" }}
-        </span>
-        <span class="badge-region">
-          <i class="bi bi-check-circle me-1"></i>{{ procesados }} procesado{{ procesados|pluralize:"s" }}
-        </span>
+        <span class="badge-top"><i class="bi bi-buildings me-1"></i>{{ total_est }} establecimiento{{ total_est|pluralize:"s" }}</span>
+        <span class="badge-top"><i class="bi bi-check-circle me-1"></i>{{ procesados }} procesado{{ procesados|pluralize:"s" }}</span>
         {% endif %}
       </div>
     </div>
@@ -589,7 +327,7 @@
     <!-- ── STEPPER ── -->
     <div class="stepper">
       <div class="step done">
-        <div class="step-num"><i class="bi bi-check-lg" style="font-size:0.7rem;"></i></div>
+        <div class="step-num"><i class="bi bi-check-lg" style="font-size:0.65rem;"></i></div>
         <span>Región</span>
       </div>
       <div class="step-connector done"></div>
@@ -600,11 +338,6 @@
       <div class="step-connector"></div>
       <div class="step">
         <div class="step-num">2</div>
-        <span>Cabecera</span>
-      </div>
-      <div class="step-connector"></div>
-      <div class="step">
-        <div class="step-num">3</div>
         <span>Secciones</span>
       </div>
     </div>
@@ -613,17 +346,27 @@
     <div class="page-content">
 
       {% if sin_acceso %}
-      <!-- SIN ACCESO -->
       <div class="sin-acceso-box">
         <i class="bi bi-shield-lock-fill"></i>
         <h4 class="fw-bold mb-2">Acceso no autorizado</h4>
-        <p class="mb-0">El CUIL <strong>{{ cuil }}</strong> no está registrado como referente de carga.<br>
-        Comunicate con el administrador del sistema.</p>
+        <p class="mb-0">El CUIL <strong>{{ cuil }}</strong> no está registrado como referente de carga.<br>Comunicate con el administrador del sistema.</p>
       </div>
 
       {% else %}
 
-      <!-- STATS BAR -->
+      <!-- Alerta: volvió de secciones sin agregar ninguna -->
+      {% if sin_secciones_cue %}
+      <div class="alerta-sin-secciones" id="alertaSinSecciones">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div>
+          <strong>Establecimiento revertido a Sin validar.</strong><br>
+          <span style="font-weight:400;">Volviste sin agregar ninguna sección. El establecimiento queda en amarillo hasta que confirmes al menos una sección.</span>
+        </div>
+        <button type="button" class="btn-close ms-auto" onclick="document.getElementById('alertaSinSecciones').remove()"></button>
+      </div>
+      {% endif %}
+
+      <!-- Stats Bar -->
       <div class="stats-bar" id="statsBar">
         <div class="stat-item">
           <div class="stat-value" id="statTotal">{{ total_est }}</div>
@@ -631,13 +374,13 @@
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-          <div class="stat-value text-success" id="statParticipa">{{ procesados }}</div>
-          <div class="stat-label">Participan</div>
+          <div class="stat-value text-success" id="statProcesados">{{ procesados }}</div>
+          <div class="stat-label">Procesados</div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
           <div class="stat-value" style="color:var(--amber)" id="statPendiente">{{ sin_procesar }}</div>
-          <div class="stat-label">Sin procesar</div>
+          <div class="stat-label">Sin validar</div>
         </div>
         <div class="stat-divider"></div>
         <div class="progress-global">
@@ -646,23 +389,30 @@
             <span id="statPct">{{ porcentaje_progreso }}%</span>
           </div>
           <div class="progress-global-bar">
-            <div class="progress-global-fill" id="barraGlobal"
-              style="width: {{ porcentaje_progreso }}%"></div>
+            <div class="progress-global-fill" id="barraGlobal" style="width: {{ porcentaje_progreso }}%"></div>
           </div>
         </div>
       </div>
 
-      <!-- GRID DE TARJETAS -->
+      <!-- Buscador -->
+      <div class="search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" class="search-input" id="buscadorEscuelas"
+               placeholder="Buscar establecimiento por nombre o CUE..."
+               oninput="filtrarCards(this.value)" autocomplete="off" />
+      </div>
+
+      <!-- Grid de tarjetas -->
       {% if establecimientos %}
       <div class="cards-grid" id="cardsGrid">
         {% for est in establecimientos %}
-        <div class="est-card {% if est.participa_aprender == True %}participa{% elif est.participa_aprender == False %}no-participa{% endif %}"
+        <div class="est-card {% if est.participa_aprender == True %}validado{% elif est.participa_aprender == False %}no-participa{% else %}sin-validar{% endif %}"
              id="card-{{ est.cueanexo }}"
-             onclick="abrirModalParticipacion('{{ est.cueanexo }}', '{{ est.escuela|escapejs }}')">
+             data-search="{{ est.escuela|lower }} {{ est.cueanexo }}"
+             onclick="abrirModalParticipacion('{{ est.cueanexo }}', '{{ est.escuela|escapejs }}', {{ est.participa_aprender|yesno:'true,false,null' }})">
 
           <!-- Barra de estado superior -->
-          <div class="card-status-bar {% if est.participa_aprender == True %}participa{% elif est.participa_aprender == False %}no-participa{% else %}pendiente{% endif %}"
-               id="status-bar-{{ est.cueanexo }}"></div>
+          <div class="card-status-bar {% if est.participa_aprender == True %}validado{% elif est.participa_aprender == False %}no-participa{% else %}sin-validar{% endif %}" id="status-bar-{{ est.cueanexo }}"></div>
 
           <div class="card-body-inner">
             <div class="card-header-row">
@@ -671,47 +421,39 @@
             </div>
 
             <div class="card-meta">
-              <div class="card-meta-item">
-                <i class="bi bi-geo-alt"></i>
-                <span>{{ est.localidad }}</span>
-              </div>
-              <div class="card-meta-item">
-                <i class="bi bi-building"></i>
-                <span>{{ est.sector }} · {{ est.ambito }}</span>
-              </div>
-              <div class="card-meta-item">
-                <i class="bi bi-map"></i>
-                <span>{{ est.departamento }}</span>
-              </div>
+              <div class="card-meta-item"><i class="bi bi-geo-alt"></i><span>{{ est.localidad }}</span></div>
+              <div class="card-meta-item"><i class="bi bi-building"></i><span>{{ est.sector }} · {{ est.ambito }}</span></div>
+              <div class="card-meta-item"><i class="bi bi-map"></i><span>{{ est.departamento }}</span></div>
             </div>
 
-            <!-- Badge estado participación -->
+            <!-- Badge estado -->
             <div id="badge-{{ est.cueanexo }}">
               {% if est.participa_aprender == True %}
-                <span class="badge-estado badge-participa">
-                  <i class="bi bi-check-circle-fill"></i>Participa en Aprender
-                </span>
+                <span class="badge-estado badge-validado"><i class="bi bi-check-circle-fill"></i>Validado</span>
               {% elif est.participa_aprender == False %}
-                <span class="badge-estado badge-no-participa">
-                  <i class="bi bi-x-circle-fill"></i>No participa en Aprender
-                </span>
+                <span class="badge-estado badge-no-participa"><i class="bi bi-x-circle-fill"></i>No participa</span>
               {% else %}
-                <span class="badge-estado badge-pendiente">
-                  <i class="bi bi-clock"></i>Sin procesar
-                </span>
+                <span class="badge-estado badge-sin-validar"><i class="bi bi-clock"></i>Sin validar</span>
               {% endif %}
             </div>
 
             <!-- Info cabecera (solo si participa) -->
             <div id="cabecera-info-{{ est.cueanexo }}" class="card-cabecera-info {% if not est.cabecera %}d-none{% endif %}">
-              <div class="cabecera-label"><i class="bi bi-building me-1"></i>Cabecera asignada</div>
-              <div class="cabecera-nombre" id="cabecera-nombre-{{ est.cueanexo }}">
-                {{ est.cabecera.nombre_cabecera|default:"" }}
-              </div>
-              <div class="cabecera-detalle" id="cabecera-detalle-{{ est.cueanexo }}">
+              <div class="cab-label"><i class="bi bi-building me-1"></i>Cabecera asignada</div>
+              <div class="cab-nombre" id="cabecera-nombre-{{ est.cueanexo }}">{{ est.cabecera.nombre_cabecera|default:"" }}</div>
+              <div class="cab-detalle" id="cabecera-detalle-{{ est.cueanexo }}">
                 {{ est.cabecera.localidad|default:"" }}{% if est.cabecera.direccion %} · {{ est.cabecera.direccion }}{% endif %}
               </div>
             </div>
+
+            <!-- Info motivo no participa -->
+            {% if est.participa_aprender == False and est.motivo_no_participa %}
+            <div class="card-motivo-info" id="motivo-info-{{ est.cueanexo }}">
+              <i class="bi bi-info-circle"></i>{{ est.motivo_no_participa }}
+            </div>
+            {% else %}
+            <div class="card-motivo-info d-none" id="motivo-info-{{ est.cueanexo }}"></div>
+            {% endif %}
 
             <!-- Progreso secciones -->
             {% if est.total_secciones > 0 %}
@@ -727,36 +469,42 @@
             </div>
             {% endif %}
 
-            <!-- Footer con botón Ir a Secciones -->
-            <div class="card-footer-row">
-              <div></div><!-- spacer -->
+            <!-- Footer -->
+            <div class="card-footer-row" id="footer-{{ est.cueanexo }}">
+              <div>
+                {% if est.participa_aprender == True and est.cabecera %}
+                <button class="btn-modificar-cab" onclick="event.stopPropagation(); abrirModalCabecera('{{ est.cueanexo }}', '{{ est.escuela|escapejs }}')"
+                        id="btn-mod-cab-{{ est.cueanexo }}">
+                  <i class="bi bi-pencil-fill"></i>Modificar cabecera
+                </button>
+                {% else %}
+                <div id="btn-mod-cab-{{ est.cueanexo }}"></div>
+                {% endif %}
+              </div>
               {% if est.participa_aprender == True and est.cabecera %}
               <a href="{% url 'evaluaciones_educativas:validaciones_2026:lista_secciones' est.cueanexo %}"
-                 class="btn-ir-secciones"
-                 id="btn-secciones-{{ est.cueanexo }}"
+                 class="btn-ir-secciones" id="btn-secciones-{{ est.cueanexo }}"
                  onclick="event.stopPropagation()">
                 <i class="bi bi-list-check"></i>Ver secciones
               </a>
               {% else %}
               <button class="btn-ir-secciones" disabled id="btn-secciones-{{ est.cueanexo }}"
-                onclick="event.stopPropagation()"
-                title="Primero validá la participación y asigná cabecera">
+                      onclick="event.stopPropagation()" title="Primero validá la participación y asigná cabecera">
                 <i class="bi bi-list-check"></i>Ver secciones
               </button>
               {% endif %}
             </div>
 
-          </div><!-- /card-body-inner -->
-        </div><!-- /est-card -->
+          </div>
+        </div>
         {% endfor %}
-      </div><!-- /cards-grid -->
+      </div>
 
       {% else %}
-      <!-- EMPTY STATE -->
       <div class="empty-state">
         <i class="bi bi-inbox"></i>
         <h5 class="fw-bold">Sin establecimientos</h5>
-        <p>No hay establecimientos registrados para tus regiones.</p>
+        <p>No hay establecimientos registrados para esta región.</p>
       </div>
       {% endif %}
 
@@ -770,44 +518,45 @@
     <div class="modal fade" id="modalParticipacion" tabindex="-1" aria-labelledby="modalParticipacionLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header">
+          <div class="modal-header mh-primary">
             <h5 class="modal-title" id="modalParticipacionLabel">
               <i class="bi bi-buildings me-2"></i><span id="mpEscuelaNombre">Establecimiento</span>
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4">
-            <p class="text-muted mb-4" style="font-size:0.9rem;">
+            <p class="text-muted mb-4" style="font-size:0.88rem;">
               ¿Este establecimiento participa en <strong>Aprender 2026</strong>?
             </p>
             <div class="participacion-options">
-              <div class="option-btn" id="btnOpcionNo"
-                   onclick="seleccionarOpcion(false)">
+              <div class="option-btn" id="btnOpcionNo" onclick="seleccionarOpcion(false)">
                 <div class="option-icon">❌</div>
                 <div class="option-title text-danger">No participa</div>
                 <div class="option-sub">en Aprender 2026</div>
               </div>
-              <div class="option-btn" id="btnOpcionSi"
-                   onclick="seleccionarOpcion(true)">
+              <div class="option-btn" id="btnOpcionSi" onclick="seleccionarOpcion(true)">
                 <div class="option-icon">✅</div>
                 <div class="option-title text-success">Sí participa</div>
                 <div class="option-sub">en Aprender 2026</div>
               </div>
             </div>
 
-            <!-- Justificación -->
-            <div id="justificacionContainer" style="display: none; margin-top: 20px;">
-              <label for="justificacionParticipacion" class="form-label fw-bold" style="font-size:0.85rem; color: #475569;">
-                Justificación (obligatoria) <span class="text-danger">*</span>
+            <!-- Motivo (solo cuando NO participa) -->
+            <div id="motivoContainer" style="display:none; margin-top:20px;">
+              <label class="form-label fw-bold" style="font-size:0.85rem; color: #475569;">
+                Motivo de no participación <span class="text-danger">*</span>
               </label>
-              <textarea class="form-control" id="justificacionParticipacion" rows="3" 
-                        placeholder="Ingresá el motivo de por qué no participa el establecimiento..."
-                        style="font-size:0.9rem; resize: none;"></textarea>
+              <select class="form-select" id="motivoNoParticipa" style="font-size:0.9rem;">
+                <option value="">— Seleccioná un motivo —</option>
+                <option value="No posee matrícula / sin alumnos">No posee matrícula / sin alumnos</option>
+                <option value="El establecimiento se dio de baja">El establecimiento se dio de baja</option>
+              </select>
             </div>
           </div>
           <div class="modal-footer border-0 pt-0">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-primary fw-bold" id="btnConfirmarParticipacion" disabled onclick="confirmarParticipacion()">
+            <button type="button" class="btn btn-primary fw-bold" id="btnConfirmarParticipacion"
+                    disabled onclick="confirmarParticipacion()" style="background:var(--primary);border-color:var(--primary);">
               <i class="bi bi-check-lg me-1"></i>Confirmar
             </button>
           </div>
@@ -821,19 +570,18 @@
     <div class="modal fade" id="modalCabecera" tabindex="-1" aria-labelledby="modalCabeceraLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-          <div class="modal-header modal-cabecera-header">
+          <div class="modal-header mh-cabecera">
             <h5 class="modal-title" id="modalCabeceraLabel">
               <i class="bi bi-building-add me-2"></i>Seleccionar Cabecera — <span id="mcEscuelaNombre"></span>
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4">
-            <p class="text-muted mb-3" style="font-size:0.88rem;">
-              Seleccioná la cabecera correspondiente a este establecimiento. Podés buscar por nombre, localidad o dirección.
+            <p class="text-muted mb-3" style="font-size:0.86rem;">
+              Seleccioná la cabecera correspondiente. Podés buscar por nombre, localidad o dirección.
             </p>
             <input type="text" class="cabecera-search" id="cabeceraSearch"
                    placeholder="&#xF52A;  Buscar cabecera..." oninput="filtrarCabeceras()" />
-
             <div class="tabla-cabeceras-wrap">
               <table class="tabla-cabeceras" id="tablaCabeceras">
                 <thead>
@@ -858,9 +606,7 @@
                 </tbody>
               </table>
             </div>
-
-            <!-- Preview de cabecera seleccionada -->
-            <div class="cabecera-seleccionada-preview" id="cabeceraPreview">
+            <div class="cab-preview" id="cabeceraPreview">
               <strong id="previewNombre"></strong>
               <small id="previewDetalle"></small>
             </div>
@@ -868,7 +614,7 @@
           <div class="modal-footer border-0">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
             <button type="button" class="btn fw-bold text-white" id="btnGuardarCabecera" disabled
-              style="background:linear-gradient(135deg,#6366f1,#0066cc);">
+              style="background:linear-gradient(135deg,var(--purple),#0066cc);">
               <i class="bi bi-save me-1"></i>Guardar cabecera
             </button>
           </div>
@@ -879,10 +625,9 @@
     <!-- ── TOAST CONTAINER ── -->
     <div class="toast-container" id="toastContainer"></div>
 
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      // ── CSRF ─────────────────────────────────────────────────────────
+      // ── CSRF ──────────────────────────────────────────────────────────
       function getCsrf() {
         return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
       }
@@ -895,51 +640,60 @@
       // ── TOAST ────────────────────────────────────────────────────────
       function showToast(msg, type = 'success') {
         const id = 'toast-' + Date.now();
-        const icons = { success: 'bi-check-circle-fill text-success', danger: 'bi-x-circle-fill text-danger', info: 'bi-info-circle-fill text-primary' };
+        const icons = {
+          success: 'bi-check-circle-fill text-success',
+          danger:  'bi-x-circle-fill text-danger',
+          info:    'bi-info-circle-fill text-primary',
+          warning: 'bi-exclamation-triangle-fill text-warning',
+        };
         const html = `
           <div id="${id}" class="toast align-items-center border-0 shadow-lg" role="alert" style="min-width:280px;">
             <div class="d-flex">
-              <div class="toast-body fw-semibold" style="font-size:0.88rem;">
-                <i class="bi ${icons[type]} me-2"></i>${msg}
+              <div class="toast-body fw-semibold" style="font-size:0.86rem;">
+                <i class="bi ${icons[type]||icons.success} me-2"></i>${msg}
               </div>
               <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
           </div>`;
         document.getElementById('toastContainer').insertAdjacentHTML('beforeend', html);
         const toastEl = document.getElementById(id);
-        const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
-        toast.show();
+        new bootstrap.Toast(toastEl, { delay: 4000 }).show();
         toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
       }
 
       // ── ESTADO LOCAL ─────────────────────────────────────────────────
-      let estSeleccionado = null;
-      let opcionParticipa = null; 
-      let cabSeleccionadaId = null;
+      let estSeleccionado    = null;
+      let opcionParticipa    = null;
+      let cabSeleccionadaId  = null;
       let cabSeleccionadaNombre = '';
       let cabSeleccionadaLocalidad = '';
       let cabSeleccionadaDireccion = '';
-      let cabSeleccionadaCodDepto = '';
-
+      let cabSeleccionadaCodDepto  = '';
       let contTotal = {{ total_est }};
 
       // ── MODALES ──────────────────────────────────────────────────────
       const modalParticipacionBS = new bootstrap.Modal(document.getElementById('modalParticipacion'));
       const modalCabeceraBS      = new bootstrap.Modal(document.getElementById('modalCabecera'));
 
+      // ── BUSCADOR DE CARDS ─────────────────────────────────────────────
+      function filtrarCards(q) {
+        q = q.toLowerCase().trim();
+        document.querySelectorAll('.est-card').forEach(card => {
+          const txt = card.dataset.search || '';
+          card.classList.toggle('hidden-search', q !== '' && !txt.includes(q));
+        });
+      }
+
       // ── ABRIR MODAL PARTICIPACIÓN ────────────────────────────────────
-      function abrirModalParticipacion(cueanexo, nombre) {
+      function abrirModalParticipacion(cueanexo, nombre, estadoActual) {
         estSeleccionado = cueanexo;
         opcionParticipa = null;
         document.getElementById('mpEscuelaNombre').textContent = nombre;
-
-        document.getElementById('btnOpcionNo').classList.remove('selected');
-        document.getElementById('btnOpcionSi').classList.remove('selected');
+        document.getElementById('btnOpcionNo').classList.remove('selected-no');
+        document.getElementById('btnOpcionSi').classList.remove('selected-si');
         document.getElementById('btnConfirmarParticipacion').disabled = true;
-
-        document.getElementById('justificacionContainer').style.display = 'none';
-        document.getElementById('justificacionParticipacion').value = '';
-
+        document.getElementById('motivoContainer').style.display = 'none';
+        document.getElementById('motivoNoParticipa').value = '';
         modalParticipacionBS.show();
       }
 
@@ -948,34 +702,33 @@
         const btnNo = document.getElementById('btnOpcionNo');
         const btnSi = document.getElementById('btnOpcionSi');
         const btnConfirmar = document.getElementById('btnConfirmarParticipacion');
-        const justifContainer = document.getElementById('justificacionContainer');
+        const motivoCont = document.getElementById('motivoContainer');
+
+        btnSi.classList.toggle('selected-si', participa);
+        btnSi.classList.remove('selected-no');
+        btnNo.classList.toggle('selected-no', !participa);
+        btnNo.classList.remove('selected-si');
 
         if (participa) {
-          btnSi.classList.add('selected');
-          btnNo.classList.remove('selected');
-          justifContainer.style.display = 'none';
+          motivoCont.style.display = 'none';
           btnConfirmar.disabled = false;
         } else {
-          btnNo.classList.add('selected');
-          btnSi.classList.remove('selected');
-          justifContainer.style.display = 'block';
-          btnConfirmar.disabled = document.getElementById('justificacionParticipacion').value.trim().length === 0;
+          motivoCont.style.display = 'block';
+          // Se habilita cuando el usuario selecciona un motivo
+          btnConfirmar.disabled = !document.getElementById('motivoNoParticipa').value;
         }
       }
 
-      document.getElementById('justificacionParticipacion').addEventListener('input', function() {
-        if (opcionParticipa === false) {
-          document.getElementById('btnConfirmarParticipacion').disabled = this.value.trim().length === 0;
-        }
+      document.getElementById('motivoNoParticipa').addEventListener('change', function() {
+        document.getElementById('btnConfirmarParticipacion').disabled = !this.value;
       });
 
       async function confirmarParticipacion() {
         if (opcionParticipa === null) return;
-        
-        let justificacion = "";
+        let motivo = '';
         if (opcionParticipa === false) {
-          justificacion = document.getElementById('justificacionParticipacion').value.trim();
-          if (!justificacion) return;
+          motivo = document.getElementById('motivoNoParticipa').value;
+          if (!motivo) return;
         }
 
         showSpinner();
@@ -984,9 +737,7 @@
         const body = new FormData();
         body.append('participa', opcionParticipa ? 'true' : 'false');
         body.append('csrfmiddlewaretoken', getCsrf());
-        if (justificacion) {
-          body.append('justificacion', justificacion);
-        }
+        if (motivo) body.append('motivo', motivo);
 
         try {
           const resp = await fetch(
@@ -994,12 +745,10 @@
             { method: 'POST', body }
           );
           const data = await resp.json();
-
           if (data.ok) {
-            actualizarTarjetaParticipacion(estSeleccionado, opcionParticipa);
-
+            actualizarTarjetaParticipacion(estSeleccionado, opcionParticipa, motivo);
             if (opcionParticipa) {
-              // Abre modal de cabecera
+              // Abrir modal de cabecera
               document.getElementById('mcEscuelaNombre').textContent =
                 document.getElementById('card-' + estSeleccionado).querySelector('.card-name').textContent.trim();
               cabSeleccionadaId = null;
@@ -1007,9 +756,7 @@
               document.getElementById('cabeceraPreview').classList.remove('visible');
               document.getElementById('cabeceraSearch').value = '';
               filtrarCabeceras();
-              // Deseleccionar filas
               document.querySelectorAll('.tabla-cabeceras tbody tr').forEach(r => r.classList.remove('selected'));
-
               setTimeout(() => modalCabeceraBS.show(), 300);
             } else {
               showToast('Establecimiento marcado como <strong>No participa</strong>.', 'info');
@@ -1018,37 +765,42 @@
             showToast('Error: ' + (data.error || 'Ocurrió un problema.'), 'danger');
           }
         } catch(e) {
-          showToast('Error de conexión. Intentá nuevamente.', 'danger');
+          showToast('Error de conexión.', 'danger');
         } finally {
           hideSpinner();
         }
       }
 
       // ── ACTUALIZAR TARJETA TRAS PARTICIPACIÓN ────────────────────────
-      function actualizarTarjetaParticipacion(cue, participa) {
-        const card = document.getElementById('card-' + cue);
-        const bar  = document.getElementById('status-bar-' + cue);
+      function actualizarTarjetaParticipacion(cue, participa, motivo) {
+        const card  = document.getElementById('card-' + cue);
+        const bar   = document.getElementById('status-bar-' + cue);
         const badge = document.getElementById('badge-' + cue);
+        const motivoInfo = document.getElementById('motivo-info-' + cue);
+        const cabInfo    = document.getElementById('cabecera-info-' + cue);
+        const btnSec     = document.getElementById('btn-secciones-' + cue);
+        const btnModCab  = document.getElementById('btn-mod-cab-' + cue);
 
-        // Clase card
-        card.classList.remove('participa', 'no-participa');
-        card.classList.add(participa ? 'participa' : 'no-participa');
+        // Clases de la card
+        card.classList.remove('sin-validar', 'validado', 'no-participa');
+        bar.classList.remove('sin-validar', 'validado', 'no-participa');
 
-        // Barra top
-        bar.classList.remove('participa', 'no-participa', 'pendiente');
-        bar.classList.add(participa ? 'participa' : 'no-participa');
-
-        // Badge
         if (participa) {
-          badge.innerHTML = `<span class="badge-estado badge-participa"><i class="bi bi-check-circle-fill"></i>Participa en Aprender</span>`;
+          card.classList.add('validado');
+          bar.classList.add('validado');
+          badge.innerHTML = `<span class="badge-estado badge-validado"><i class="bi bi-check-circle-fill"></i>Validado</span>`;
+          motivoInfo.classList.add('d-none');
+          if (btnSec) btnSec.disabled = true; // aún no tiene cabecera
         } else {
-          badge.innerHTML = `<span class="badge-estado badge-no-participa"><i class="bi bi-x-circle-fill"></i>No participa en Aprender</span>`;
-          // Limpiar cabecera si no participa
-          document.getElementById('cabecera-info-' + cue).classList.add('d-none');
-          document.getElementById('btn-secciones-' + cue).disabled = true;
+          card.classList.add('no-participa');
+          bar.classList.add('no-participa');
+          badge.innerHTML = `<span class="badge-estado badge-no-participa"><i class="bi bi-x-circle-fill"></i>No participa</span>`;
+          motivoInfo.classList.remove('d-none');
+          motivoInfo.innerHTML = `<i class="bi bi-info-circle"></i>${motivo}`;
+          if (cabInfo) cabInfo.classList.add('d-none');
+          if (btnSec) { btnSec.disabled = true; btnSec.outerHTML = `<button class="btn-ir-secciones" disabled id="btn-secciones-${cue}" onclick="event.stopPropagation()"><i class="bi bi-list-check"></i>Ver secciones</button>`; }
+          if (btnModCab) btnModCab.innerHTML = '';
         }
-
-        // Actualizar contador global
         actualizarContadorGlobal();
       }
 
@@ -1056,34 +808,41 @@
       function filtrarCabeceras() {
         const q = document.getElementById('cabeceraSearch').value.toLowerCase().trim();
         document.querySelectorAll('#tablaCabecerasBody tr').forEach(row => {
-          const txt = row.dataset.search || '';
-          row.style.display = txt.includes(q) ? '' : 'none';
+          row.style.display = (row.dataset.search||'').includes(q) ? '' : 'none';
         });
       }
 
-      // ── SELECCIONAR CABECERA EN TABLA ────────────────────────────────
+      // ── SELECCIONAR CABECERA ─────────────────────────────────────────
       function seleccionarCabecera(id, nombre, localidad, codDepto, direccion) {
         cabSeleccionadaId = id;
         cabSeleccionadaNombre    = nombre;
         cabSeleccionadaLocalidad = localidad;
         cabSeleccionadaDireccion = direccion;
         cabSeleccionadaCodDepto  = codDepto;
-
-        // Resaltar fila
         document.querySelectorAll('#tablaCabecerasBody tr').forEach(r => r.classList.remove('selected'));
         document.getElementById('cabRow-' + id)?.classList.add('selected');
-
-        // Preview
         document.getElementById('previewNombre').textContent = nombre;
-        document.getElementById('previewDetalle').textContent =
-          [codDepto, localidad, direccion].filter(Boolean).join(' · ');
+        document.getElementById('previewDetalle').textContent = [codDepto, localidad, direccion].filter(Boolean).join(' · ');
         document.getElementById('cabeceraPreview').classList.add('visible');
         document.getElementById('btnGuardarCabecera').disabled = false;
       }
 
+      // ── ABRIR MODAL CABECERA (para modificar) ────────────────────────
+      function abrirModalCabecera(cueanexo, nombreEscuela) {
+        estSeleccionado = cueanexo;
+        document.getElementById('mcEscuelaNombre').textContent = nombreEscuela;
+        cabSeleccionadaId = null;
+        document.getElementById('btnGuardarCabecera').disabled = true;
+        document.getElementById('cabeceraPreview').classList.remove('visible');
+        document.getElementById('cabeceraSearch').value = '';
+        filtrarCabeceras();
+        document.querySelectorAll('.tabla-cabeceras tbody tr').forEach(r => r.classList.remove('selected'));
+        modalCabeceraBS.show();
+      }
+
+      // ── GUARDAR CABECERA ─────────────────────────────────────────────
       document.getElementById('btnGuardarCabecera').addEventListener('click', async () => {
         if (!cabSeleccionadaId) return;
-
         showSpinner();
         modalCabeceraBS.hide();
 
@@ -1097,15 +856,17 @@
             { method: 'POST', body }
           );
           const data = await resp.json();
-
           if (data.ok) {
+            // Actualizar tarjeta visualmente
             actualizarTarjetaCabecera(estSeleccionado, data);
-            showToast(`✅ Cabecera <strong>${data.cabecera_nombre}</strong> asignada correctamente.`);
+            showToast(`✅ Cabecera <strong>${data.cabecera_nombre}</strong> asignada. Redirigiendo a secciones...`);
+            // Redirigir automáticamente a la página de secciones
+            setTimeout(() => { window.location.href = data.redirect_url; }, 1400);
           } else {
             showToast('Error: ' + (data.error || 'Ocurrió un problema.'), 'danger');
           }
         } catch(e) {
-          showToast('Error de conexión. Intentá nuevamente.', 'danger');
+          showToast('Error de conexión.', 'danger');
         } finally {
           hideSpinner();
         }
@@ -1119,26 +880,26 @@
           [data.cabecera_localidad, data.cabecera_direccion].filter(Boolean).join(' · ');
         infoBox.classList.remove('d-none');
 
-        // Habilitar botón Ver secciones
-        const btnSec = document.getElementById('btn-secciones-' + cue);
-        if (btnSec) {
-          const url = `{% url 'evaluaciones_educativas:validaciones_2026:lista_secciones' '___CUE___' %}`.replace('___CUE___', cue);
-          btnSec.outerHTML = `<a href="${url}" class="btn-ir-secciones" id="btn-secciones-${cue}" onclick="event.stopPropagation()">
-            <i class="bi bi-list-check"></i>Ver secciones</a>`;
+        // Botón modificar cabecera
+        const btnModCab = document.getElementById('btn-mod-cab-' + cue);
+        if (btnModCab) {
+          const escuela = document.getElementById('card-' + cue).querySelector('.card-name').textContent.trim();
+          btnModCab.innerHTML = `<button class="btn-modificar-cab" onclick="event.stopPropagation(); abrirModalCabecera('${cue}', '${escuela}')">
+            <i class="bi bi-pencil-fill"></i>Modificar cabecera</button>`;
         }
       }
 
       // ── CONTADOR GLOBAL ──────────────────────────────────────────────
       function actualizarContadorGlobal() {
-        const cards = document.querySelectorAll('.est-card');
         let procesados = 0;
-        cards.forEach(c => {
-          if (c.classList.contains('participa') || c.classList.contains('no-participa')) procesados++;
+        document.querySelectorAll('.est-card').forEach(c => {
+          if (c.classList.contains('validado') || c.classList.contains('no-participa')) procesados++;
         });
         const pct = contTotal > 0 ? Math.round((procesados / contTotal) * 100) : 0;
         document.getElementById('barraGlobal').style.width = pct + '%';
         document.getElementById('statPct').textContent = pct + '%';
         document.getElementById('statPendiente').textContent = contTotal - procesados;
+        document.getElementById('statProcesados').textContent = procesados;
       }
     </script>
   </body>

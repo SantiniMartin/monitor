@@ -2,6 +2,43 @@ from django.db import models
 import uuid
 
 
+
+class ValEstablecimientoManager(models.Manager):
+    def for_referente(self, cuil, cueanexo):
+        """Devuelve el establecimiento si el referente tiene acceso a su región, o None."""
+        try:
+            est = self.get(cueanexo=cueanexo)
+        except self.model.DoesNotExist:
+            return None
+        
+        regiones_autorizadas = set(
+            ValReferenteCargaTemporal.objects
+            .filter(cuil=cuil)
+            .values_list('region', flat=True)
+        )
+        if est.region not in regiones_autorizadas:
+            return None
+        return est
+
+
+class ValSeccionManager(models.Manager):
+    def for_referente(self, cuil, public_id):
+        """Devuelve la sección si el referente tiene acceso a la región del establecimiento, o None."""
+        try:
+            seccion = self.select_related('grado__establecimiento').get(public_id=public_id)
+        except self.model.DoesNotExist:
+            return None
+            
+        regiones_autorizadas = set(
+            ValReferenteCargaTemporal.objects
+            .filter(cuil=cuil)
+            .values_list('region', flat=True)
+        )
+        if seccion.grado.establecimiento.region not in regiones_autorizadas:
+            return None
+        return seccion
+
+
 class ValReferenteCargaTemporal(models.Model):
 	"""
 	Tabla maestra que mapea CUIL → Región del referente de carga.
@@ -11,6 +48,7 @@ class ValReferenteCargaTemporal(models.Model):
 	nombre = models.CharField(max_length=150)
 	apellido = models.CharField(max_length=150)
 	region = models.CharField(max_length=100)
+	dni = models.CharField(max_length=20, unique=True, null=True, blank=True)
 
 	class Meta:
 		db_table = '"validaciones_2026"."referentes_carga_temporal"'
@@ -29,7 +67,11 @@ class ValEstablecimiento(models.Model):
 	Campos de participación Aprender:
 	  participa_aprender: None = no procesado, True = participa, False = no participa.
 	  cabecera: FK a ValCabecera (solo si participa).
+	  carga_completa: True cuando el referente finalizó la carga de secciones.
+	  motivo_no_participa: razón por la que no participa (si aplica).
 	"""
+	objects = ValEstablecimientoManager()
+	
 	cueanexo = models.CharField(primary_key=True, max_length=9)
 	escuela = models.CharField(max_length=255)
 	sector = models.CharField(max_length=255)
@@ -66,6 +108,17 @@ class ValEstablecimiento(models.Model):
 		related_name='establecimientos',
 		verbose_name='Cabecera asignada',
 	)
+	carga_completa = models.BooleanField(
+		default=False,
+		verbose_name='Carga completa',
+		help_text='True cuando el referente confirmó que terminó de cargar todas las secciones'
+	)
+	motivo_no_participa = models.CharField(
+		max_length=150,
+		blank=True,
+		null=True,
+		verbose_name='Motivo de no participación',
+	)
 
 	class Meta:
 		db_table = '"validaciones_2026"."establecimientos"'
@@ -82,14 +135,14 @@ class ValGrado(models.Model):
 	Equivalente a GradoFluidez2026 pero en esquema validaciones_2026.
 	"""
 	OPCIONES_GRADO = [
-		('2do Año/Grado', '2do Grado'),
-		('3er Año/Grado', '3er Grado'),
+		('3er Año/Grado', '3er Año/Grado'),
 	]
 	public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 	cueanexo = models.CharField(max_length=9)
-	nombre_grado = models.CharField(max_length=13, choices=OPCIONES_GRADO, default='2do Año/Grado')
+	nombre_grado = models.CharField(max_length=50, choices=OPCIONES_GRADO, default='3er Año/Grado')
 	establecimiento = models.ForeignKey(ValEstablecimiento, on_delete=models.CASCADE, related_name='grados')
 	estado_carga = models.BooleanField(default=False)
+	grado_creado = models.BooleanField(default=False, verbose_name='Grado creado manualmente')
 
 	class Meta:
 		db_table = '"validaciones_2026"."grados"'
@@ -140,8 +193,10 @@ class ValSeccion(models.Model):
 	"""
 	Secciones de cada grado (Validaciones 2026).
 	Equivalente a SeccionFluidez2026 pero en esquema validaciones_2026,
-	con campos adicionales: matricula, estado de validación y cabecera asignada.
+	con campos adicionales: matricula, estado de validación.
 	"""
+	objects = ValSeccionManager()
+
 	OPCIONES_SECCION = [
 		('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D'), ('E', 'E'),
 		('F', 'F'), ('G', 'G'), ('H', 'H'), ('I', 'I'), ('L', 'L'),
@@ -150,34 +205,41 @@ class ValSeccion(models.Model):
 	]
 	OPCIONES_TURNO = [
 		('MAÑANA', 'Mañana'),
+		('MAÑANA EXTENDIDA', 'Mañana Extendida'),
 		('TARDE', 'Tarde'),
+		('TARDE EXTENDIDA', 'Tarde Extendida'),
 		('DOBLE', 'Doble'),
+		('VESPERTINO', 'Vespertino'),
 	]
 	OPCIONES_ESTADO = [
 		('PENDIENTE', 'Pendiente'),
 		('APROBADO', 'Aprobado'),
-		('SIN_MATRICULA', 'Sin matrícula'),   # antes NO_EXISTE
-		('MODIFICADO', 'Modificado'),          # nuevo: matrícula modificada con justificación
+		('SIN_MATRICULA', 'Sin matrícula'),
+		('MODIFICADO', 'Modificado'),
+		('DESHABILITADO', 'Deshabilitado'),
 	]
 
 	public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 	seccion = models.CharField(max_length=20, choices=OPCIONES_SECCION, blank=True)
 	turno = models.CharField(max_length=20, choices=OPCIONES_TURNO, blank=True)
 	grado = models.ForeignKey(ValGrado, on_delete=models.CASCADE, related_name='secciones')
-	# Campo matrícula cargada (puede empezar vacío si no se cargó previamente)
 	matricula = models.IntegerField(null=True, blank=True, verbose_name='Matrícula cargada')
-	# Estado de validación de esta sección
 	estado_validacion = models.CharField(
-		max_length=13,
+		max_length=15,
 		choices=OPCIONES_ESTADO,
 		default='PENDIENTE',
 		verbose_name='Estado de validación'
 	)
-	
-	# Auditoría
-	fecha_ultima_modificacion = models.DateTimeField(auto_now=True)
-	usuario_ultima_modificacion = models.CharField(max_length=50, blank=True, null=True)
-
+	motivo_deshabilitacion = models.CharField(
+		max_length=150,
+		blank=True,
+		null=True,
+		verbose_name='Motivo de deshabilitación',
+	)
+	seccion_creada = models.BooleanField(
+		default=False,
+		verbose_name='Sección creada manualmente',
+	)
 	class Meta:
 		db_table = '"validaciones_2026"."secciones"'
 		unique_together = ('seccion', 'grado', 'turno')
@@ -196,7 +258,7 @@ class ValHistorialMatriculas(models.Model):
 	"""
 	seccion = models.ForeignKey(ValSeccion, on_delete=models.CASCADE, related_name='historial_matriculas')
 	matricula_anterior = models.IntegerField(null=True, blank=True)
-	matricula_nueva = models.IntegerField()
+	matricula_nueva = models.IntegerField(null=True, blank=True)
 	justificacion = models.TextField(verbose_name='Justificación del cambio')
 	fecha_cambio = models.DateTimeField(auto_now_add=True)
 	usuario_cambio = models.CharField(max_length=50, blank=True, null=True)

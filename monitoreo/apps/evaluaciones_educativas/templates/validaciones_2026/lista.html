@@ -407,7 +407,7 @@
                 <tbody>
                   {% for seccion in secciones %}
                   <tr id="fila-{{ seccion.public_id }}"
-                    class="{% if seccion.cabecera %}fila-con-cabecera{% elif seccion.estado_validacion == 'APROBADO' %}fila-aprobada{% elif seccion.estado_validacion == 'NO_EXISTE' %}fila-no-existe{% endif %}">
+                    class="{% if seccion.grado.establecimiento.cabecera %}fila-con-cabecera{% elif seccion.estado_validacion == 'APROBADO' %}fila-aprobada{% elif seccion.estado_validacion == 'NO_EXISTE' %}fila-no-existe{% endif %}">
 
                     <!-- CUE -->
                     <td class="fw-semibold text-secondary" title="{{ seccion.grado.establecimiento.cueanexo }}">
@@ -436,7 +436,7 @@
                       <span class="matricula-display-{{ seccion.public_id }}">
                         {% if seccion.matricula is not None %}{{ seccion.matricula }}{% else %}<em class="text-muted">—</em>{% endif %}
                       </span>
-                      {% if seccion.estado_validacion == 'APROBADO' and not seccion.cabecera %}
+                      {% if seccion.estado_validacion == 'APROBADO' and not seccion.grado.establecimiento.cabecera %}
                       <input type="number"
                         class="matricula-input d-none"
                         id="matricula-{{ seccion.public_id }}"
@@ -450,7 +450,7 @@
 
                     <!-- Estado -->
                     <td id="estado-badge-{{ seccion.public_id }}">
-                      {% if seccion.cabecera %}
+                      {% if seccion.grado.establecimiento.cabecera %}
                         <span class="estado-badge estado-cabecera"><i class="bi bi-building-check me-1"></i>Con cabecera</span>
                       {% elif seccion.estado_validacion == 'APROBADO' %}
                         <span class="estado-badge estado-aprobado"><i class="bi bi-check-circle me-1"></i>Aprobado</span>
@@ -462,10 +462,10 @@
                     </td>
 
                     <!-- Cabecera -->
-                    <td id="cabecera-nombre-{{ seccion.public_id }}" title="{{ seccion.cabecera }}">
-                      {% if seccion.cabecera %}
+                    <td id="cabecera-nombre-{{ seccion.public_id }}" title="{{ seccion.grado.establecimiento.cabecera }}">
+                      {% if seccion.grado.establecimiento.cabecera %}
                         <span class="fw-semibold text-indigo-600" style="color:#4f46e5;">
-                          <i class="bi bi-building me-1"></i>{{ seccion.cabecera.nombre_cabecera }}
+                          <i class="bi bi-building me-1"></i>{{ seccion.grado.establecimiento.cabecera.nombre_cabecera }}
                         </span>
                       {% else %}
                         <em class="text-muted" style="font-size:0.8rem;">Sin asignar</em>
@@ -476,7 +476,7 @@
                     <td>
                       <div class="d-flex gap-1 flex-wrap acciones-{{ seccion.public_id }}">
 
-                        {% if seccion.cabecera %}
+                        {% if seccion.grado.establecimiento.cabecera %}
                           <!-- Con cabecera: solo botón Editar -->
                           <button class="btn-editar btn"
                             onclick="deshacerCabecera('{{ seccion.public_id }}')"
@@ -506,12 +506,7 @@
                           </button>
 
                         {% elif seccion.estado_validacion == 'APROBADO' and todas_procesadas %}
-                          <!-- APROBADO + todas procesadas: Seleccionar cabecera + Editar -->
-                          <button class="btn-cabecera btn"
-                            onclick="abrirModalCabecera('{{ seccion.public_id }}')"
-                            title="Asignar cabecera">
-                            <i class="bi bi-building-add me-1"></i>Cabecera
-                          </button>
+                          <!-- APROBADO + todas procesadas: Editar -->
                           <button class="btn-editar btn"
                             onclick="editarSeccion('{{ seccion.public_id }}')"
                             title="Volver a procesar">
@@ -699,25 +694,9 @@
             const banner = document.createElement('div');
             banner.id = 'bannerProcesadas';
             banner.className = 'banner-procesadas';
-            banner.innerHTML = '<i class="bi bi-patch-check-fill"></i><span>¡Todas las secciones están procesadas! Ahora podés asignar la cabecera a cada sección aprobada.</span>';
+            banner.innerHTML = '<i class="bi bi-patch-check-fill"></i><span>¡Todas las secciones están procesadas!</span>';
             document.querySelector('.p-3').prepend(banner);
           }
-          // Actualizar botones de filas APROBADAS → agregar botón Cabecera
-          document.querySelectorAll('[id^="fila-"]').forEach(fila => {
-            const pid = fila.id.replace('fila-', '');
-            const badge = document.getElementById(`estado-badge-${pid}`);
-            if (badge && badge.innerHTML.includes('aprobado')) {
-              const accionesDiv = fila.querySelector(`.acciones-${pid}`);
-              if (accionesDiv && !accionesDiv.querySelector('.btn-cabecera')) {
-                const btnCab = document.createElement('button');
-                btnCab.className = 'btn-cabecera btn';
-                btnCab.innerHTML = '<i class="bi bi-building-add me-1"></i>Cabecera';
-                btnCab.title = 'Asignar cabecera';
-                btnCab.onclick = () => abrirModalCabecera(pid);
-                accionesDiv.prepend(btnCab);
-              }
-            }
-          });
         }
       }
 
