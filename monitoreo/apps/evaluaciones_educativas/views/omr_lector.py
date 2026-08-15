@@ -1,321 +1,321 @@
-"""
-views/omr_lector.py
+# """
+# views/omr_lector.py
 
-Vistas para el módulo OMR (Optical Mark Recognition) de exámenes de opción múltiple.
+# Vistas para el módulo OMR (Optical Mark Recognition) de exámenes de opción múltiple.
 
-Flujo:
-  1. seleccionar_alumno  → busca y selecciona el alumno del sistema
-  2. lector_omr          → captura de foto + procesamiento frontend + edición manual
-  3. guardar_lectura     → POST JSON con las respuestas finales → guarda en DB
-  4. lista_lecturas      → historial de lecturas del alumno o globales
-  5. detalle_lectura     → detalle de una lectura específica
-"""
+# Flujo:
+#   1. seleccionar_alumno  → busca y selecciona el alumno del sistema
+#   2. lector_omr          → captura de foto + procesamiento frontend + edición manual
+#   3. guardar_lectura     → POST JSON con las respuestas finales → guarda en DB
+#   4. lista_lecturas      → historial de lecturas del alumno o globales
+#   5. detalle_lectura     → detalle de una lectura específica
+# """
 
-import json
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST, require_GET
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib import messages
-from django.db.models import Q
-from django.utils import timezone
+# import json
+# from django.shortcuts import render, get_object_or_404, redirect
+# from django.http import JsonResponse
+# from django.views.decorators.http import require_POST, require_GET
+# from django.views.decorators.csrf import csrf_exempt
+# from django.contrib import messages
+# from django.db.models import Q
+# from django.utils import timezone
 
-from apps.evaluaciones_educativas.models.fluidez_2026 import AlumnoFluidez2026, SeccionFluidez2026, GradoFluidez2026, EstablecimientosFluidez2026
-from apps.evaluaciones_educativas.models.omr_lector import LecturaOMR
-
-
-# ─── 1. Selección de alumno ───────────────────────────────────────────────────
-
-def seleccionar_alumno(request):
-    """
-    Permite buscar y seleccionar un alumno existente del sistema antes
-    de proceder a la carga OMR de su examen.
-
-    GET: muestra formulario de búsqueda
-    POST: filtra alumnos por nombre/apellido/DNI y cueanexo
-    """
-    alumnos = None
-    query = ''
-    cueanexo_seleccionado = ''
-
-    # Obtener lista de cueanexos disponibles
-    establecimientos = EstablecimientosFluidez2026.objects.using('Evaluacion').order_by('escuela')
-
-    if request.method == 'POST':
-        query = request.POST.get('q', '').strip()
-        cueanexo_seleccionado = request.POST.get('cueanexo', '').strip()
-
-        qs = AlumnoFluidez2026.objects.using('Evaluacion').select_related(
-            'seccion',
-            'seccion__grado',
-            'seccion__grado__Establecimiento',
-        )
-
-        if cueanexo_seleccionado:
-            qs = qs.filter(seccion__grado__cueanexo=cueanexo_seleccionado)
-
-        if query:
-            qs = qs.filter(
-                Q(nombre__icontains=query) |
-                Q(apellido__icontains=query) |
-                Q(dni__icontains=query)
-            )
-
-        alumnos = qs.order_by('apellido', 'nombre')[:50]  # Limitar a 50 resultados
-
-    contexto = {
-        'alumnos': alumnos,
-        'query': query,
-        'cueanexo_seleccionado': cueanexo_seleccionado,
-        'establecimientos': establecimientos,
-    }
-    return render(request, 'omr_lector/seleccionar_alumno.html', contexto)
+# from apps.evaluaciones_educativas.models.fluidez_2026 import AlumnoFluidez2026, SeccionFluidez2026, GradoFluidez2026, EstablecimientosFluidez2026
+# from apps.evaluaciones_educativas.models.omr_lector import LecturaOMR
 
 
-# ─── 2. Lector OMR (captura + procesamiento) ─────────────────────────────────
+# # ─── 1. Selección de alumno ───────────────────────────────────────────────────
 
-def lector_omr(request, alumno_public_id):
-    """
-    Página principal del lector OMR para un alumno específico.
+# def seleccionar_alumno(request):
+#     """
+#     Permite buscar y seleccionar un alumno existente del sistema antes
+#     de proceder a la carga OMR de su examen.
 
-    Muestra:
-    - Datos del alumno seleccionado
-    - Interfaz de captura de foto (cámara o archivo)
-    - Panel de resultados OMR editable
-    - Botón para guardar
-    """
-    alumno = get_object_or_404(
-        AlumnoFluidez2026.objects.using('Evaluacion').select_related(
-            'seccion',
-            'seccion__grado',
-            'seccion__grado__Establecimiento',
-        ),
-        public_id=alumno_public_id,
-    )
+#     GET: muestra formulario de búsqueda
+#     POST: filtra alumnos por nombre/apellido/DNI y cueanexo
+#     """
+#     alumnos = None
+#     query = ''
+#     cueanexo_seleccionado = ''
 
-    # Verificar si ya existe una lectura OMR para este alumno
-    lectura_existente = LecturaOMR.objects.using('Evaluacion').filter(
-        alumno=alumno
-    ).order_by('-fecha_lectura').first()
+#     # Obtener lista de cueanexos disponibles
+#     establecimientos = EstablecimientosFluidez2026.objects.using('Evaluacion').order_by('escuela')
 
-    contexto = {
-        'alumno': alumno,
-        'lectura_existente': lectura_existente,
-        'num_items': range(1, 13),  # ítems 1 a 12
-        'opciones': ['A', 'B', 'C', 'D'],
-    }
-    return render(request, 'omr_lector/lector.html', contexto)
+#     if request.method == 'POST':
+#         query = request.POST.get('q', '').strip()
+#         cueanexo_seleccionado = request.POST.get('cueanexo', '').strip()
 
+#         qs = AlumnoFluidez2026.objects.using('Evaluacion').select_related(
+#             'seccion',
+#             'seccion__grado',
+#             'seccion__grado__Establecimiento',
+#         )
 
-# ─── 3. Guardar lectura ───────────────────────────────────────────────────────
+#         if cueanexo_seleccionado:
+#             qs = qs.filter(seccion__grado__cueanexo=cueanexo_seleccionado)
 
-@require_POST
-def guardar_lectura(request, alumno_public_id):
-    """
-    Recibe las respuestas OMR como JSON (desde el frontend) y las guarda
-    en la base de datos como un registro LecturaOMR.
+#         if query:
+#             qs = qs.filter(
+#                 Q(nombre__icontains=query) |
+#                 Q(apellido__icontains=query) |
+#                 Q(dni__icontains=query)
+#             )
 
-    Payload esperado (JSON):
-    {
-        "respuestas": {"1": "A", "2": "C", ..., "12": "B"},
-        "confianza":  {"1": 95,  "2": 40,  ..., "12": 78},
-        "modelo_examen": "B",
-        "revisado_manualmente": true,
-        "observaciones": "..."
-    }
-    """
-    alumno = get_object_or_404(
-        AlumnoFluidez2026.objects.using('Evaluacion'),
-        public_id=alumno_public_id,
-    )
+#         alumnos = qs.order_by('apellido', 'nombre')[:50]  # Limitar a 50 resultados
 
-    try:
-        payload = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
-
-    respuestas = payload.get('respuestas', {})
-    confianza = payload.get('confianza', {})
-    modelo_examen = payload.get('modelo_examen', '')
-    revisado = payload.get('revisado_manualmente', False)
-    observaciones = payload.get('observaciones', '')
-
-    # Validar que las respuestas sean A/B/C/D o vacío
-    opciones_validas = {'A', 'B', 'C', 'D', ''}
-    for item_num, resp in respuestas.items():
-        if resp not in opciones_validas:
-            return JsonResponse(
-                {'ok': False, 'error': f'Respuesta inválida en ítem {item_num}: "{resp}"'},
-                status=400,
-            )
-
-    # Crear o actualizar la lectura OMR
-    # Si ya existe una lectura para este alumno, se reemplaza (para permitir re-escaneo)
-    lectura, creada = LecturaOMR.objects.using('Evaluacion').update_or_create(
-        alumno=alumno,
-        defaults={
-            'modelo_examen': modelo_examen[:1] if modelo_examen else '',
-            'item_1':  respuestas.get('1', ''),
-            'item_2':  respuestas.get('2', ''),
-            'item_3':  respuestas.get('3', ''),
-            'item_4':  respuestas.get('4', ''),
-            'item_5':  respuestas.get('5', ''),
-            'item_6':  respuestas.get('6', ''),
-            'item_7':  respuestas.get('7', ''),
-            'item_8':  respuestas.get('8', ''),
-            'item_9':  respuestas.get('9', ''),
-            'item_10': respuestas.get('10', ''),
-            'item_11': respuestas.get('11', ''),
-            'item_12': respuestas.get('12', ''),
-            'confianza_json': {str(k): int(v) for k, v in confianza.items()} if confianza else None,
-            'revisado_manualmente': bool(revisado),
-            'observaciones': observaciones,
-            'encargado_carga': str(request.user) if request.user.is_authenticated else '',
-        }
-    )
-
-    return JsonResponse({
-        'ok': True,
-        'creada': creada,
-        'lectura_public_id': str(lectura.public_id),
-        'redirect_url': f'/evaluaciones_educativas/omr/historial/{lectura.public_id}/',
-    })
+#     contexto = {
+#         'alumnos': alumnos,
+#         'query': query,
+#         'cueanexo_seleccionado': cueanexo_seleccionado,
+#         'establecimientos': establecimientos,
+#     }
+#     return render(request, 'omr_lector/seleccionar_alumno.html', contexto)
 
 
-# ─── 4. Lista de lecturas ─────────────────────────────────────────────────────
+# # ─── 2. Lector OMR (captura + procesamiento) ─────────────────────────────────
 
-def lista_lecturas(request):
-    """
-    Historial de todas las lecturas OMR.
-    Soporta filtrado por cueanexo y búsqueda por nombre/apellido de alumno.
-    """
-    query = request.GET.get('q', '').strip()
-    cueanexo = request.GET.get('cueanexo', '').strip()
+# def lector_omr(request, alumno_public_id):
+#     """
+#     Página principal del lector OMR para un alumno específico.
 
-    lecturas = LecturaOMR.objects.using('Evaluacion').select_related(
-        'alumno',
-        'alumno__seccion',
-        'alumno__seccion__grado',
-        'alumno__seccion__grado__Establecimiento',
-    ).order_by('-fecha_lectura')
+#     Muestra:
+#     - Datos del alumno seleccionado
+#     - Interfaz de captura de foto (cámara o archivo)
+#     - Panel de resultados OMR editable
+#     - Botón para guardar
+#     """
+#     alumno = get_object_or_404(
+#         AlumnoFluidez2026.objects.using('Evaluacion').select_related(
+#             'seccion',
+#             'seccion__grado',
+#             'seccion__grado__Establecimiento',
+#         ),
+#         public_id=alumno_public_id,
+#     )
 
-    if cueanexo:
-        lecturas = lecturas.filter(alumno__seccion__grado__cueanexo=cueanexo)
+#     # Verificar si ya existe una lectura OMR para este alumno
+#     lectura_existente = LecturaOMR.objects.using('Evaluacion').filter(
+#         alumno=alumno
+#     ).order_by('-fecha_lectura').first()
 
-    if query:
-        lecturas = lecturas.filter(
-            Q(alumno__nombre__icontains=query) |
-            Q(alumno__apellido__icontains=query) |
-            Q(alumno__dni__icontains=query)
-        )
-
-    establecimientos = EstablecimientosFluidez2026.objects.using('Evaluacion').order_by('escuela')
-
-    contexto = {
-        'lecturas': lecturas[:100],
-        'query': query,
-        'cueanexo': cueanexo,
-        'establecimientos': establecimientos,
-        'total': lecturas.count(),
-    }
-    return render(request, 'omr_lector/lista_lecturas.html', contexto)
+#     contexto = {
+#         'alumno': alumno,
+#         'lectura_existente': lectura_existente,
+#         'num_items': range(1, 13),  # ítems 1 a 12
+#         'opciones': ['A', 'B', 'C', 'D'],
+#     }
+#     return render(request, 'omr_lector/lector.html', contexto)
 
 
-# ─── 5. Detalle de lectura ────────────────────────────────────────────────────
+# # ─── 3. Guardar lectura ───────────────────────────────────────────────────────
 
-def detalle_lectura(request, public_id):
-    """
-    Muestra el detalle completo de una lectura OMR específica.
-    Permite al docente editar y corregir respuestas desde esta vista también.
-    """
-    lectura = get_object_or_404(
-        LecturaOMR.objects.using('Evaluacion').select_related(
-            'alumno',
-            'alumno__seccion',
-            'alumno__seccion__grado',
-            'alumno__seccion__grado__Establecimiento',
-        ),
-        public_id=public_id,
-    )
+# @require_POST
+# def guardar_lectura(request, alumno_public_id):
+#     """
+#     Recibe las respuestas OMR como JSON (desde el frontend) y las guarda
+#     en la base de datos como un registro LecturaOMR.
 
-    # Construir lista de ítems con respuesta y confianza para el template
-    items_detalle = []
-    confianza = lectura.confianza_json or {}
-    for i in range(1, 13):
-        resp = getattr(lectura, f'item_{i}', '')
-        conf = confianza.get(str(i), None)
-        items_detalle.append({
-            'num': i,
-            'respuesta': resp,
-            'confianza': conf,
-            'dudoso': conf is not None and conf < 50,
-        })
+#     Payload esperado (JSON):
+#     {
+#         "respuestas": {"1": "A", "2": "C", ..., "12": "B"},
+#         "confianza":  {"1": 95,  "2": 40,  ..., "12": 78},
+#         "modelo_examen": "B",
+#         "revisado_manualmente": true,
+#         "observaciones": "..."
+#     }
+#     """
+#     alumno = get_object_or_404(
+#         AlumnoFluidez2026.objects.using('Evaluacion'),
+#         public_id=alumno_public_id,
+#     )
 
-    contexto = {
-        'lectura': lectura,
-        'items_detalle': items_detalle,
-        'opciones': ['A', 'B', 'C', 'D'],
-    }
-    return render(request, 'omr_lector/detalle_lectura.html', contexto)
+#     try:
+#         payload = json.loads(request.body)
+#     except (json.JSONDecodeError, ValueError):
+#         return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+
+#     respuestas = payload.get('respuestas', {})
+#     confianza = payload.get('confianza', {})
+#     modelo_examen = payload.get('modelo_examen', '')
+#     revisado = payload.get('revisado_manualmente', False)
+#     observaciones = payload.get('observaciones', '')
+
+#     # Validar que las respuestas sean A/B/C/D o vacío
+#     opciones_validas = {'A', 'B', 'C', 'D', ''}
+#     for item_num, resp in respuestas.items():
+#         if resp not in opciones_validas:
+#             return JsonResponse(
+#                 {'ok': False, 'error': f'Respuesta inválida en ítem {item_num}: "{resp}"'},
+#                 status=400,
+#             )
+
+#     # Crear o actualizar la lectura OMR
+#     # Si ya existe una lectura para este alumno, se reemplaza (para permitir re-escaneo)
+#     lectura, creada = LecturaOMR.objects.using('Evaluacion').update_or_create(
+#         alumno=alumno,
+#         defaults={
+#             'modelo_examen': modelo_examen[:1] if modelo_examen else '',
+#             'item_1':  respuestas.get('1', ''),
+#             'item_2':  respuestas.get('2', ''),
+#             'item_3':  respuestas.get('3', ''),
+#             'item_4':  respuestas.get('4', ''),
+#             'item_5':  respuestas.get('5', ''),
+#             'item_6':  respuestas.get('6', ''),
+#             'item_7':  respuestas.get('7', ''),
+#             'item_8':  respuestas.get('8', ''),
+#             'item_9':  respuestas.get('9', ''),
+#             'item_10': respuestas.get('10', ''),
+#             'item_11': respuestas.get('11', ''),
+#             'item_12': respuestas.get('12', ''),
+#             'confianza_json': {str(k): int(v) for k, v in confianza.items()} if confianza else None,
+#             'revisado_manualmente': bool(revisado),
+#             'observaciones': observaciones,
+#             'encargado_carga': str(request.user) if request.user.is_authenticated else '',
+#         }
+#     )
+
+#     return JsonResponse({
+#         'ok': True,
+#         'creada': creada,
+#         'lectura_public_id': str(lectura.public_id),
+#         'redirect_url': f'/evaluaciones_educativas/omr/historial/{lectura.public_id}/',
+#     })
 
 
-# ─── 6. Procesar imagen con OpenCV (backend) ──────────────────────────────────
+# # ─── 4. Lista de lecturas ─────────────────────────────────────────────────────
 
-@require_POST
-def procesar_imagen_omr(request):
-    """
-    Endpoint de procesamiento OMR server-side.
+# def lista_lecturas(request):
+#     """
+#     Historial de todas las lecturas OMR.
+#     Soporta filtrado por cueanexo y búsqueda por nombre/apellido de alumno.
+#     """
+#     query = request.GET.get('q', '').strip()
+#     cueanexo = request.GET.get('cueanexo', '').strip()
 
-    Recibe: multipart/form-data con campo 'imagen' (File de foto del examen)
-    Retorna: JSON con las respuestas detectadas por ítem.
+#     lecturas = LecturaOMR.objects.using('Evaluacion').select_related(
+#         'alumno',
+#         'alumno__seccion',
+#         'alumno__seccion__grado',
+#         'alumno__seccion__grado__Establecimiento',
+#     ).order_by('-fecha_lectura')
 
-    Ventaja frente al procesamiento en el navegador (OpenCV.js):
-    - No requiere descargar ~8MB de WASM al celular del docente.
-    - Procesamiento más rápido y preciso en servidor.
-    - Funciona en celulares viejos y con mala conexión.
+#     if cueanexo:
+#         lecturas = lecturas.filter(alumno__seccion__grado__cueanexo=cueanexo)
 
-    Respuesta exitosa:
-    {
-        "ok": true,
-        "respuestas": {"1": "A", "2": "C", ...},
-        "confianza":  {"1": 85,  "2": 40, ...},
-        "items_dudosos": [3, 7],
-        "used_warp": true
-    }
+#     if query:
+#         lecturas = lecturas.filter(
+#             Q(alumno__nombre__icontains=query) |
+#             Q(alumno__apellido__icontains=query) |
+#             Q(alumno__dni__icontains=query)
+#         )
 
-    Si opencv-python-headless no está instalado:
-    {"ok": false, "cv_not_installed": true, "error": "..."}
-    """
-    if 'imagen' not in request.FILES:
-        return JsonResponse({'ok': False, 'error': 'No se recibió ninguna imagen.'}, status=400)
+#     establecimientos = EstablecimientosFluidez2026.objects.using('Evaluacion').order_by('escuela')
 
-    imagen_file = request.FILES['imagen']
+#     contexto = {
+#         'lecturas': lecturas[:100],
+#         'query': query,
+#         'cueanexo': cueanexo,
+#         'establecimientos': establecimientos,
+#         'total': lecturas.count(),
+#     }
+#     return render(request, 'omr_lector/lista_lecturas.html', contexto)
 
-    # Validar que sea una imagen
-    content_type = imagen_file.content_type or ''
-    if not content_type.startswith('image/'):
-        return JsonResponse({'ok': False, 'error': f'Tipo de archivo no válido: {content_type}'}, status=400)
 
-    # Límite de tamaño: 20 MB
-    if imagen_file.size > 20 * 1024 * 1024:
-        return JsonResponse({'ok': False, 'error': 'La imagen supera el límite de 20 MB.'}, status=400)
+# # ─── 5. Detalle de lectura ────────────────────────────────────────────────────
 
-    try:
-        from apps.evaluaciones_educativas.views.omr_utils import procesar_imagen
-        imagen_bytes = imagen_file.read()
-        resultado    = procesar_imagen(imagen_bytes)
-        return JsonResponse({'ok': True, **resultado})
+# def detalle_lectura(request, public_id):
+#     """
+#     Muestra el detalle completo de una lectura OMR específica.
+#     Permite al docente editar y corregir respuestas desde esta vista también.
+#     """
+#     lectura = get_object_or_404(
+#         LecturaOMR.objects.using('Evaluacion').select_related(
+#             'alumno',
+#             'alumno__seccion',
+#             'alumno__seccion__grado',
+#             'alumno__seccion__grado__Establecimiento',
+#         ),
+#         public_id=public_id,
+#     )
 
-    except ImportError as e:
-        # opencv-python-headless no instalado → el frontend usa fallback JS
-        return JsonResponse({
-            'ok': False,
-            'cv_not_installed': True,
-            'error': f'opencv-python-headless no instalado: {e}',
-        }, status=503)
+#     # Construir lista de ítems con respuesta y confianza para el template
+#     items_detalle = []
+#     confianza = lectura.confianza_json or {}
+#     for i in range(1, 13):
+#         resp = getattr(lectura, f'item_{i}', '')
+#         conf = confianza.get(str(i), None)
+#         items_detalle.append({
+#             'num': i,
+#             'respuesta': resp,
+#             'confianza': conf,
+#             'dudoso': conf is not None and conf < 50,
+#         })
 
-    except ValueError as e:
-        return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+#     contexto = {
+#         'lectura': lectura,
+#         'items_detalle': items_detalle,
+#         'opciones': ['A', 'B', 'C', 'D'],
+#     }
+#     return render(request, 'omr_lector/detalle_lectura.html', contexto)
 
-    except Exception as e:
-        return JsonResponse({'ok': False, 'error': f'Error interno: {e}'}, status=500)
+
+# # ─── 6. Procesar imagen con OpenCV (backend) ──────────────────────────────────
+
+# @require_POST
+# def procesar_imagen_omr(request):
+#     """
+#     Endpoint de procesamiento OMR server-side.
+
+#     Recibe: multipart/form-data con campo 'imagen' (File de foto del examen)
+#     Retorna: JSON con las respuestas detectadas por ítem.
+
+#     Ventaja frente al procesamiento en el navegador (OpenCV.js):
+#     - No requiere descargar ~8MB de WASM al celular del docente.
+#     - Procesamiento más rápido y preciso en servidor.
+#     - Funciona en celulares viejos y con mala conexión.
+
+#     Respuesta exitosa:
+#     {
+#         "ok": true,
+#         "respuestas": {"1": "A", "2": "C", ...},
+#         "confianza":  {"1": 85,  "2": 40, ...},
+#         "items_dudosos": [3, 7],
+#         "used_warp": true
+#     }
+
+#     Si opencv-python-headless no está instalado:
+#     {"ok": false, "cv_not_installed": true, "error": "..."}
+#     """
+#     if 'imagen' not in request.FILES:
+#         return JsonResponse({'ok': False, 'error': 'No se recibió ninguna imagen.'}, status=400)
+
+#     imagen_file = request.FILES['imagen']
+
+#     # Validar que sea una imagen
+#     content_type = imagen_file.content_type or ''
+#     if not content_type.startswith('image/'):
+#         return JsonResponse({'ok': False, 'error': f'Tipo de archivo no válido: {content_type}'}, status=400)
+
+#     # Límite de tamaño: 20 MB
+#     if imagen_file.size > 20 * 1024 * 1024:
+#         return JsonResponse({'ok': False, 'error': 'La imagen supera el límite de 20 MB.'}, status=400)
+
+#     try:
+#         from apps.evaluaciones_educativas.views.omr_utils import procesar_imagen
+#         imagen_bytes = imagen_file.read()
+#         resultado    = procesar_imagen(imagen_bytes)
+#         return JsonResponse({'ok': True, **resultado})
+
+#     except ImportError as e:
+#         # opencv-python-headless no instalado → el frontend usa fallback JS
+#         return JsonResponse({
+#             'ok': False,
+#             'cv_not_installed': True,
+#             'error': f'opencv-python-headless no instalado: {e}',
+#         }, status=503)
+
+#     except ValueError as e:
+#         return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+
+#     except Exception as e:
+#         return JsonResponse({'ok': False, 'error': f'Error interno: {e}'}, status=500)

@@ -22,7 +22,7 @@ from apps.evaluaciones_educativas.models.validaciones_2026 import (
 def _get_cuil(request):
     usuario = request.user
     cuil = usuario.username
-    return '27999999999'
+    return '20123456789'
 
 
 def _get_referente(cuil):
@@ -55,13 +55,6 @@ def seleccionar_region(request):
             'sin_acceso': True,
             'cuil': cuil,
         })
-
-    # Si solo hay una región, redirigir directamente
-    if len(regiones) == 1:
-        return redirect(
-            'evaluaciones_educativas:validaciones_2026:lista_establecimientos',
-            region=regiones[0]
-        )
 
     # Estadísticas por región para mostrar progreso en las tarjetas
     regiones_info = []
@@ -431,7 +424,6 @@ def crear_seccion(request, cueanexo):
             matricula=matricula,
             estado_validacion='APROBADO',
             seccion_creada=True,
-            usuario_ultima_modificacion=cuil,
         )
 
         # Registrar en historial de matrículas
@@ -475,7 +467,6 @@ def validar_seccion(request, seccion_public_id):
     with transaction.atomic():
         seccion.estado_validacion = 'APROBADO'
         seccion.motivo_deshabilitacion = None
-        seccion.usuario_ultima_modificacion = cuil
         seccion.save()
 
         # Registro mínimo en historial
@@ -521,7 +512,6 @@ def deshabilitar_seccion(request, seccion_public_id):
     with transaction.atomic():
         seccion.estado_validacion = 'DESHABILITADO'
         seccion.motivo_deshabilitacion = motivo
-        seccion.usuario_ultima_modificacion = cuil
         seccion.save()
 
         ValHistorialMatriculas.objects.create(
@@ -566,15 +556,15 @@ def marcar_no_participa_all_deshabilitadas(request, cueanexo):
     referente = _get_referente(cuil)
 
     with transaction.atomic():
-        est.participa_aprender = False
+        est.participa_aprender = None   # Vuelve a Sin Validar para que el referente valide de nuevo
         est.cabecera = None
         est.carga_completa = False
-        est.motivo_no_participa = 'Todas las secciones fueron deshabilitadas'
+        est.motivo_no_participa = None
         est.save()
 
         ValHistorialCambiosEstablecimiento.objects.create(
             establecimiento=est,
-            justificacion='Establecimiento marcado como No Participa: todas las secciones fueron deshabilitadas.',
+            justificacion='Establecimiento revertido a Sin Validar: todas las secciones fueron deshabilitadas.',
             usuario=cuil,
             referente=referente,
         )
@@ -627,7 +617,6 @@ def aprobar_seccion(request, seccion_public_id):
             )
         seccion.matricula = matricula_nueva
         seccion.estado_validacion = 'APROBADO'
-        seccion.usuario_ultima_modificacion = cuil
         seccion.save()
 
     return JsonResponse({
@@ -679,7 +668,6 @@ def modificar_seccion(request, seccion_public_id):
         )
         seccion.matricula = matricula_nueva
         seccion.estado_validacion = 'MODIFICADO'
-        seccion.usuario_ultima_modificacion = cuil
         seccion.save()
 
     return JsonResponse({
@@ -706,7 +694,6 @@ def editar_seccion(request, seccion_public_id):
 
     seccion.estado_validacion = 'PENDIENTE'
     seccion.motivo_deshabilitacion = None
-    seccion.usuario_ultima_modificacion = cuil
     seccion.save()
 
     return JsonResponse({
@@ -747,7 +734,6 @@ def marcar_sin_matricula(request, seccion_public_id):
         )
         seccion.estado_validacion = 'SIN_MATRICULA'
         seccion.matricula = None
-        seccion.usuario_ultima_modificacion = cuil
         seccion.save()
 
     return JsonResponse({

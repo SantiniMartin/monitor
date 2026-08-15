@@ -20,8 +20,8 @@
         --green-dk:   #16a34a;
         --red:        #f43f5e;
         --red-dk:     #be123c;
-        --amber:      #f59e0b;
-        --amber-dk:   #d97706;
+        --amber:      #e9ec0f;
+        --amber-dk:   #e9ec0f;
         --purple:     #6366f1;
         --gray-50:    #f8fafc;
         --gray-100:   #f1f5f9;
@@ -43,7 +43,7 @@
 
       /* ── TOPBAR ── */
       .topbar {
-        background: linear-gradient(135deg, #0a1e40, var(--primary));
+        background: linear-gradient(90deg, #2d77e6, #1a5abf);
         color: #fff; padding: 14px 28px;
         display: flex; align-items: center; justify-content: space-between;
         gap: 14px; flex-wrap: wrap;
@@ -637,6 +637,22 @@
       const showSpinner = () => spinner.classList.add('active');
       const hideSpinner = () => spinner.classList.remove('active');
 
+      // ── ANTI-DOBLE CLIC ───────────────────────────────────────────────
+      function protegerBtn(btn) {
+        if (!btn || btn.disabled) return false;
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando...';
+        return true;
+      }
+      function restaurarBtn(btn) {
+        if (!btn) return;
+        btn.disabled = false;
+        if (btn.dataset.originalHtml) {
+          btn.innerHTML = btn.dataset.originalHtml;
+        }
+      }
+
       // ── TOAST ────────────────────────────────────────────────────────
       function showToast(msg, type = 'success') {
         const id = 'toast-' + Date.now();
@@ -730,6 +746,8 @@
           motivo = document.getElementById('motivoNoParticipa').value;
           if (!motivo) return;
         }
+        const btnConf = document.getElementById('btnConfirmarParticipacion');
+        if (!protegerBtn(btnConf)) return;
 
         showSpinner();
         modalParticipacionBS.hide();
@@ -768,6 +786,7 @@
           showToast('Error de conexión.', 'danger');
         } finally {
           hideSpinner();
+          restaurarBtn(btnConf);
         }
       }
 
@@ -841,8 +860,10 @@
       }
 
       // ── GUARDAR CABECERA ─────────────────────────────────────────────
-      document.getElementById('btnGuardarCabecera').addEventListener('click', async () => {
+      document.getElementById('btnGuardarCabecera').addEventListener('click', async (e) => {
         if (!cabSeleccionadaId) return;
+        const btn = e.currentTarget;
+        if (!protegerBtn(btn)) return;
         showSpinner();
         modalCabeceraBS.hide();
 
@@ -869,6 +890,7 @@
           showToast('Error de conexión.', 'danger');
         } finally {
           hideSpinner();
+          restaurarBtn(btn);
         }
       });
 

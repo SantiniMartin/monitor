@@ -20,8 +20,10 @@
         --green-dk:   #16a34a;
         --red:        #f43f5e;
         --red-dk:     #be123c;
-        --amber:      #f59e0b;
-        --amber-dk:   #d97706;
+        --amber:      #e9ec0f;
+        --amber-dk:   #e9ec0f;
+        --orange:     #f97316;
+        --orange-dk:  #ea580c;
         --purple:     #6366f1;
         --gray-50:    #f8fafc;
         --gray-100:   #f1f5f9;
@@ -42,7 +44,7 @@
 
       /* ── TOPBAR ── */
       .topbar {
-        background: linear-gradient(135deg, #0a1e40, var(--primary));
+        background: linear-gradient(90deg, #2d77e6, #1a5abf);
         color: #fff; padding: 14px 28px;
         display: flex; align-items: center; justify-content: space-between;
         gap: 14px; flex-wrap: wrap;
@@ -116,7 +118,7 @@
         font-size: 0.84rem; font-weight: 600;
       }
       .stat-mini-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-      .stat-mini-dot.pendiente    { background: var(--amber); }
+      .stat-mini-dot.pendiente    { background: #ffff00; }
       .stat-mini-dot.validado     { background: var(--green); }
       .stat-mini-dot.deshabilitado{ background: var(--red); }
 
@@ -156,7 +158,7 @@
       .table-responsive { overflow-x: auto; }
       table { width: 100%; border-collapse: collapse; }
       thead th {
-        background: linear-gradient(135deg, #0a1e40, #1a3a6b);
+        background: linear-gradient(90deg, #2d77e6, #1a5abf);
         color: #fff; padding: 12px 14px; font-size: 0.72rem;
         text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600;
         white-space: nowrap; position: sticky; top: 0;
@@ -197,8 +199,14 @@
       .btn-validar:hover { background: var(--green-dk); }
       .btn-deshab   { background: var(--red); color: #fff; }
       .btn-deshab:hover { background: var(--red-dk); }
-      .btn-modmat   { background: var(--amber); color: #fff; }
-      .btn-modmat:hover { background: var(--amber-dk); }
+      .btn-modmat   { background: var(--orange); color: #fff; }
+      .btn-modmat:hover { background: var(--orange-dk); }
+      /* Botón deshabilitado (carga completa) */
+      .btn-accion-disabled {
+        background: var(--gray-200) !important; color: var(--gray-400) !important;
+        cursor: not-allowed !important; pointer-events: none !important;
+        opacity: 0.7;
+      }
 
       /* Matrícula */
       .mat-valor { font-weight: 700; color: var(--primary); }
@@ -210,7 +218,7 @@
       .mh-primary  { background: linear-gradient(135deg, #0a1e40, var(--primary)); }
       .mh-green    { background: linear-gradient(135deg, #166534, var(--green)); }
       .mh-red      { background: linear-gradient(135deg, var(--red-dk), var(--red)); }
-      .mh-amber    { background: linear-gradient(135deg, var(--amber-dk), var(--amber)); }
+      .mh-amber    { background: linear-gradient(135deg, var(--orange-dk), var(--orange)); }
       .modal-header .btn-close { filter: invert(1); }
       .modal-title { font-weight: 700; font-size: 1rem; }
 
@@ -370,18 +378,8 @@
       </div>
       {% endif %}
 
-      <!-- Alerta todas deshabilitadas -->
-      <div class="alerta-deshabilitadas d-none" id="alertaTodasDeshabilitadas">
-        <i class="bi bi-exclamation-octagon-fill"></i>
-        <div>
-          <strong>Todas las secciones están deshabilitadas.</strong><br>
-          <span style="font-weight:400; font-size:0.82rem;">El establecimiento no puede participar sin secciones activas. ¿Confirmás que el establecimiento tampoco participa?</span>
-          <br>
-          <button class="btn btn-sm btn-danger fw-bold mt-2" onclick="confirmarNoParticipaAll()">
-            <i class="bi bi-x-circle me-1"></i>Confirmar: No participa
-          </button>
-        </div>
-      </div>
+      <!-- Alerta todas deshabilitadas (OCULTA - ahora es modal) -->
+      <div class="d-none" id="alertaTodasDeshabilitadas"></div>
 
       <!-- Banner de carga completa -->
       {% if todas_procesadas %}
@@ -399,7 +397,8 @@
                  placeholder="Buscar sección por letra..." oninput="filtrarSecciones(this.value)" />
         </div>
         <div class="toolbar-right">
-          <button class="btn-agregar" onclick="abrirModalCrearSeccion()" id="btnAgregarSeccion">
+          <button class="btn-agregar" onclick="abrirModalCrearSeccion()" id="btnAgregarSeccion"
+                  {% if establecimiento.carga_completa %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
             <i class="bi bi-plus-circle-fill"></i>Agregar sección
           </button>
           <button class="btn-validacion-completa {% if establecimiento.carga_completa %}activa{% endif %}"
@@ -418,7 +417,7 @@
           <table>
             <thead>
               <tr>
-                <th>CUE</th>
+                <th>Cueanexo</th>
                 <th>Grado</th>
                 <th>Sección</th>
                 <th>Turno</th>
@@ -473,13 +472,18 @@
                 </td>
                 <td>
                   <div class="acciones-wrap" id="acciones-{{ seccion.public_id }}">
-                    {% if seccion.estado_validacion == 'PENDIENTE' %}
+                    {% if establecimiento.carga_completa %}
+                      <!-- Carga completa: todos los botones deshabilitados -->
+                      <button class="btn-accion btn-accion-disabled" disabled>
+                        <i class="bi bi-lock-fill"></i>Bloqueado
+                      </button>
+                    {% elif seccion.estado_validacion == 'PENDIENTE' %}
                       <button class="btn-accion btn-validar"
-                              onclick="validarSeccion('{{ seccion.public_id }}')">
+                              onclick="accionConProteccion(this, () => validarSeccion('{{ seccion.public_id }}'))">
                         <i class="bi bi-check-lg"></i>Validar
                       </button>
                       <button class="btn-accion btn-deshab"
-                              onclick="abrirModalDeshabilitar('{{ seccion.public_id }}', '{{ seccion.seccion }}-{{ seccion.get_turno_display|escapejs }}')">
+                              onclick="accionConProteccion(this, () => abrirModalDeshabilitar('{{ seccion.public_id }}', '{{ seccion.seccion }}-{{ seccion.get_turno_display|escapejs }}'))">
                         <i class="bi bi-slash-circle"></i>Deshabilitar
                       </button>
                       <button class="btn-accion btn-modmat"
@@ -488,7 +492,7 @@
                       </button>
                     {% elif seccion.estado_validacion == 'APROBADO' or seccion.estado_validacion == 'MODIFICADO' %}
                       <button class="btn-accion btn-deshab"
-                              onclick="abrirModalDeshabilitar('{{ seccion.public_id }}', '{{ seccion.seccion }}-{{ seccion.get_turno_display|escapejs }}')">
+                              onclick="accionConProteccion(this, () => abrirModalDeshabilitar('{{ seccion.public_id }}', '{{ seccion.seccion }}-{{ seccion.get_turno_display|escapejs }}'))">
                         <i class="bi bi-slash-circle"></i>Deshabilitar
                       </button>
                       <button class="btn-accion btn-modmat"
@@ -497,7 +501,7 @@
                       </button>
                     {% elif seccion.estado_validacion == 'DESHABILITADO' %}
                       <button class="btn-accion btn-validar"
-                              onclick="validarSeccion('{{ seccion.public_id }}')">
+                              onclick="accionConProteccion(this, () => validarSeccion('{{ seccion.public_id }}'))">
                         <i class="bi bi-check-lg"></i>Re-habilitar
                       </button>
                     {% endif %}
@@ -662,8 +666,43 @@
           <div class="modal-footer border-0">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
             <button type="button" class="btn fw-bold text-white" onclick="confirmarModificarMat()"
-                    style="background:var(--amber); border-color:var(--amber-dk);">
+                    style="background:var(--orange); border-color:var(--orange-dk);">
               <i class="bi bi-check-lg me-1"></i>Confirmar cambio
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         MODAL: Todas las secciones deshabilitadas
+    ================================================================ -->
+    <div class="modal fade" id="modalTodasDeshabilitadas" tabindex="-1" aria-labelledby="modalTodasDeshabLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" style="background:linear-gradient(135deg,#7c2d12,#dc2626);">
+            <h5 class="modal-title text-white fw-bold" id="modalTodasDeshabLabel">
+              <i class="bi bi-exclamation-octagon-fill me-2"></i>Todas las secciones deshabilitadas
+            </h5>
+          </div>
+          <div class="modal-body p-4">
+            <div style="background:#fff7ed;border:1.5px solid #f59e0b;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.86rem;color:#92400e;">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>Atención:</strong> Todas las secciones de este establecimiento quedaron deshabilitadas.
+              Si continuás, el establecimiento volverá a <strong>Sin Estado</strong> (amarillo) y deberas validarla en el estado correcto.
+            </div>
+            <p style="font-size:0.88rem;color:#475569;margin-bottom:0;">
+              ¿Querés agregar una nueva sección antes de salir, o confirmás que el establecimiento debe quedar sin estado?
+            </p>
+          </div>
+          <div class="modal-footer border-0" style="gap:10px;">
+            <button type="button" class="btn btn-outline-primary fw-semibold" onclick="opcionAgregarSeccionYCerrar()" style="font-size:0.86rem;">
+              <i class="bi bi-plus-circle me-1"></i>Agregar una sección
+            </button>
+            <button type="button" class="btn fw-bold text-white" id="btnConfirmarTodasDeshab"
+                    onclick="confirmarNoParticipaAll(this)"
+                    style="background:linear-gradient(135deg,#7c2d12,#dc2626);border:none;font-size:0.86rem;">
+              <i class="bi bi-box-arrow-right me-1"></i>Confirmar y salir
             </button>
           </div>
         </div>
@@ -683,6 +722,41 @@
       const spinner = document.getElementById('spinnerOverlay');
       const showSpinner = () => spinner.classList.add('active');
       const hideSpinner = () => spinner.classList.remove('active');
+
+      // ── ANTI-DOBLE CLIC ───────────────────────────────────────────────
+      // Envuelve una función en protección: deshabilita el botón y lo restaura al terminar.
+      // Uso: onclick="accionConProteccion(this, () => miFunc())"
+      function accionConProteccion(btn, fn) {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const htmlOriginal = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>...';
+        // Ejecutamos la función; si es asíncrona esperamos que termine
+        const resultado = fn();
+        const restaurar = () => { btn.disabled = false; btn.innerHTML = htmlOriginal; };
+        if (resultado && typeof resultado.finally === 'function') {
+          resultado.finally(restaurar);
+        } else {
+          // función síncrona (abre modal): restaurar de inmediato
+          restaurar();
+        }
+      }
+
+      // Protección para botones de modal (deshabilitar al submit)
+      function protegerBtn(btn) {
+        if (btn.disabled) return false;
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando...';
+        return true;
+      }
+      function restaurarBtn(btn) {
+        if (!btn) return;
+        btn.disabled = false;
+        if (btn.dataset.originalHtml) {
+          btn.innerHTML = btn.dataset.originalHtml;
+        }
+      }
 
       // ── TOAST ────────────────────────────────────────────────────────
       function showToast(msg, type = 'success') {
@@ -773,16 +847,19 @@
         const mat      = document.getElementById('cs-matricula').value;
         const motivo   = document.getElementById('cs-motivo').value.trim();
         const errDiv   = document.getElementById('cs-error');
+        const btnGuardar = document.querySelector('#modalCrearSeccion .btn-primary');
 
         // Validaciones locales
-        if (!seccion || !turno) { mostrarError(errDiv, 'Seleccioná sección y turno.'); return; }
+        if (!seccion || !turno) { mostrarError(errDiv, 'Selecioná sección y turno.'); return; }
         const matNum = parseInt(mat);
         if (!mat || isNaN(matNum) || matNum < 1 || matNum > 99) { mostrarError(errDiv, 'La matrícula debe ser un número entre 1 y 99.'); return; }
         if (!motivo || !motivo.replace(/ /g,'').match(/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$/)) { mostrarError(errDiv, 'El motivo debe contener solo letras.'); return; }
 
         errDiv.classList.add('d-none');
+        if (!protegerBtn(btnGuardar)) return;
         showSpinner();
         modalCrearBS.hide();
+        const btnOrigHTML = btnGuardar.innerHTML; // ya reemplazado por protegerBtn
 
         const body = new FormData();
         body.append('csrfmiddlewaretoken', getCsrf());
@@ -814,6 +891,7 @@
           showToast('Error de conexión.', 'danger');
         } finally {
           hideSpinner();
+          if (btnGuardar) restaurarBtn(btnGuardar);
         }
       }
 
@@ -887,6 +965,8 @@
       async function confirmarDeshabilitar() {
         const motivo = document.getElementById('dh-motivo').value;
         if (!motivo) { showToast('Seleccioná un motivo.', 'warning'); return; }
+        const btnConf = document.querySelector('#modalDeshabilitar .btn-danger');
+        if (!protegerBtn(btnConf)) return;
         showSpinner(); modalDeshabBS.hide();
         const body = new FormData();
         body.append('csrfmiddlewaretoken', getCsrf());
@@ -901,13 +981,21 @@
             actualizarFilaEstado(dhSeccionPid, 'DESHABILITADO', motivo);
             showToast('Sección <strong>deshabilitada</strong>.', 'info');
             if (data.todas_deshabilitadas) {
-              setTimeout(() => verificarTodasProcesadas(), 200);
+              // Mostrar modal de opción (crear sección o salir)
+              setTimeout(() => {
+                const m = new bootstrap.Modal(document.getElementById('modalTodasDeshabilitadas'));
+                m.show();
+              }, 400);
             }
           } else {
             showToast('Error: ' + (data.error||'Error.'), 'danger');
           }
         } catch(e) { showToast('Error de conexión.', 'danger'); }
-        finally { hideSpinner(); }
+        finally {
+          hideSpinner();
+          const btnConf = document.querySelector('#modalDeshabilitar .btn-danger');
+          restaurarBtn(btnConf);
+        }
       }
 
       // ── MODAL MODIFICAR MATRÍCULA ─────────────────────────────────────
@@ -927,6 +1015,8 @@
         const just = document.getElementById('mm-justificacion').value.trim();
         if (isNaN(mat) || mat < 1 || mat > 99) { showToast('La matrícula debe estar entre 1 y 99.', 'warning'); return; }
         if (!just) { showToast('La justificación es obligatoria.', 'warning'); return; }
+        const btnConf = document.querySelector('#modalModificarMat .btn');
+        if (!protegerBtn(btnConf)) return;
         showSpinner(); modalModMatBS.hide();
         const body = new FormData();
         body.append('csrfmiddlewaretoken', getCsrf());
@@ -946,7 +1036,11 @@
             showToast('Error: ' + (data.error||'Error.'), 'danger');
           }
         } catch(e) { showToast('Error de conexión.', 'danger'); }
-        finally { hideSpinner(); }
+        finally {
+          hideSpinner();
+          const btnConf = document.querySelector('#modalModificarMat .btn');
+          restaurarBtn(btnConf);
+        }
       }
 
       // ── ACTUALIZAR FILA ───────────────────────────────────────────────
@@ -1008,6 +1102,9 @@
 
       // ── VALIDACIÓN COMPLETA ───────────────────────────────────────────
       async function validacionCompleta() {
+        const btnVC = document.getElementById('btnValidacionCompleta');
+        if (!protegerBtn(btnVC)) return;
+        const btnAgregar = document.getElementById('btnAgregarSeccion');
         showSpinner();
         const body = new FormData();
         body.append('csrfmiddlewaretoken', getCsrf());
@@ -1018,25 +1115,48 @@
           );
           const data = await resp.json();
           if (data.ok) {
-            const btnVC = document.getElementById('btnValidacionCompleta');
             if (data.carga_completa) {
-              btnVC.classList.add('activa');
               btnVC.innerHTML = `<i class="bi bi-patch-check-fill me-1"></i>Modificar carga`;
+              btnVC.classList.add('activa');
+              btnVC.disabled = false; // el toggle lo re-habilitamos
+              // Bloquear todos los botones de acción y agregar sección
+              document.querySelectorAll('.acciones-wrap .btn-accion').forEach(b => {
+                b.disabled = true;
+                b.classList.add('btn-accion-disabled');
+              });
+              if (btnAgregar) { btnAgregar.disabled = true; btnAgregar.style.opacity = '0.5'; btnAgregar.style.cursor = 'not-allowed'; }
               showToast('✅ <strong>Carga completa</strong> confirmada para este establecimiento.', 'success');
             } else {
-              btnVC.classList.remove('activa');
               btnVC.innerHTML = `<i class="bi bi-patch-check me-1"></i>Validación completa`;
+              btnVC.classList.remove('activa');
+              btnVC.disabled = false;
+              // Re-habilitar los botones de acción
+              document.querySelectorAll('.acciones-wrap .btn-accion').forEach(b => {
+                b.disabled = false;
+                b.classList.remove('btn-accion-disabled');
+              });
+              if (btnAgregar) { btnAgregar.disabled = false; btnAgregar.style.opacity = ''; btnAgregar.style.cursor = ''; }
               showToast('Carga reabierta. Podés modificar las secciones.', 'info');
             }
           } else {
             showToast('Error: ' + (data.error||'Error.'), 'danger');
+            btnVC.disabled = false;
+            btnVC.innerHTML = btnVC.classList.contains('activa') 
+              ? `<i class="bi bi-patch-check-fill me-1"></i>Modificar carga`
+              : `<i class="bi bi-patch-check me-1"></i>Validación completa`;
           }
-        } catch(e) { showToast('Error de conexión.', 'danger'); }
+        } catch(e) {
+          showToast('Error de conexión.', 'danger');
+          btnVC.disabled = false;
+        }
         finally { hideSpinner(); }
       }
 
       // ── CONFIRMAR NO PARTICIPA (todas deshabilitadas) ─────────────────
-      async function confirmarNoParticipaAll() {
+      async function confirmarNoParticipaAll(btn) {
+        if (btn && !protegerBtn(btn)) return;
+        const modalTD = bootstrap.Modal.getInstance(document.getElementById('modalTodasDeshabilitadas'));
+        if (modalTD) modalTD.hide();
         showSpinner();
         const body = new FormData();
         body.append('csrfmiddlewaretoken', getCsrf());
@@ -1047,13 +1167,23 @@
           );
           const data = await resp.json();
           if (data.ok) {
-            showToast('Establecimiento marcado como <strong>No participa</strong>. Redirigiendo...', 'info');
-            setTimeout(() => { window.location.href = data.redirect_url; }, 1500);
+            showToast('El establecimiento volverá a <strong>Sin Estado</strong>. Redirigiendo...', 'info');
+            setTimeout(() => { window.location.href = data.redirect_url; }, 1800);
           } else {
             showToast('Error: ' + (data.error||'Error.'), 'danger');
           }
         } catch(e) { showToast('Error de conexión.', 'danger'); }
-        finally { hideSpinner(); }
+        finally {
+          hideSpinner();
+          if (btn) restaurarBtn(btn);
+        }
+      }
+
+      // ── OPCIÓN: Agregar sección desde modal todas deshabilitadas ─────────
+      function opcionAgregarSeccionYCerrar() {
+        const modalTD = bootstrap.Modal.getInstance(document.getElementById('modalTodasDeshabilitadas'));
+        if (modalTD) modalTD.hide();
+        setTimeout(() => abrirModalCrearSeccion(), 350);
       }
 
       // ── MANEJAR VOLVER (revertir si no hay secciones) ─────────────────
@@ -1086,6 +1216,12 @@
         document.getElementById('btnValidacionCompleta').disabled = false;
       }
       verificarTodasProcesadas();
+      
+      // Si se recarga la página y todas las secciones están deshabilitadas, mostrar modal
+      if (cntTotal > 0 && cntDeshabilitado === cntTotal) {
+        const m = new bootstrap.Modal(document.getElementById('modalTodasDeshabilitadas'));
+        m.show();
+      }
     </script>
   </body>
 </html>
