@@ -152,9 +152,9 @@ STATICFILES_DIRS = [
 # Carpeta donde collectstatic recopilará los archivos para producción en Render
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Habilitar compresión y caché de estáticos con WhiteNoise
+# Habilitar compresión y caché de estáticos con WhiteNoise (sin chequeo estricto de manifest)
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
