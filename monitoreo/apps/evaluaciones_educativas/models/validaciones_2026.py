@@ -48,7 +48,7 @@ class ValReferenteCargaTemporal(models.Model):
 	nombre = models.CharField(max_length=150)
 	apellido = models.CharField(max_length=150)
 	region = models.CharField(max_length=100)
-	dni = models.CharField(max_length=20, unique=True, null=True, blank=True)
+	dni = models.CharField(max_length=20, null=True, blank=True)
 
 	class Meta:
 		db_table = '"validaciones_2026"."referentes_carga_temporal"'
