@@ -33,10 +33,10 @@ STATICFILES_DIRS = [
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://monitoreo-2026.onrender.com"]
+CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://validacion-2026.onrender.com"]
 
 
 # Application definition
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # <-- Agregado para Render
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -140,3 +141,20 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
+
+STATIC_URL = "static/"
+
+# Carpeta donde se buscarán los archivos estáticos en desarrollo (ej. tu logo)
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+
+# Carpeta donde collectstatic recopilará los archivos para producción en Render
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# Habilitar compresión y caché de estáticos con WhiteNoise
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
