@@ -363,7 +363,6 @@ def crear_seccion(request, cueanexo):
     nombre_seccion = request.POST.get('seccion', '').strip()
     turno          = request.POST.get('turno', '').strip()
     matricula_str  = request.POST.get('matricula', '').strip()
-    motivo         = request.POST.get('motivo', '').strip()
     nombre_grado   = request.POST.get('nombre_grado', '3er Año/Grado').strip()
 
     # Validar sección
@@ -389,10 +388,7 @@ def crear_seccion(request, cueanexo):
     except (ValueError, TypeError):
         return JsonResponse({'ok': False, 'error': 'La matrícula debe ser un número entero entre 1 y 99.'}, status=400)
 
-    # Validar motivo (solo letras y espacios)
-    motivo_limpio = motivo.replace(' ', '')
-    if not motivo or not motivo_limpio.isalpha():
-        return JsonResponse({'ok': False, 'error': 'El motivo debe contener solo letras.'}, status=400)
+
 
     referente = _get_referente(cuil)
 
@@ -431,7 +427,7 @@ def crear_seccion(request, cueanexo):
             seccion=seccion,
             matricula_anterior=None,
             matricula_nueva=matricula,
-            justificacion=f'Sección creada manualmente. Motivo: {motivo}',
+            justificacion='Sección creada manualmente.',
             usuario_cambio=cuil,
             referente=referente,
         )

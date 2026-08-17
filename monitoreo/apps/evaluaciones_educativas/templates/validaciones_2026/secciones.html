@@ -497,7 +497,7 @@
                       </button>
                       <button class="btn-accion btn-modmat"
                               onclick="abrirModalModificarMat('{{ seccion.public_id }}', '{{ seccion.seccion }}-{{ seccion.get_turno_display|escapejs }}', {{ seccion.matricula|default:'null' }})">
-                        <i class="bi bi-pencil"></i>Matrícula
+                        <i class="bi bi-pencil"></i>Modificar Matrícula
                       </button>
                     {% elif seccion.estado_validacion == 'DESHABILITADO' %}
                       <button class="btn-accion btn-validar"
@@ -570,12 +570,7 @@
                        placeholder="Ej: 28" style="font-size:0.86rem;"
                        oninput="this.value = this.value.replace(/[^0-9]/g,'').slice(0,2)" />
               </div>
-              <div class="col-12">
-                <label class="form-label fw-semibold" style="font-size:0.84rem;">Motivo de creación <span class="text-danger">*</span> <small class="text-muted fw-normal">(solo letras)</small></label>
-                <input type="text" class="form-control" id="cs-motivo"
-                       placeholder="Ej: Sección no existía en el sistema" style="font-size:0.86rem;"
-                       oninput="this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]/g,'')" />
-              </div>
+
               <div id="cs-error" class="col-12 d-none">
                 <div class="alert alert-danger py-2 mb-0" style="font-size:0.82rem;"></div>
               </div>
@@ -835,7 +830,6 @@
         document.getElementById('cs-seccion').value = '';
         document.getElementById('cs-turno').value = '';
         document.getElementById('cs-matricula').value = '';
-        document.getElementById('cs-motivo').value = '';
         document.getElementById('cs-error').classList.add('d-none');
         modalCrearBS.show();
       }
@@ -845,7 +839,6 @@
         const seccion  = document.getElementById('cs-seccion').value;
         const turno    = document.getElementById('cs-turno').value;
         const mat      = document.getElementById('cs-matricula').value;
-        const motivo   = document.getElementById('cs-motivo').value.trim();
         const errDiv   = document.getElementById('cs-error');
         const btnGuardar = document.querySelector('#modalCrearSeccion .btn-primary');
 
@@ -853,7 +846,6 @@
         if (!seccion || !turno) { mostrarError(errDiv, 'Selecioná sección y turno.'); return; }
         const matNum = parseInt(mat);
         if (!mat || isNaN(matNum) || matNum < 1 || matNum > 99) { mostrarError(errDiv, 'La matrícula debe ser un número entre 1 y 99.'); return; }
-        if (!motivo || !motivo.replace(/ /g,'').match(/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$/)) { mostrarError(errDiv, 'El motivo debe contener solo letras.'); return; }
 
         errDiv.classList.add('d-none');
         if (!protegerBtn(btnGuardar)) return;
@@ -867,7 +859,6 @@
         body.append('seccion', seccion);
         body.append('turno', turno);
         body.append('matricula', matNum);
-        body.append('motivo', motivo);
 
         try {
           const resp = await fetch(
@@ -919,7 +910,7 @@
                 <i class="bi bi-slash-circle"></i>Deshabilitar
               </button>
               <button class="btn-accion btn-modmat" onclick="abrirModalModificarMat('${data.seccion_id}', '${data.seccion}-${data.turno}', ${data.matricula})">
-                <i class="bi bi-pencil"></i>Matrícula
+                <i class="bi bi-pencil"></i> Modificar Matrícula
               </button>
             </div>
           </td>`;
