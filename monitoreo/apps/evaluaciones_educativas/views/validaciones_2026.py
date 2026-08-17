@@ -61,7 +61,7 @@ def seleccionar_region(request):
     for region in regiones:
         ests = ValEstablecimiento.objects.filter(region=region)
         total_r      = ests.count()
-        procesados_r = ests.exclude(participa_aprender=None).count()
+        procesados_r = ests.exclude(participa_aprender='sin validar participación').count()
         regiones_info.append({
             'nombre':      region,
             'total':       total_r,
@@ -119,7 +119,7 @@ def lista_establecimientos(request, region):
     )
 
     total_est  = establecimientos.count()
-    procesados = establecimientos.exclude(participa_aprender=None).count()
+    procesados = establecimientos.exclude(participa_aprender='sin validar participación').count()
 
     establecimientos_list = list(establecimientos)
     for est in establecimientos_list:
@@ -169,15 +169,15 @@ def set_participacion(request, cueanexo):
     participa_str = request.POST.get('participa', '').strip().lower()
     motivo        = request.POST.get('motivo', '').strip()
 
-    if participa_str not in ('true', 'false'):
-        return JsonResponse({'ok': False, 'error': 'Valor inválido. Se esperaba true o false.'}, status=400)
+    if participa_str not in ('participa', 'no participa', 'sin validar participación'):
+        return JsonResponse({'ok': False, 'error': 'Valor inválido.'}, status=400)
 
     referente = _get_referente(cuil)
 
     with transaction.atomic():
-        est.participa_aprender = (participa_str == 'true')
+        est.participa_aprender = participa_str
 
-        if not est.participa_aprender:
+        if est.participa_aprender == 'no participa':
             est.cabecera = None
             est.carga_completa = False
             est.motivo_no_participa = motivo or 'No especificado'
@@ -186,7 +186,7 @@ def set_participacion(request, cueanexo):
 
         est.save()
 
-        texto_historial = motivo if motivo else ('Participa en Aprender' if est.participa_aprender else 'No participa en Aprender')
+        texto_historial = motivo if motivo else ('Participa en Aprender' if est.participa_aprender == 'participa' else 'No participa en Aprender')
         ValHistorialCambiosEstablecimiento.objects.create(
             establecimiento=est,
             justificacion=texto_historial,
@@ -227,7 +227,7 @@ def set_cabecera_establecimiento(request, cueanexo):
 
     with transaction.atomic():
         est.cabecera = cabecera
-        est.participa_aprender = True  # coherencia
+        est.participa_aprender = 'participa'  # coherencia
         est.save()
 
         ValHistorialCambiosEstablecimiento.objects.create(
@@ -277,7 +277,7 @@ def revertir_sin_secciones(request, cueanexo):
     referente = _get_referente(cuil)
 
     with transaction.atomic():
-        est.participa_aprender = None
+        est.participa_aprender = 'sin validar participación'
         est.carga_completa = False
         est.save()
 
@@ -305,7 +305,7 @@ def lista_secciones(request, cueanexo):
     if not est:
         return redirect('evaluaciones_educativas:validaciones_2026:lista')
 
-    if est.participa_aprender is not True:
+    if est.participa_aprender != 'participa':
         return redirect('evaluaciones_educativas:validaciones_2026:lista')
 
     secciones = (
@@ -357,7 +357,7 @@ def crear_seccion(request, cueanexo):
     if not est:
         return JsonResponse({'ok': False, 'error': 'Sin acceso.'}, status=403)
 
-    if est.participa_aprender is not True:
+    if est.participa_aprender != 'participa':
         return JsonResponse({'ok': False, 'error': 'El establecimiento no participa en el programa.'}, status=400)
 
     nombre_seccion = request.POST.get('seccion', '').strip()
@@ -552,7 +552,7 @@ def marcar_no_participa_all_deshabilitadas(request, cueanexo):
     referente = _get_referente(cuil)
 
     with transaction.atomic():
-        est.participa_aprender = None   # Vuelve a Sin Validar para que el referente valide de nuevo
+        est.participa_aprender = 'sin validar participación'  # Vuelve a Sin Validar para que el referente valide de nuevo
         est.cabecera = None
         est.carga_completa = False
         est.motivo_no_participa = None

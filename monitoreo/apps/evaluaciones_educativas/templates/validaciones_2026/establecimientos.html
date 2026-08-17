@@ -406,13 +406,13 @@
       {% if establecimientos %}
       <div class="cards-grid" id="cardsGrid">
         {% for est in establecimientos %}
-        <div class="est-card {% if est.participa_aprender == True %}validado{% elif est.participa_aprender == False %}no-participa{% else %}sin-validar{% endif %}"
+        <div class="est-card {% if est.participa_aprender == 'participa' %}validado{% elif est.participa_aprender == 'no participa' %}no-participa{% else %}sin-validar{% endif %}"
              id="card-{{ est.cueanexo }}"
              data-search="{{ est.escuela|lower }} {{ est.cueanexo }}"
-             onclick="abrirModalParticipacion('{{ est.cueanexo }}', '{{ est.escuela|escapejs }}', {{ est.participa_aprender|yesno:'true,false,null' }})">
+             onclick="abrirModalParticipacion('{{ est.cueanexo }}', '{{ est.escuela|escapejs }}', '{{ est.participa_aprender }}')">
 
           <!-- Barra de estado superior -->
-          <div class="card-status-bar {% if est.participa_aprender == True %}validado{% elif est.participa_aprender == False %}no-participa{% else %}sin-validar{% endif %}" id="status-bar-{{ est.cueanexo }}"></div>
+          <div class="card-status-bar {% if est.participa_aprender == 'participa' %}validado{% elif est.participa_aprender == 'no participa' %}no-participa{% else %}sin-validar{% endif %}" id="status-bar-{{ est.cueanexo }}"></div>
 
           <div class="card-body-inner">
             <div class="card-header-row">
@@ -428,9 +428,9 @@
 
             <!-- Badge estado -->
             <div id="badge-{{ est.cueanexo }}">
-              {% if est.participa_aprender == True %}
+              {% if est.participa_aprender == 'participa' %}
                 <span class="badge-estado badge-validado"><i class="bi bi-check-circle-fill"></i>Validado</span>
-              {% elif est.participa_aprender == False %}
+              {% elif est.participa_aprender == 'no participa' %}
                 <span class="badge-estado badge-no-participa"><i class="bi bi-x-circle-fill"></i>No participa</span>
               {% else %}
                 <span class="badge-estado badge-sin-validar"><i class="bi bi-clock"></i>Sin validar</span>
@@ -447,7 +447,7 @@
             </div>
 
             <!-- Info motivo no participa -->
-            {% if est.participa_aprender == False and est.motivo_no_participa %}
+            {% if est.participa_aprender == 'no participa' and est.motivo_no_participa %}
             <div class="card-motivo-info" id="motivo-info-{{ est.cueanexo }}">
               <i class="bi bi-info-circle"></i>{{ est.motivo_no_participa }}
             </div>
@@ -472,7 +472,7 @@
             <!-- Footer -->
             <div class="card-footer-row" id="footer-{{ est.cueanexo }}">
               <div>
-                {% if est.participa_aprender == True and est.cabecera %}
+                {% if est.participa_aprender == 'participa' and est.cabecera %}
                 <button class="btn-modificar-cab" onclick="event.stopPropagation(); abrirModalCabecera('{{ est.cueanexo }}', '{{ est.escuela|escapejs }}')"
                         id="btn-mod-cab-{{ est.cueanexo }}">
                   <i class="bi bi-pencil-fill"></i>Modificar cabecera
@@ -481,7 +481,7 @@
                 <div id="btn-mod-cab-{{ est.cueanexo }}"></div>
                 {% endif %}
               </div>
-              {% if est.participa_aprender == True and est.cabecera %}
+              {% if est.participa_aprender == 'participa' and est.cabecera %}
               <a href="{% url 'evaluaciones_educativas:validaciones_2026:lista_secciones' est.cueanexo %}"
                  class="btn-ir-secciones" id="btn-secciones-{{ est.cueanexo }}"
                  onclick="event.stopPropagation()">
@@ -753,7 +753,7 @@
         modalParticipacionBS.hide();
 
         const body = new FormData();
-        body.append('participa', opcionParticipa ? 'true' : 'false');
+        body.append('participa', opcionParticipa ? 'participa' : 'no participa');
         body.append('csrfmiddlewaretoken', getCsrf());
         if (motivo) body.append('motivo', motivo);
 

@@ -55,14 +55,14 @@ def create_test_data():
         escuela="Escuela N° 1 San Martin",
         region="Region 1",
         cabecera=cabecera1,
-        participa_aprender=True
+        participa_aprender='participa'
     )
     est2 = ValEstablecimiento.objects.create(
         cueanexo="987654300",
         escuela="Escuela N° 2 Belgrano",
         region="Region 1",
         cabecera=cabecera1,
-        participa_aprender=False,
+        participa_aprender='no participa',
         motivo_no_participa="En reparaciones"
     )
     est3 = ValEstablecimiento.objects.create(
@@ -70,7 +70,7 @@ def create_test_data():
         escuela="Escuela N° 3 Sarmiento",
         region="Region 2",
         cabecera=cabecera2,
-        participa_aprender=True
+        participa_aprender='participa'
     )
 
     print("Creando grados...")

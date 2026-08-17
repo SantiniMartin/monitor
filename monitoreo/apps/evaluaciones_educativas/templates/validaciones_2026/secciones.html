@@ -468,7 +468,9 @@
                     <small class="text-muted" style="font-size:0.72rem;">{{ seccion.motivo_deshabilitacion }}</small>
                   {% elif seccion.seccion_creada %}
                     <small style="color:var(--primary); font-size:0.72rem;"><i class="bi bi-plus-circle me-1"></i>Creada manualmente</small>
-                  {% else %}—{% endif %}
+                  {% elif seccion.estado_validacion == 'APROBADO' %}
+                    <small style="color:var(--success); font-size:0.72rem;"><i class="bi bi-check-circle-fill me-1"></i>Validada Correctamente</small>
+                    {% else %}—{% endif %}
                 </td>
                 <td>
                   <div class="acciones-wrap" id="acciones-{{ seccion.public_id }}">
@@ -488,7 +490,7 @@
                       </button>
                       <button class="btn-accion btn-modmat"
                               onclick="abrirModalModificarMat('{{ seccion.public_id }}', '{{ seccion.seccion }}-{{ seccion.get_turno_display|escapejs }}', {{ seccion.matricula|default:'null' }})">
-                        <i class="bi bi-pencil"></i>Matrícula
+                        <i class="bi bi-pencil"></i>Modificar Matrícula
                       </button>
                     {% elif seccion.estado_validacion == 'APROBADO' or seccion.estado_validacion == 'MODIFICADO' %}
                       <button class="btn-accion btn-deshab"
@@ -1056,8 +1058,15 @@
 
         // Motivo
         const tdMot = document.getElementById('td-mot-' + pid);
-        if (tdMot && motivo) tdMot.innerHTML = `<small class="text-muted" style="font-size:0.72rem;">${motivo}</small>`;
-        if (tdMot && !motivo && estado !== 'DESHABILITADO') tdMot.innerHTML = '—';
+        if (tdMot) {
+          if (motivo) {
+            tdMot.innerHTML = `<small class="text-muted" style="font-size:0.72rem;">${motivo}</small>`;
+          } else if (estado === 'APROBADO') {
+            tdMot.innerHTML = `<small style="color:var(--success); font-size:0.72rem;"><i class="bi bi-check-circle-fill me-1"></i>Validada Correctamente</small>`;
+          } else if (estado !== 'DESHABILITADO') {
+            tdMot.innerHTML = '—';
+          }
+        }
 
         // Botones
         const accDiv = document.getElementById('acciones-' + pid);
@@ -1071,7 +1080,7 @@
               <i class="bi bi-slash-circle"></i>Deshabilitar
             </button>
             <button class="btn-accion btn-modmat" onclick="abrirModalModificarMat('${pid}', '${secLetra}-${secTurno}', null)">
-              <i class="bi bi-pencil"></i>Matrícula
+              <i class="bi bi-pencil"></i>Modificar Matrícula
             </button>`;
           cntPendiente = Math.max(0, cntPendiente - 1);
           if (estado === 'MODIFICADO') {} // no cambia otros contadores

@@ -92,13 +92,18 @@ class ValEstablecimiento(models.Model):
 	telefono_director = models.CharField(max_length=20, blank=True, null=True)
 	correo_director = models.EmailField(max_length=255, blank=True, null=True)
 	# ── Participación en Aprender ──────────────────────────────────────
-	# None = sin procesar | True = participa | False = no participa
-	participa_aprender = models.BooleanField(
-		null=True,
-		blank=True,
-		default=None,
+	# 'participa' | 'no participa' | 'sin validar participación'
+	class EstadoParticipacion(models.TextChoices):
+		PARTICIPA      = 'PARTICIPA',               'Participa'
+		NO_PARTICIPA   = 'NO PARTICIPA',            'No participa'
+		SIN_VALIDAR    = 'SIN VALIDAR PARTICIPACION', 'Sin validar participación'
+
+	participa_aprender = models.CharField(
+		max_length=30,
+		choices=EstadoParticipacion.choices,
+		default=EstadoParticipacion.SIN_VALIDAR,
 		verbose_name='Participa en Aprender',
-		help_text='None = sin procesar, True = participa, False = no participa'
+		help_text="'participa' | 'no participa' | 'sin validar participación'"
 	)
 	cabecera = models.ForeignKey(
 		'ValCabecera',
