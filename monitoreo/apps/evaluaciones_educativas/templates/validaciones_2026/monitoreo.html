@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoreo - Validaciones 2026</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body { background: linear-gradient(135deg, #eef2ff, #fff); min-height: 100vh; padding: 30px; }
+    .container-custom { max-width: 1450px; }
+    .main-card, .school-card, .summary-card { border: 0; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+    .main-header { background: linear-gradient(90deg, #0066cc, #004a99); color: #fff; border-radius: 18px 18px 0 0; padding: 18px; }
+    .school-card { transition: transform .2s ease, box-shadow .2s ease; overflow: hidden; }
+    .school-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,.16); }
+    .school-card.status-completa { border-top: 7px solid #198754; }
+    .school-card.status-pendiente { border-top: 7px solid #ffc107; }
+    .school-card.status-no-participa { border-top: 7px solid #dc3545; }
+    .school-header { background: linear-gradient(90deg, #1e3c72, #2a5298); color: #fff; }
+    .grade-row { background: #f8fafc; border: 1px solid #e9ecef; border-radius: 12px; }
+    .metric { font-size: .78rem; color: #667085; }
+    .btn-custom { border-radius: 10px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main class="container container-custom">
+    <section class="main-card bg-white mb-4">
+      <header class="main-header text-center">
+        <h1 class="h3 mb-0"><i class="bi bi-clipboard2-data-fill me-2"></i>Validaciones 2026</h1>
+      </header>
+
+      <div class="p-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+          <h2 class="h4 text-primary fw-bold mb-0"><i class="bi bi-building-check me-2"></i>Monitoreo de carga por escuela</h2>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'evaluaciones_educativas:validaciones_2026:monitoreo_cabeceras' %}" class="btn btn-outline-warning btn-custom">
+              <i class="bi bi-diagram-3-fill me-1"></i> Control de cabeceras
+            </a>
+            <a href="{% url 'evaluaciones_educativas:validaciones_2026:lista' %}" class="btn btn-outline-primary btn-custom">
+              <i class="bi bi-arrow-left me-1"></i> Ir a la carga
+            </a>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-lg"><div class="summary-card bg-white p-3 border-start border-primary border-4"><div class="text-muted small">Escuelas</div><div class="fs-3 fw-bold">{{ resumen.total }}</div></div></div>
+          <div class="col-6 col-lg"><div class="summary-card bg-white p-3 border-start border-success border-4"><div class="text-muted small">Participan</div><div class="fs-3 fw-bold text-success">{{ resumen.participan }}</div></div></div>
+          <div class="col-6 col-lg"><div class="summary-card bg-white p-3 border-start border-danger border-4"><div class="text-muted small">No participan</div><div class="fs-3 fw-bold text-danger">{{ resumen.no_participan }}</div></div></div>
+          <div class="col-6 col-lg"><div class="summary-card bg-white p-3 border-start border-warning border-4"><div class="text-muted small">Sin validar</div><div class="fs-3 fw-bold text-warning-emphasis">{{ resumen.sin_validar }}</div></div></div>
+          <div class="col-6 col-lg"><div class="summary-card bg-white p-3 border-start border-info border-4"><div class="text-muted small">Carga completa</div><div class="fs-3 fw-bold text-info-emphasis">{{ resumen.cargas_completas }}</div></div></div>
+        </div>
+
+        <form method="get" class="card border-light-subtle bg-light mb-4">
+          <div class="card-body">
+            <h3 class="h6 text-primary fw-bold mb-3"><i class="bi bi-funnel-fill me-1"></i>Filtros de establecimientos</h3>
+            <div class="row g-3">
+              <div class="col-md-4 col-xl-3">
+                <label for="id_escuela" class="form-label small fw-semibold">Escuela</label>
+                <input type="text" name="escuela" id="id_escuela" class="form-control" placeholder="Nombre de escuela" value="{{ valores_filtros.escuela }}">
+              </div>
+              <div class="col-md-4 col-xl-2">
+                <label for="id_cueanexo" class="form-label small fw-semibold">CUEANEXO</label>
+                <input type="text" name="cueanexo" id="id_cueanexo" class="form-control" placeholder="CUE" value="{{ valores_filtros.cueanexo }}">
+              </div>
+              <div class="col-md-4 col-xl-2">
+                <label for="id_sector" class="form-label small fw-semibold">Sector</label>
+                <select name="sector" id="id_sector" class="form-select">
+                  <option value="">Todos</option>
+                  {% for valor in sectores %}<option value="{{ valor }}" {% if valor == valores_filtros.sector %}selected{% endif %}>{{ valor }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4 col-xl-2">
+                <label for="id_ambito" class="form-label small fw-semibold">Ámbito</label>
+                <select name="ambito" id="id_ambito" class="form-select">
+                  <option value="">Todos</option>
+                  {% for valor in ambitos %}<option value="{{ valor }}" {% if valor == valores_filtros.ambito %}selected{% endif %}>{{ valor }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4 col-xl-3">
+                <label for="id_region" class="form-label small fw-semibold">Región</label>
+                <select name="region" id="id_region" class="form-select">
+                  <option value="">Todas</option>
+                  {% for valor in regiones %}<option value="{{ valor }}" {% if valor == valores_filtros.region %}selected{% endif %}>{{ valor }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-5 col-xl-3">
+                <label for="id_participacion" class="form-label small fw-semibold">Participación</label>
+                <select name="participacion" id="id_participacion" class="form-select">
+                  <option value="">Todas</option>
+                  {% for valor, etiqueta in opciones_participacion %}<option value="{{ valor }}" {% if valor == valores_filtros.participacion %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+              <a href="{% url 'evaluaciones_educativas:validaciones_2026:monitoreo' %}" class="btn btn-outline-secondary btn-custom">Limpiar</a>
+              <button class="btn btn-primary btn-custom" type="submit"><i class="bi bi-funnel-fill me-1"></i>Aplicar filtros</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="row g-4">
+          {% for est in establecimientos %}
+            <div class="col-md-6 col-xl-4">
+              <article class="school-card card h-100 {% if est.participa_aprender|lower == 'no participa' %}status-no-participa{% elif est.carga_completa %}status-completa{% else %}status-pendiente{% endif %}">
+                <header class="school-header p-3 d-flex justify-content-between gap-2 align-items-center">
+                  <span class="fw-bold text-truncate" title="{{ est.escuela }}"><i class="bi bi-bank text-warning me-2"></i>{{ est.escuela }}</span>
+                  <span class="badge text-bg-light">{{ est.cueanexo }}</span>
+                </header>
+                <div class="card-body">
+                  <div class="d-flex flex-wrap gap-2 mb-3">
+                    {% if est.participa_aprender == 'participa' %}
+                      <span class="badge text-bg-success">Participa</span>
+                    {% elif est.participa_aprender == 'no participa' %}
+                      <span class="badge text-bg-danger">No participa</span>
+                    {% else %}
+                      <span class="badge text-bg-warning">Sin validar participación</span>
+                    {% endif %}
+                    {% if est.carga_completa %}<span class="badge text-bg-info">Carga completa</span>{% else %}<span class="badge text-bg-secondary">Carga incompleta</span>{% endif %}
+                  </div>
+                  <div class="small text-muted mb-3">
+                    <div><i class="bi bi-geo-alt me-1"></i>{{ est.region }} · {{ est.localidad }}</div>
+                    {% if est.cabecera %}<div><i class="bi bi-diagram-3 me-1"></i>{{ est.cabecera.nombre_cabecera }}</div>{% endif %}
+                  </div>
+                  {% for grado in est.grados.all %}
+                    <div class="grade-row p-3 mb-2">
+                      <div class="d-flex justify-content-between mb-2">
+                        <strong><i class="bi bi-journal-bookmark text-primary me-1"></i>{{ grado.get_nombre_grado_display }}</strong>
+                        <span class="badge text-bg-primary">{{ grado.total_secciones }} secciones</span>
+                      </div>
+                      <div class="row g-2 metric">
+                        <div class="col-6">Pendientes: <strong>{{ grado.pendientes }}</strong></div>
+                        <div class="col-6">Validadas: <strong>{{ grado.aprobadas }}</strong></div>
+                        <div class="col-6">Sin matrícula: <strong>{{ grado.sin_matricula }}</strong></div>
+                        <div class="col-6">Modificadas: <strong>{{ grado.modificadas }}</strong></div>
+                        <div class="col-6">Deshabilitadas: <strong>{{ grado.deshabilitadas }}</strong></div>
+                        <div class="col-6">Matrícula: <strong>{{ grado.matricula_total|default:0 }}</strong></div>
+                      </div>
+                    </div>
+                  {% empty %}
+                    <p class="text-muted text-center small mb-0">No hay grados registrados.</p>
+                  {% endfor %}
+                </div>
+                <footer class="card-footer bg-white border-0 pt-0">
+                  <a href="{% url 'evaluaciones_educativas:validaciones_2026:lista_secciones' est.cueanexo %}?modo=monitoreo" class="btn btn-sm btn-outline-primary w-100">Ver todas las secciones</a>
+                </footer>
+              </article>
+            </div>
+          {% empty %}
+            <div class="col-12 text-center text-muted py-5"><i class="bi bi-journal-x fs-1 d-block mb-2"></i>No se encontraron establecimientos.</div>
+          {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+          <nav class="mt-4" aria-label="Paginación">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if params_url %}&{{ params_url }}{% endif %}">&laquo;&laquo;</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if params_url %}&{{ params_url }}{% endif %}">&laquo;</a></li>
+              {% endif %}
+              <li class="page-item active"><span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+              {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if params_url %}&{{ params_url }}{% endif %}">&raquo;</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if params_url %}&{{ params_url }}{% endif %}">&raquo;&raquo;</a></li>
+              {% endif %}
+            </ul>
+          </nav>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

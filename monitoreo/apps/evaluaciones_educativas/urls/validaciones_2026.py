@@ -4,6 +4,13 @@ from apps.evaluaciones_educativas.views import validaciones_2026
 app_name = "validaciones_2026"
 
 urlpatterns = [
+    path('monitoreo/', validaciones_2026.monitoreo, name='monitoreo'),
+    path(
+        'monitoreo/cabeceras/',
+        validaciones_2026.monitoreo_cabeceras,
+        name='monitoreo_cabeceras',
+    ),
+
     # PASO 0: Seleccionar región (landing page)
     path('', validaciones_2026.seleccionar_region, name='lista'),
 

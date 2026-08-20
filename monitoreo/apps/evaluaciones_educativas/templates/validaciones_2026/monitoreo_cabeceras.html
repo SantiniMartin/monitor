@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de cabeceras - Validaciones 2026</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body { background: linear-gradient(135deg, #eef2ff, #fff); min-height: 100vh; padding: 30px; }
+    .container-custom { max-width: 1450px; }
+    .main-card, .summary-card { border: 0; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+    .main-header { background: linear-gradient(90deg, #0066cc, #004a99); color: #fff; border-radius: 18px 18px 0 0; padding: 18px; }
+    .summary-card { background: #fff; padding: 16px; height: 100%; }
+    .btn-custom { border-radius: 10px; font-weight: 600; }
+    .table thead th { white-space: nowrap; font-size: .78rem; text-transform: uppercase; color: #667085; }
+    .table tbody td { vertical-align: middle; }
+    .school-name { min-width: 260px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 10px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+    .status-correcta { color: #166534; background: #dcfce7; }
+    .status-incorrecta { color: #991b1b; background: #fee2e2; }
+    .status-sin-asignar { color: #92400e; background: #fef3c7; }
+    .row-incorrecta { background: #fff7f7; }
+    .row-sin-asignar { background: #fffbeb; }
+  </style>
+</head>
+<body>
+  <main class="container container-custom">
+    <section class="main-card bg-white mb-4">
+      <header class="main-header text-center">
+        <h1 class="h3 mb-0"><i class="bi bi-diagram-3-fill me-2"></i>Control de cabeceras</h1>
+      </header>
+
+      <div class="p-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+          <div>
+            <h2 class="h4 text-primary fw-bold mb-1">Escuelas y cabeceras asignadas</h2>
+            <p class="text-muted small mb-0">Es correcta cuando la regional de la cabecera coincide con la región de la escuela.</p>
+          </div>
+          <a href="{% url 'evaluaciones_educativas:validaciones_2026:monitoreo' %}" class="btn btn-outline-primary btn-custom">
+            <i class="bi bi-arrow-left me-1"></i> Volver al monitoreo
+          </a>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-lg-3"><div class="summary-card border-start border-primary border-4"><div class="text-muted small">Total de escuelas</div><div class="fs-3 fw-bold">{{ resumen.total }}</div></div></div>
+          <div class="col-6 col-lg-3"><div class="summary-card border-start border-success border-4"><div class="text-muted small">Correctas</div><div class="fs-3 fw-bold text-success">{{ resumen.correctas }}</div></div></div>
+          <div class="col-6 col-lg-3"><div class="summary-card border-start border-danger border-4"><div class="text-muted small">Incorrectas</div><div class="fs-3 fw-bold text-danger">{{ resumen.incorrectas }}</div></div></div>
+          <div class="col-6 col-lg-3"><div class="summary-card border-start border-warning border-4"><div class="text-muted small">Sin asignar</div><div class="fs-3 fw-bold text-warning-emphasis">{{ resumen.sin_asignar }}</div></div></div>
+        </div>
+
+        <form method="get" class="card border-light-subtle bg-light mb-4">
+          <div class="card-body">
+            <div class="row g-3 align-items-end">
+              <div class="col-lg-5">
+                <label for="id_q" class="form-label small fw-semibold">Buscar escuela, CUE o cabecera</label>
+                <input type="text" name="q" id="id_q" class="form-control" value="{{ valores_filtros.q }}" placeholder="Escribí para buscar">
+              </div>
+              <div class="col-md-5 col-lg-3">
+                <label for="id_region" class="form-label small fw-semibold">Región</label>
+                <select name="region" id="id_region" class="form-select">
+                  <option value="">Todas</option>
+                  {% for valor in regiones %}<option value="{{ valor }}" {% if valor == valores_filtros.region %}selected{% endif %}>{{ valor }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4 col-lg-2">
+                <label for="id_estado" class="form-label small fw-semibold">Estado</label>
+                <select name="estado" id="id_estado" class="form-select">
+                  <option value="">Todos</option>
+                  <option value="CORRECTA" {% if valores_filtros.estado == 'CORRECTA' %}selected{% endif %}>Correcta</option>
+                  <option value="INCORRECTA" {% if valores_filtros.estado == 'INCORRECTA' %}selected{% endif %}>Incorrecta</option>
+                  <option value="SIN_ASIGNAR" {% if valores_filtros.estado == 'SIN_ASIGNAR' %}selected{% endif %}>Sin asignar</option>
+                </select>
+              </div>
+              <div class="col-md-3 col-lg-2 d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-custom"><i class="bi bi-funnel-fill me-1"></i>Filtrar</button>
+                <a href="{% url 'evaluaciones_educativas:validaciones_2026:monitoreo_cabeceras' %}" class="btn btn-outline-secondary btn-custom">Limpiar</a>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <div class="table-responsive border rounded-3">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Escuela</th>
+                <th>CUEANEXO</th>
+                <th>Región esperada</th>
+                <th>Cabecera asignada</th>
+                <th>Regional de cabecera</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for est in establecimientos %}
+              <tr class="{% if est.estado_cabecera == 'INCORRECTA' %}row-incorrecta{% elif est.estado_cabecera == 'SIN_ASIGNAR' %}row-sin-asignar{% endif %}">
+                <td class="school-name fw-semibold">{{ est.escuela }}</td>
+                <td><code>{{ est.cueanexo }}</code></td>
+                <td>{{ est.region|default:'—' }}</td>
+                <td>
+                  {% if est.cabecera %}
+                    <strong>{{ est.cabecera.nombre_cabecera }}</strong>
+                    {% if est.cabecera.localidad %}<div class="small text-muted">{{ est.cabecera.localidad }}</div>{% endif %}
+                  {% else %}
+                    <span class="text-muted">Sin cabecera</span>
+                  {% endif %}
+                </td>
+                <td>{{ est.cabecera.regional|default:'—' }}</td>
+                <td>
+                  {% if est.estado_cabecera == 'CORRECTA' %}
+                    <span class="status-badge status-correcta"><i class="bi bi-check-circle-fill"></i>Correcta</span>
+                  {% elif est.estado_cabecera == 'INCORRECTA' %}
+                    <span class="status-badge status-incorrecta"><i class="bi bi-x-circle-fill"></i>Incorrecta</span>
+                    <div class="small text-danger mt-1">La regional no coincide</div>
+                  {% else %}
+                    <span class="status-badge status-sin-asignar"><i class="bi bi-exclamation-triangle-fill"></i>Sin asignar</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2"></i>No se encontraron escuelas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-4" aria-label="Paginación">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page=1{% if params_url %}&{{ params_url }}{% endif %}">&laquo;&laquo;</a></li>
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if params_url %}&{{ params_url }}{% endif %}">&laquo;</a></li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if params_url %}&{{ params_url }}{% endif %}">&raquo;</a></li>
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if params_url %}&{{ params_url }}{% endif %}">&raquo;&raquo;</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

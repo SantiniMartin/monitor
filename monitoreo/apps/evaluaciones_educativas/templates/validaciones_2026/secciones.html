@@ -299,12 +299,15 @@
         </div>
       </div>
       <div class="topbar-meta">
-        <a href="{% url 'evaluaciones_educativas:validaciones_2026:lista_establecimientos' establecimiento.region %}"
+        <a href="{% if modo_monitoreo %}{% url 'evaluaciones_educativas:validaciones_2026:monitoreo' %}{% else %}{% url 'evaluaciones_educativas:validaciones_2026:lista_establecimientos' establecimiento.region %}{% endif %}"
            class="btn-back" id="btnVolver"
-           onclick="manejarVolver(event)">
+           {% if not modo_monitoreo %}onclick="manejarVolver(event)"{% endif %}>
           <i class="bi bi-arrow-left"></i>Volver
         </a>
         <span class="badge-top"><i class="bi bi-layers me-1"></i>{{ total }} sección{{ total|pluralize:"es" }}</span>
+        {% if modo_monitoreo %}
+        <span class="badge-top"><i class="bi bi-eye-fill me-1"></i>Solo lectura</span>
+        {% endif %}
         {% if establecimiento.carga_completa %}
         <span class="badge-top" style="background:rgba(34,197,94,0.2); border-color:rgba(34,197,94,0.4);">
           <i class="bi bi-patch-check-fill me-1"></i>Carga completa
@@ -390,6 +393,7 @@
       {% endif %}
 
       <!-- Toolbar -->
+      {% if not modo_monitoreo %}
       <div class="toolbar">
         <div class="search-wrap">
           <i class="bi bi-search"></i>
@@ -410,6 +414,7 @@
           </button>
         </div>
       </div>
+      {% endif %}
 
       <!-- Tabla de secciones -->
       <div class="table-wrap">
@@ -424,7 +429,7 @@
                 <th>Matrícula</th>
                 <th>Estado</th>
                 <th>Motivo</th>
-                <th>Acciones</th>
+                {% if not modo_monitoreo %}<th>Acciones</th>{% endif %}
               </tr>
             </thead>
             <tbody id="tablaSecciones">
@@ -472,7 +477,7 @@
                     <small style="color:var(--success); font-size:0.72rem;"><i class="bi bi-check-circle-fill me-1"></i>Validada Correctamente</small>
                     {% else %}—{% endif %}
                 </td>
-                <td>
+                {% if not modo_monitoreo %}<td>
                   <div class="acciones-wrap" id="acciones-{{ seccion.public_id }}">
                     {% if establecimiento.carga_completa %}
                       <!-- Carga completa: todos los botones deshabilitados -->
@@ -508,13 +513,13 @@
                       </button>
                     {% endif %}
                   </div>
-                </td>
+                </td>{% endif %}
               </tr>
               {% empty %}
               <tr id="filaVacia">
-                <td colspan="8" class="text-center py-5 text-muted">
+                <td colspan="{% if modo_monitoreo %}7{% else %}8{% endif %}" class="text-center py-5 text-muted">
                   <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                  Sin secciones registradas. Usá el botón <strong>Agregar sección</strong>.
+                  {% if modo_monitoreo %}Sin secciones registradas.{% else %}Sin secciones registradas. Usá el botón <strong>Agregar sección</strong>.{% endif %}
                 </td>
               </tr>
               {% endfor %}
@@ -784,6 +789,7 @@
       let cntDeshabilitado = {{ deshabilitadas }};
       let cntTotal         = {{ total }};
       const cueanexo       = '{{ establecimiento.cueanexo }}';
+      const modoMonitoreo  = {{ modo_monitoreo|yesno:"true,false" }};
 
       function calcValidado() { return cntTotal - cntPendiente - cntDeshabilitado; }
 
@@ -1212,15 +1218,17 @@
 
       // ── INICIALIZACIÓN ────────────────────────────────────────────────
       actualizarContadores();
-      if (cntPendiente === 0 && cntTotal > 0) {
-        document.getElementById('btnValidacionCompleta').disabled = false;
-      }
-      verificarTodasProcesadas();
-      
-      // Si se recarga la página y todas las secciones están deshabilitadas, mostrar modal
-      if (cntTotal > 0 && cntDeshabilitado === cntTotal) {
-        const m = new bootstrap.Modal(document.getElementById('modalTodasDeshabilitadas'));
-        m.show();
+      if (!modoMonitoreo) {
+        if (cntPendiente === 0 && cntTotal > 0) {
+          document.getElementById('btnValidacionCompleta').disabled = false;
+        }
+        verificarTodasProcesadas();
+
+        // Si se recarga la página y todas las secciones están deshabilitadas, mostrar modal
+        if (cntTotal > 0 && cntDeshabilitado === cntTotal) {
+          const m = new bootstrap.Modal(document.getElementById('modalTodasDeshabilitadas'));
+          m.show();
+        }
       }
     </script>
   </body>

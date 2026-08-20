@@ -1,7 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Case, CharField, Count, F, Prefetch, Q, Sum, Value, When
+from django.db.models.functions import Lower, Trim
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 
@@ -28,6 +31,192 @@ def _get_cuil(request):
 def _get_referente(cuil):
     """Obtiene el primer referente con ese CUIL (puede ser None)."""
     return ValReferenteCargaTemporal.objects.filter(cuil=cuil).first()
+
+
+# ---------------------------------------------------------------------------
+# MONITOREO GLOBAL
+# ---------------------------------------------------------------------------
+def monitoreo(request):
+    """Monitoreo paginado del avance de Validaciones 2026 por escuela."""
+    filtro_escuela = request.GET.get('escuela', '').strip()
+    filtro_sector = request.GET.get('sector', '').strip()
+    filtro_ambito = request.GET.get('ambito', '').strip()
+    filtro_region = request.GET.get('region', '').strip()
+    filtro_cueanexo = request.GET.get('cueanexo', '').strip()
+    filtro_participacion = request.GET.get('participacion', '').strip()
+
+    grados_con_resumen = ValGrado.objects.annotate(
+        total_secciones=Count('secciones'),
+        pendientes=Count(
+            'secciones', filter=Q(secciones__estado_validacion='PENDIENTE')
+        ),
+        aprobadas=Count(
+            'secciones', filter=Q(secciones__estado_validacion='APROBADO')
+        ),
+        sin_matricula=Count(
+            'secciones', filter=Q(secciones__estado_validacion='SIN_MATRICULA')
+        ),
+        modificadas=Count(
+            'secciones', filter=Q(secciones__estado_validacion='MODIFICADO')
+        ),
+        deshabilitadas=Count(
+            'secciones', filter=Q(secciones__estado_validacion='DESHABILITADO')
+        ),
+        matricula_total=Sum(
+            'secciones__matricula',
+            filter=~Q(secciones__estado_validacion='DESHABILITADO'),
+        ),
+    ).order_by('nombre_grado')
+
+    queryset = (
+        ValEstablecimiento.objects
+        .select_related('cabecera')
+        .prefetch_related(Prefetch('grados', queryset=grados_con_resumen))
+    )
+
+    if filtro_escuela:
+        queryset = queryset.filter(escuela__icontains=filtro_escuela)
+    if filtro_sector:
+        queryset = queryset.filter(sector=filtro_sector)
+    if filtro_ambito:
+        queryset = queryset.filter(ambito=filtro_ambito)
+    if filtro_region:
+        queryset = queryset.filter(region=filtro_region)
+    if filtro_cueanexo:
+        queryset = queryset.filter(cueanexo__icontains=filtro_cueanexo)
+    if filtro_participacion:
+        queryset = queryset.filter(participa_aprender__iexact=filtro_participacion)
+
+    resumen = queryset.aggregate(
+        total=Count('cueanexo'),
+        participan=Count(
+            'cueanexo',
+            filter=Q(participa_aprender__iexact='participa'),
+        ),
+        no_participan=Count(
+            'cueanexo',
+            filter=Q(participa_aprender__iexact='no participa'),
+        ),
+        cargas_completas=Count('cueanexo', filter=Q(carga_completa=True)),
+    )
+    resumen['sin_validar'] = (
+        resumen['total'] - resumen['participan'] - resumen['no_participan']
+    )
+
+    paginator = Paginator(queryset.order_by('escuela'), 100)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
+    contexto = {
+        'establecimientos': page_obj,
+        'page_obj': page_obj,
+        'params_url': query_params.urlencode(),
+        'sectores': (
+            ValEstablecimiento.objects.values_list('sector', flat=True)
+            .distinct().order_by('sector')
+        ),
+        'ambitos': (
+            ValEstablecimiento.objects.values_list('ambito', flat=True)
+            .distinct().order_by('ambito')
+        ),
+        'regiones': (
+            ValEstablecimiento.objects.values_list('region', flat=True)
+            .distinct().order_by('region')
+        ),
+        # Estos son los valores persistidos por el flujo actual de validaciones.
+        'opciones_participacion': (
+            ('participa', 'Participa'),
+            ('no participa', 'No participa'),
+            ('sin validar participación', 'Sin validar participación'),
+        ),
+        'resumen': resumen,
+        'valores_filtros': {
+            'escuela': filtro_escuela,
+            'sector': filtro_sector,
+            'ambito': filtro_ambito,
+            'region': filtro_region,
+            'cueanexo': filtro_cueanexo,
+            'participacion': filtro_participacion,
+        },
+    }
+    return render(request, 'validaciones_2026/monitoreo.html', contexto)
+
+
+# ---------------------------------------------------------------------------
+# CONTROL GLOBAL DE CABECERAS
+# ---------------------------------------------------------------------------
+def monitoreo_cabeceras(request):
+    """Lista escuelas y controla que la regional de su cabecera coincida."""
+    filtro_busqueda = request.GET.get('q', '').strip()
+    filtro_region = request.GET.get('region', '').strip()
+    filtro_estado = request.GET.get('estado', '').strip().upper()
+
+    queryset = (
+        ValEstablecimiento.objects
+        .select_related('cabecera')
+        .annotate(
+            region_normalizada=Lower(Trim('region')),
+            cabecera_region_normalizada=Lower(Trim('cabecera__regional')),
+        )
+        .annotate(
+            estado_cabecera=Case(
+                When(cabecera__isnull=True, then=Value('SIN_ASIGNAR')),
+                When(
+                    region_normalizada=F('cabecera_region_normalizada'),
+                    then=Value('CORRECTA'),
+                ),
+                default=Value('INCORRECTA'),
+                output_field=CharField(),
+            )
+        )
+    )
+
+    if filtro_busqueda:
+        queryset = queryset.filter(
+            Q(escuela__icontains=filtro_busqueda)
+            | Q(cueanexo__icontains=filtro_busqueda)
+            | Q(cabecera__nombre_cabecera__icontains=filtro_busqueda)
+        )
+    if filtro_region:
+        queryset = queryset.filter(region=filtro_region)
+
+    resumen = queryset.aggregate(
+        total=Count('cueanexo'),
+        correctas=Count('cueanexo', filter=Q(estado_cabecera='CORRECTA')),
+        incorrectas=Count('cueanexo', filter=Q(estado_cabecera='INCORRECTA')),
+        sin_asignar=Count('cueanexo', filter=Q(estado_cabecera='SIN_ASIGNAR')),
+    )
+
+    estados_validos = {'CORRECTA', 'INCORRECTA', 'SIN_ASIGNAR'}
+    if filtro_estado in estados_validos:
+        queryset = queryset.filter(estado_cabecera=filtro_estado)
+    else:
+        filtro_estado = ''
+
+    paginator = Paginator(queryset.order_by('region', 'escuela'), 100)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
+    contexto = {
+        'establecimientos': page_obj,
+        'page_obj': page_obj,
+        'params_url': query_params.urlencode(),
+        'resumen': resumen,
+        'regiones': (
+            ValEstablecimiento.objects.values_list('region', flat=True)
+            .distinct().order_by('region')
+        ),
+        'valores_filtros': {
+            'q': filtro_busqueda,
+            'region': filtro_region,
+            'estado': filtro_estado,
+        },
+    }
+    return render(request, 'validaciones_2026/monitoreo_cabeceras.html', contexto)
 
 
 
@@ -301,12 +490,16 @@ def lista_secciones(request, cueanexo):
     Deshabilitar / Modificar matrícula y el botón Validación completa.
     """
     cuil = _get_cuil(request)
-    est = ValEstablecimiento.objects.for_referente(cuil, cueanexo)
-    if not est:
-        return redirect('evaluaciones_educativas:validaciones_2026:lista')
+    modo_monitoreo = request.GET.get('modo') == 'monitoreo'
 
-    if est.participa_aprender != 'participa':
-        return redirect('evaluaciones_educativas:validaciones_2026:lista')
+    if modo_monitoreo:
+        # El monitoreo es global y de solo lectura: permite consultar cualquier
+        # establecimiento, aunque pertenezca a otra región o no participe.
+        est = get_object_or_404(ValEstablecimiento, cueanexo=cueanexo)
+    else:
+        est = ValEstablecimiento.objects.for_referente(cuil, cueanexo)
+        if not est or est.participa_aprender != 'participa':
+            return redirect('evaluaciones_educativas:validaciones_2026:lista')
 
     secciones = (
         ValSeccion.objects
@@ -333,6 +526,7 @@ def lista_secciones(request, cueanexo):
         'todas_deshabilitadas': todas_deshabilitadas,
         'sin_secciones':        sin_secciones,
         'cuil':                 cuil,
+        'modo_monitoreo':       modo_monitoreo,
         # Opciones para el modal de crear sección
         'opciones_seccion': ValSeccion.OPCIONES_SECCION,
         'opciones_turno':   ValSeccion.OPCIONES_TURNO,

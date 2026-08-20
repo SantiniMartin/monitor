@@ -53,7 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # <-- Agregado para Render
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -96,11 +96,11 @@ DATABASES = {
     },
     "Evaluacion": {
        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB_RENDER"),
-        "USER": os.environ.get("POSTGRES_USER_RENDER"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD_RENDER"),
-        "HOST": os.environ.get("POSTGRES_HOST_RENDER"),
-        "PORT": os.environ.get("POSTGRES_PORT_RENDER"),
+        "NAME": os.environ.get("POSTGRES_DB_EVALUACION"),
+        "USER": os.environ.get("POSTGRES_USER_EVALUACION"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD_EVALUACION"),
+        "HOST": os.environ.get("POSTGRES_HOST_EVALUACION"),
+        "PORT": os.environ.get("POSTGRES_PORT_EVALUACION"),
         "OPTIONS": {
             "options": "-c search_path=public,diagnostico_2026,fluidez_2026,lector_omr,validaciones_2026",
         },
