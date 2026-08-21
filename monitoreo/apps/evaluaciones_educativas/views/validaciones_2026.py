@@ -43,7 +43,15 @@ def monitoreo(request):
     filtro_ambito = request.GET.get('ambito', '').strip()
     filtro_region = request.GET.get('region', '').strip()
     filtro_cueanexo = request.GET.get('cueanexo', '').strip()
-    filtro_participacion = request.GET.get('participacion', '').strip()
+    filtro_participacion_raw = request.GET.get('participacion', '').strip()
+    filtro_participacion = {
+        'participa': 'participa',
+        'no participa': 'no_participa',
+        'no_participa': 'no_participa',
+        'sin validar participación': 'sin_validar',
+        'sin validar participacion': 'sin_validar',
+        'sin_validar': 'sin_validar',
+    }.get(filtro_participacion_raw.casefold(), '')
 
     grados_con_resumen = ValGrado.objects.annotate(
         total_secciones=Count('secciones'),
@@ -72,6 +80,18 @@ def monitoreo(request):
         ValEstablecimiento.objects
         .select_related('cabecera')
         .prefetch_related(Prefetch('grados', queryset=grados_con_resumen))
+        .annotate(
+            estado_participacion_monitoreo=Case(
+                When(participa_aprender__iexact='participa', then=Value('participa')),
+                When(
+                    participa_aprender__iexact='no participa',
+                    then=Value('no_participa'),
+                ),
+                # Incluye SIN VALIDAR, variantes históricas, vacíos y nulos.
+                default=Value('sin_validar'),
+                output_field=CharField(),
+            )
+        )
     )
 
     if filtro_escuela:
@@ -85,17 +105,19 @@ def monitoreo(request):
     if filtro_cueanexo:
         queryset = queryset.filter(cueanexo__icontains=filtro_cueanexo)
     if filtro_participacion:
-        queryset = queryset.filter(participa_aprender__iexact=filtro_participacion)
+        queryset = queryset.filter(
+            estado_participacion_monitoreo=filtro_participacion
+        )
 
     resumen = queryset.aggregate(
         total=Count('cueanexo'),
         participan=Count(
             'cueanexo',
-            filter=Q(participa_aprender__iexact='participa'),
+            filter=Q(estado_participacion_monitoreo='participa'),
         ),
         no_participan=Count(
             'cueanexo',
-            filter=Q(participa_aprender__iexact='no participa'),
+            filter=Q(estado_participacion_monitoreo='no_participa'),
         ),
         cargas_completas=Count('cueanexo', filter=Q(carga_completa=True)),
     )
@@ -125,11 +147,10 @@ def monitoreo(request):
             ValEstablecimiento.objects.values_list('region', flat=True)
             .distinct().order_by('region')
         ),
-        # Estos son los valores persistidos por el flujo actual de validaciones.
         'opciones_participacion': (
             ('participa', 'Participa'),
-            ('no participa', 'No participa'),
-            ('sin validar participación', 'Sin validar participación'),
+            ('no_participa', 'No participa'),
+            ('sin_validar', 'Sin validar participación'),
         ),
         'resumen': resumen,
         'valores_filtros': {

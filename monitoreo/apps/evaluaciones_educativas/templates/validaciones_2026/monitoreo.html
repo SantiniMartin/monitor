@@ -101,16 +101,16 @@
         <div class="row g-4">
           {% for est in establecimientos %}
             <div class="col-md-6 col-xl-4">
-              <article class="school-card card h-100 {% if est.participa_aprender|lower == 'no participa' %}status-no-participa{% elif est.carga_completa %}status-completa{% else %}status-pendiente{% endif %}">
+              <article class="school-card card h-100 {% if est.estado_participacion_monitoreo == 'no_participa' %}status-no-participa{% elif est.carga_completa %}status-completa{% else %}status-pendiente{% endif %}">
                 <header class="school-header p-3 d-flex justify-content-between gap-2 align-items-center">
                   <span class="fw-bold text-truncate" title="{{ est.escuela }}"><i class="bi bi-bank text-warning me-2"></i>{{ est.escuela }}</span>
                   <span class="badge text-bg-light">{{ est.cueanexo }}</span>
                 </header>
                 <div class="card-body">
                   <div class="d-flex flex-wrap gap-2 mb-3">
-                    {% if est.participa_aprender == 'participa' %}
+                    {% if est.estado_participacion_monitoreo == 'participa' %}
                       <span class="badge text-bg-success">Participa</span>
-                    {% elif est.participa_aprender == 'no participa' %}
+                    {% elif est.estado_participacion_monitoreo == 'no_participa' %}
                       <span class="badge text-bg-danger">No participa</span>
                     {% else %}
                       <span class="badge text-bg-warning">Sin validar participación</span>
