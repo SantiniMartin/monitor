@@ -167,6 +167,11 @@ def monitoreo_cabeceras(request):
                     region_normalizada=F('cabecera_region_normalizada'),
                     then=Value('CORRECTA'),
                 ),
+                When(
+                    Q(region_normalizada__in=('r.e. 10-a', 'r.e. 10-b'))
+                    & Q(cabecera_region_normalizada__in=('r.e. 10-ab', 'meccyt')),
+                    then=Value('CORRECTA'),
+                ),
                 default=Value('INCORRECTA'),
                 output_field=CharField(),
             )
