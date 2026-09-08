@@ -1,6 +1,118 @@
 from django.db import models
 import uuid
 
+class EstablecimientosDiagnostico_Ingreso_2026(models.Model):
+	# cueanexo = models.CharField(primary_key=True,max_length=9)
+	# escuela = models.CharField(max_length=255)
+	# sector = models.CharField(max_length=255)
+	# ambito = models.CharField(max_length=255)
+	# region = models.CharField(max_length=255)
+	# localidad = models.CharField(max_length=255)
+	# departamento = models.CharField(max_length=255)
+	id_establecimiento = models.CharField(max_length=100, primary_key=True)
+	class Meta:
+		#managed = False
+		db_table = '"diagnostico_ingreso_2026"."establecimientos"'
+		#unique_together = ('nombre_año', 'cueanexo')
+	def __str__(self):
+		return self.id_establecimiento
+
+class GradoDiagnostico_Ingreso_2026(models.Model):
+	id_grado = models.CharField(max_length=255, primary_key=True)
+	# OPCIONES_GRADO = [
+	# ('PRIMERO', '1er Grado'),
+	# ('2do Año/Grado', '2do Grado'),
+	# ('3er Año/Grado', '3er Grado'),
+	#cambiamos de SEGUNDO A 2do Año/Grado
+	# ('CUARTO', '4to Grado'),
+	# ('QUINTO', '5to Grado'),
+	# ('SEXTO', '6to Grado'),
+	# ('SEPTIMO', '7mo Grado'),
+	# ]
+	# public_id = models.UUIDField(default=uuid.uuid4,editable=False,unique=True)
+	# cueanexo = models.CharField(max_length=9)
+	# nombre_grado = models.CharField(max_length=20, choices=OPCIONES_GRADO, default='SEPTIMO')
+	# Establecimiento = models.ForeignKey(EstablecimientosDiagnostico_Ingreso_2026, on_delete=models.CASCADE)
+	# estado_carga = models.BooleanField(default=False)
+	class Meta:
+	   #managed = False
+		db_table = '"diagnostico_ingreso_2026"."grados"'
+		#unique_together = ('nombre_grado', 'cueanexo')
+	def __str__(self):
+		return self.id_grado
+
+class SeccionDiagnostico_Ingreso_2026(models.Model):
+	# OPCIONES_SECCION = [
+	# ('A', 'A'),
+	# ('B', 'B'),
+	# ('C', 'C'),
+	# ('D', 'D'),
+	# ('E', 'E'),
+	# ('F', 'F'),
+	# ('G', 'G'),
+	# ('H', 'H'),
+	# ('I', 'I'),
+	# ('L', 'L'),
+	# ('M', 'M'),
+	# ('N', 'N'),
+	# ('P', 'P'),
+	# ('Q', 'Q'),
+	# ('R', 'R'),
+	# ('S', 'S'),
+	# ('T', 'T'),
+	# ('U', 'U'),
+	# ('Z', 'Z'),
+
+	# ]
+	# OPCIONES_TURNO = [
+	# ('MAÑANA', 'Mañana'),
+	# ('TARDE', 'Tarde'),
+	# ('DOBLE', 'Doble'),
+	# ]
+	# public_id = models.UUIDField(default=uuid.uuid4,editable=False,unique=True)
+	# seccion = models.CharField(max_length=20, choices=OPCIONES_SECCION, blank=True)
+	# turno = models.CharField(max_length=20, choices=OPCIONES_TURNO, blank=True )
+	# grado = models.ForeignKey(GradoDiagnostico_Ingreso_2026, on_delete=models.CASCADE)
+	id_seccion = models.CharField(max_length=255, primary_key=True)
+
+	class Meta:
+		#managed = False
+		db_table = '"diagnostico_ingreso_2026"."secciones"'
+	def __str__(self):
+		return self.id_seccion
+
+class AlumnoDiagnostico_Ingreso_2026(models.Model):
+# 	OPCIONES_COMUNIDAD_INDIGENA = [
+# 	('QOM', 'Qom'),
+# 	('MOQOIT', 'Moqoit'),
+# 	('WICHI', 'Wichí'),
+# 	('NINGUNA', 'Ninguna'),
+# ]
+# 	OPCIONES_DISCAPACIDAD = [
+# 	('SI', 'Sí, la persona tiene una discapacidad'),
+# 	('NO', 'Ninguna'),
+# ]
+# 	public_id = models.UUIDField(default=uuid.uuid4,editable=False,unique=True)
+# 	dni = models.CharField(max_length=10,unique=True,null=True,blank=True)
+# 	nombre = models.CharField(max_length=50)
+# 	apellido = models.CharField(max_length=50)
+# 	comunidad_indigena=models.CharField(max_length=11, choices= OPCIONES_COMUNIDAD_INDIGENA, blank=True,null=True)
+# 	discapacidad = models.CharField(
+# 		max_length=2,
+# 		choices=OPCIONES_DISCAPACIDAD,
+# 		blank=True,
+# 		null=True,
+# 	)
+
+	id_alumno = models.CharField(max_length=255, primary_key=True)
+
+	seccion = models.ForeignKey(SeccionDiagnostico_Ingreso_2026, on_delete=models.CASCADE,null=True)
+	class Meta:
+		#managed = False
+		db_table = '"diagnostico_ingreso_2026"."alumnos"'
+		# unique_together = ('dni','seccion')
+	def __str__(self):
+		return self.id_alumno
 
 class LecturaOMR(models.Model):
     """
@@ -35,7 +147,7 @@ class LecturaOMR(models.Model):
 
     # Relación con el alumno existente en el sistema
     alumno = models.ForeignKey(
-        'evaluaciones_educativas.AlumnoFluidez2026',
+        'evaluaciones_educativas.AlumnoDiagnostico_Ingreso_2026',
         on_delete=models.CASCADE,
         related_name='lecturas_omr',
         null=True,
@@ -87,7 +199,7 @@ class LecturaOMR(models.Model):
     observaciones = models.TextField(blank=True, default='')
 
     class Meta:
-        db_table = '"lector_omr"."lecturas"'
+        db_table = '"diagnostico_ingreso_2026"."lecturas"'
         ordering = ['-fecha_lectura']
         verbose_name = 'Lectura OMR'
         verbose_name_plural = 'Lecturas OMR'

@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OMR · Seleccionar alumno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{% static 'evaluaciones_educativas/css/omr_fluidez.css' %}" rel="stylesheet">
+  <style>
+    .filter-grid { display:grid; grid-template-columns:minmax(260px,2fr) minmax(210px,1fr) auto; gap:12px; align-items:end; }
+    .offer-summary { display:flex; align-items:center; justify-content:space-between; gap:15px; padding:14px 18px; color:#fff; background:#007bff; }
+    .offer-summary strong { display:block; }
+    .offer-summary span { font-size:.82rem; opacity:.86; }
+    .table-wrap { max-height:58vh; overflow:auto; }
+    .students-table { width:100%; min-width:700px; margin:0; border-collapse:separate; border-spacing:0; }
+    .students-table th { position:sticky; top:0; z-index:1; padding:12px 16px; color:#fff; background:#212529; font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
+    .students-table td { padding:13px 16px; border-bottom:1px solid #e9ecef; vertical-align:middle; }
+    .students-table tbody tr:nth-child(even) { background:#f8f9fa; }
+    .students-table tbody tr:hover { background:#eef6ff; }
+    .student-name { font-weight:700; color:#212529; }
+    .student-id { margin-top:2px; color:#6c757d; font-size:.76rem; }
+    .section-badge { display:inline-flex; padding:5px 9px; color:#084298; background:#cfe2ff; border-radius:999px; font-size:.78rem; font-weight:700; }
+    .header-action { color:#004a99 !important; background:#fff !important; }
+    @media(max-width:760px) {
+      .filter-grid { grid-template-columns:1fr; }
+      .filter-grid .omr-btn { width:100%; }
+      .offer-summary { align-items:flex-start; flex-direction:column; }
+      .table-wrap { max-height:none; overflow:visible; padding:12px; }
+      .students-table { min-width:0; }
+      .students-table thead { display:none; }
+      .students-table tbody { display:grid; gap:10px; }
+      .students-table tr { display:grid; grid-template-columns:1fr auto; gap:8px 12px; padding:14px; background:#fff !important; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,.05); }
+      .students-table td { display:block; padding:0; border:0; }
+      .students-table td:first-child { grid-column:1 / -1; padding-bottom:8px; border-bottom:1px solid #edf0f2; }
+      .students-table td::before { content:attr(data-label); display:block; margin-bottom:3px; color:#94a3b8; font-size:.62rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+      .students-table td:first-child::before,
+      .students-table td:last-child::before { content:none; }
+      .students-table td:last-child { align-self:end; }
+    }
+  </style>
+</head>
+<body>
+  <main class="omr-page">
+    <nav class="omr-stepper" aria-label="Progreso de carga">
+      <div class="omr-step active" data-step="1"><span>Alumno</span></div><div class="omr-step-line"></div>
+      <div class="omr-step" data-step="2"><span>Materia</span></div><div class="omr-step-line"></div>
+      <div class="omr-step" data-step="3"><span>Escanear</span></div>
+    </nav>
+
+    <section class="omr-card">
+      <header class="omr-card-header">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+          <div>
+            <div class="text-uppercase fw-semibold small opacity-75 mb-1">Evaluaciones educativas</div>
+            <h1><i class="bi bi-ui-checks-grid me-2"></i>Lector de exámenes OMR</h1>
+            <p>Seleccioná el establecimiento y el alumno para comenzar la carga.</p>
+          </div>
+          {% if modo_simulacion %}
+            <span class="omr-simulation"><i class="bi bi-cone-striped"></i> Datos simulados</span>
+          {% else %}
+            <a class="omr-btn header-action" href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}"><i class="bi bi-clock-history"></i> Ver historial</a>
+          {% endif %}
+        </div>
+
+        <div class="omr-header-controls">
+          <form method="get" class="filter-grid" id="student-filter">
+            <div>
+              <label class="omr-label text-white" for="establecimiento">Establecimiento y grado habilitado</label>
+              <select class="omr-control" id="establecimiento" name="establecimiento" required>
+                <option value="">Seleccionar establecimiento…</option>
+                {% for oferta in ofertas %}
+                  <option value="{{ oferta.id_establecimiento }}" {% if oferta_seleccionada.id_establecimiento == oferta.id_establecimiento %}selected{% endif %}>
+                    {{ oferta.establecimiento }} · CUE {{ oferta.cueanexo }} · {{ oferta.grado }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="omr-label text-white" for="q">Buscar alumno</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input class="omr-control form-control border-start-0 ps-0" id="q" name="q" value="{{ query }}" placeholder="Nombre, apellido o DNI">
+              </div>
+            </div>
+            <button class="omr-btn secondary" type="submit"><i class="bi bi-search"></i> Buscar</button>
+          </form>
+        </div>
+      </header>
+
+      {% if oferta_seleccionada %}
+        <div class="offer-summary">
+          <div><strong><i class="bi bi-building me-2"></i>{{ oferta_seleccionada.establecimiento }}</strong><span>CUE/anexo {{ oferta_seleccionada.cueanexo }} · {{ oferta_seleccionada.grado }}</span></div>
+          <span>{{ alumnos|length }} alumno{{ alumnos|length|pluralize:"s" }}</span>
+        </div>
+        {% if alumnos %}
+          <div class="table-wrap">
+            <table class="students-table">
+              <thead><tr><th>Alumno</th><th>DNI</th><th>Sección y turno</th><th class="text-end">Acción</th></tr></thead>
+              <tbody>
+              {% for alumno in alumnos %}
+                <tr>
+                  <td data-label="Alumno"><div class="student-name">{{ alumno.apellido }}, {{ alumno.nombre }}</div><div class="student-id">ID {{ alumno.id_alumno }}</div></td>
+                  <td data-label="DNI">{{ alumno.dni }}</td>
+                  <td data-label="Sección y turno"><span class="section-badge">{{ alumno.seccion }} · {{ alumno.turno }}</span></td>
+                  <td class="text-end" data-label="Acción"><a class="omr-btn" href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_materia' alumno.id_alumno %}">Elegir materia <i class="bi bi-arrow-right"></i></a></td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="omr-empty"><i class="bi bi-person-x"></i><strong>No encontramos alumnos</strong><div class="mt-1">Probá con otro nombre o DNI.</div></div>
+        {% endif %}
+      {% else %}
+        <div class="omr-empty"><i class="bi bi-building-check"></i><strong>Elegí un establecimiento</strong><div class="mt-1">Se mostrarán únicamente los alumnos de tu oferta asignada.</div></div>
+      {% endif %}
+    </section>
+  </main>
+  <script>
+    document.getElementById('establecimiento').addEventListener('change', function () {
+      document.getElementById('q').value = '';
+      this.form.submit();
+    });
+  </script>
+</body>
+</html>

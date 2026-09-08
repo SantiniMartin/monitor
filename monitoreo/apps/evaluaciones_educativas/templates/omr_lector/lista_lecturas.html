@@ -2,218 +2,135 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OMR — Historial de Lecturas</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OMR · Historial de lecturas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{% static 'evaluaciones_educativas/css/omr_fluidez.css' %}" rel="stylesheet">
   <style>
-    :root {
-      --primary: #1a56db; --primary-dark: #1e429f; --accent: #0ea5e9;
-      --bg: #f0f4ff; --card-bg: #ffffff; --text: #1e293b;
-      --muted: #64748b; --border: #e2e8f0;
-      --success: #10b981; --warning: #f59e0b;
+    .history-page { max-width:1240px; }
+    .history-header { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+    .history-header p { max-width:680px; }
+    .history-header .omr-btn { flex:0 0 auto; color:#004a99; background:#fff; }
+    .history-header .omr-btn:hover { color:#003c80; background:#eef6ff; }
+    .filters { display:grid; grid-template-columns:minmax(230px,1.2fr) minmax(230px,1fr) auto; gap:12px; align-items:end; padding:20px 22px; }
+    .filters-actions { display:flex; gap:8px; }
+    .history-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 20px; color:#495057; background:#f8fafc; border-block:1px solid #e9ecef; font-size:.82rem; }
+    .history-summary strong { color:#17365d; }
+    .table-shell { overflow-x:auto; }
+    .history-table { width:100%; min-width:1000px; margin:0; border-collapse:separate; border-spacing:0; }
+    .history-table th { padding:11px 14px; color:#64748b; background:#f8fafc; border-bottom:2px solid #e2e8f0; font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+    .history-table td { padding:13px 14px; color:#343a40; border-bottom:1px solid #e9ecef; font-size:.82rem; vertical-align:middle; }
+    .history-table tbody tr:hover { background:#f5f9ff; }
+    .person-name { display:block; color:#212529; font-size:.88rem; font-weight:700; }
+    .person-meta { display:block; margin-top:2px; color:#6c757d; font-size:.72rem; }
+    .table-muted { color:#6c757d !important; line-height:1.45; }
+    .status-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 8px; border-radius:999px; font-size:.7rem; font-weight:700; white-space:nowrap; }
+    .status-pill.reviewed { color:#0f5132; background:#d1e7dd; }
+    .status-pill.auto { color:#664d03; background:#fff3cd; }
+    .model-pill { display:inline-grid; width:29px; height:29px; place-items:center; color:#004a99; background:#e7f1ff; border-radius:8px; font-weight:800; }
+    .answers { display:grid; grid-template-columns:repeat(6,24px); gap:3px; }
+    .answer { display:grid; height:24px; place-items:center; color:#004a99; background:#e7f1ff; border-radius:5px; font-size:.68rem; font-weight:800; }
+    .answer.empty { color:#842029; background:#f8d7da; }
+    .view-link { display:inline-flex; align-items:center; gap:5px; min-height:34px; padding:7px 11px; color:#0066cc; border:1px solid #9ec5fe; border-radius:8px; text-decoration:none; font-size:.76rem; font-weight:700; white-space:nowrap; }
+    .view-link:hover { color:#fff; background:#0066cc; border-color:#0066cc; }
+    .history-pagination { display:flex; align-items:center; justify-content:center; gap:8px; padding:18px; }
+    .history-pagination a { padding:7px 11px; color:#004a99; background:#fff; border:1px solid #b6d4fe; border-radius:8px; text-decoration:none; font-size:.8rem; font-weight:600; }
+    .history-pagination span { color:#6c757d; font-size:.78rem; }
+    @media(max-width:800px) {
+      .history-header { align-items:flex-start; flex-direction:column; }
+      .history-header .omr-btn { width:100%; }
+      .filters { grid-template-columns:1fr; padding:18px; }
+      .filters-actions .omr-btn { flex:1; }
+      .history-summary { align-items:flex-start; flex-direction:column; }
+      .table-shell { overflow:visible; padding:12px; }
+      .history-table { min-width:0; }
+      .history-table thead { display:none; }
+      .history-table tbody { display:grid; gap:12px; }
+      .history-table tr { display:grid; grid-template-columns:1fr auto; gap:10px 14px; padding:15px; background:#fff; border:1px solid #e2e8f0; border-radius:13px; box-shadow:0 3px 10px rgba(0,0,0,.05); }
+      .history-table td { display:block; padding:0; border:0; }
+      .history-table td[data-label]::before { content:attr(data-label); display:block; margin-bottom:3px; color:#94a3b8; font-size:.62rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+      .history-table td.student-cell { grid-column:1 / -1; padding-bottom:10px; border-bottom:1px solid #edf0f2; }
+      .history-table td.answers-cell { grid-column:1 / -1; }
+      .history-table td.action-cell { align-self:end; }
+      .answers { grid-template-columns:repeat(12,minmax(20px,1fr)); }
     }
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 32px 16px 64px; min-height: 100vh; }
-
-    .page-header { max-width: 1000px; margin: 0 auto 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    .header-icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(26,86,219,.3); }
-    .header-icon svg { color: white; }
-    h1 { font-size: 1.4rem; font-weight: 700; margin: 0; background: linear-gradient(135deg, var(--primary-dark), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header-meta { margin: 2px 0 0; color: var(--muted); font-size: .88rem; }
-
-    .card { max-width: 1000px; margin: 0 auto 20px; border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 2px 14px rgba(0,0,0,.06); overflow: hidden; }
-    .card-header-custom { background: linear-gradient(90deg, var(--primary-dark), var(--primary)); color: white; padding: 14px 22px; font-weight: 600; font-size: .95rem; display: flex; align-items: center; justify-content: space-between; }
-    .card-body { padding: 20px 22px; background: var(--card-bg); }
-
-    /* Filtros */
-    .filter-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
-    @media(max-width:600px){ .filter-grid { grid-template-columns: 1fr; } }
-    .form-label { font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
-    .form-control, .form-select { border: 1.5px solid var(--border); border-radius: 9px; padding: 9px 13px; font-size: .9rem; }
-    .form-control:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,.1); outline: none; }
-    .btn-filtrar { background: linear-gradient(135deg, var(--primary), var(--accent)); border: none; color: white; border-radius: 9px; padding: 9px 22px; font-weight: 600; font-size: .9rem; cursor: pointer; }
-
-    /* Tabla */
-    .info-row { font-size: .83rem; color: var(--muted); margin-bottom: 12px; }
-    .lecturas-table { width: 100%; border-collapse: collapse; }
-    .lecturas-table thead th { background: #f8fafc; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 10px 14px; border-bottom: 2px solid var(--border); text-align: left; }
-    .lecturas-table tbody tr { transition: background .15s; }
-    .lecturas-table tbody tr:hover { background: #f1f5ff; }
-    .lecturas-table tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: .9rem; }
-
-    .badge-modelo { background: #dbeafe; color: #1e40af; padding: 2px 9px; border-radius: 20px; font-size: .75rem; font-weight: 700; }
-    .badge-ok { background: #d1fae5; color: #065f46; padding: 2px 9px; border-radius: 20px; font-size: .75rem; font-weight: 700; }
-    .badge-warn { background: #fef3c7; color: #92400e; padding: 2px 9px; border-radius: 20px; font-size: .75rem; font-weight: 700; }
-
-    .resp-pills { display: flex; gap: 3px; flex-wrap: wrap; }
-    .resp-pill { background: #e0e7ff; color: #3730a3; padding: 1px 7px; border-radius: 5px; font-size: .72rem; font-weight: 700; }
-    .resp-pill.empty { background: #fee2e2; color: #991b1b; }
-
-    .btn-ver { background: var(--primary); color: white; border: none; border-radius: 7px; padding: 6px 14px; font-size: .8rem; font-weight: 600; text-decoration: none; }
-    .btn-ver:hover { background: var(--primary-dark); color: white; }
-    .pagination { display:flex; justify-content:center; align-items:center; gap:8px; padding:20px; flex-wrap:wrap; }
-    .page-link { padding:7px 11px; border:1px solid var(--border); border-radius:8px; color:var(--primary); text-decoration:none; font-size:.84rem; }
-    .page-link:hover { background:#eff6ff; }
-    .page-current { font-size:.84rem; color:var(--muted); padding:0 6px; }
-
-    .empty-state { text-align: center; padding: 48px; color: var(--muted); }
-
-    .btn-nuevo { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-size: .9rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 7px; }
-    .btn-nuevo:hover { opacity: .9; color: white; }
+    @media(max-width:420px) { .answers { grid-template-columns:repeat(6,1fr); } }
   </style>
 </head>
 <body>
+  <main class="omr-page history-page">
+    <section class="omr-card">
+      <header class="omr-card-header history-header">
+        <div>
+          <span class="text-uppercase fw-semibold small opacity-75">Evaluaciones educativas</span>
+          <h1 class="mt-1"><i class="bi bi-clock-history me-2"></i>Historial de lecturas</h1>
+          <p>Consultá los exámenes procesados, revisá sus respuestas o iniciá una nueva carga.</p>
+        </div>
+        <a class="omr-btn" href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_alumno' %}"><i class="bi bi-plus-lg"></i>Nueva lectura</a>
+      </header>
 
-  <div class="page-header">
-    <div class="header-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-      </svg>
-    </div>
-    <div>
-      <h1>Historial de Lecturas OMR</h1>
-      <p class="header-meta">{{ total }} lectura(s) registrada(s) en total</p>
-    </div>
-    <a href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_alumno' %}" class="btn-nuevo" style="margin-left:auto;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-      </svg>
-      Nueva lectura
-    </a>
-  </div>
-
-  <!-- Filtros -->
-  <div class="card">
-    <div class="card-header-custom">
-      <span>Filtros</span>
-    </div>
-    <div class="card-body">
-      <form method="GET">
-        <div class="filter-grid">
-          <div>
-            <label class="form-label">Escuela</label>
-            <select name="cueanexo" class="form-select">
-              <option value="">— Todas —</option>
-              {% for est in establecimientos %}
-                <option value="{{ est.cueanexo }}" {% if est.cueanexo == cueanexo %}selected{% endif %}>
-                  {{ est.escuela }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Buscar alumno</label>
-            <input type="text" name="q" class="form-control" placeholder="Nombre, apellido o DNI" value="{{ query }}" />
-          </div>
-          <div>
-            <button type="submit" class="btn-filtrar">Filtrar</button>
-          </div>
+      <form method="get" class="filters" aria-label="Filtros del historial">
+        <div>
+          <label class="omr-label" for="history-school">Establecimiento</label>
+          <select class="omr-control" id="history-school" name="cueanexo">
+            <option value="">Todos los establecimientos</option>
+            {% for est in establecimientos %}<option value="{{ est.cueanexo }}" {% if est.cueanexo == cueanexo %}selected{% endif %}>{{ est.escuela }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="omr-label" for="history-query">Buscar alumno</label>
+          <input class="omr-control" id="history-query" name="q" value="{{ query }}" placeholder="Nombre, apellido o DNI">
+        </div>
+        <div class="filters-actions">
+          <button class="omr-btn" type="submit"><i class="bi bi-search"></i>Filtrar</button>
+          {% if query or cueanexo %}<a class="omr-btn secondary" href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}" aria-label="Limpiar filtros"><i class="bi bi-x-lg"></i></a>{% endif %}
         </div>
       </form>
-    </div>
-  </div>
 
-  <!-- Tabla -->
-  <div class="card">
-    <div class="card-header-custom">
-      <span>Lecturas</span>
-      <span style="font-size:.82rem; font-weight:400; opacity:.8;">25 resultados por página</span>
-    </div>
-    <div class="card-body" style="padding:14px 0 0;">
+      <div class="history-summary">
+        <span><strong>{{ total }}</strong> lectura{{ total|pluralize:"s" }} encontrada{{ total|pluralize:"s" }}</span>
+        <span>Ordenadas desde la más reciente</span>
+      </div>
+
       {% if lecturas %}
-        <div style="overflow-x:auto;">
-          <table class="lecturas-table">
-            <thead>
-              <tr>
-                <th>Alumno</th>
-                <th>Escuela</th>
-                <th>Grado / Sección</th>
-                <th>Modelo</th>
-                <th>Respuestas (1–12)</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th></th>
-              </tr>
-            </thead>
+        <div class="table-shell">
+          <table class="history-table">
+            <thead><tr><th>Alumno</th><th>Establecimiento</th><th>Curso</th><th>Modelo</th><th>Respuestas</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
             <tbody>
               {% for lectura in lecturas %}
-              <tr>
-                <td>
-                  <strong>{{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</strong><br>
-                  <small style="color:var(--muted)">DNI: {{ lectura.alumno.dni|default:"—" }}</small>
-                </td>
-                <td style="font-size:.82rem; color:var(--muted);">
-                  {% if lectura.alumno.seccion.grado.Establecimiento %}
-                    {{ lectura.alumno.seccion.grado.Establecimiento.escuela }}
-                  {% else %}—{% endif %}
-                </td>
-                <td style="font-size:.82rem;">
-                  {% if lectura.alumno.seccion %}
-                    {{ lectura.alumno.seccion.grado.nombre_grado }}<br>
-                    Secc. {{ lectura.alumno.seccion.seccion }}
-                  {% else %}—{% endif %}
-                </td>
-                <td>
-                  {% if lectura.modelo_examen %}
-                    <span class="badge-modelo">{{ lectura.modelo_examen }}</span>
-                  {% else %}—{% endif %}
-                </td>
-                <td>
-                  <div class="resp-pills">
-                    {# Mostrar resumen compacto de respuestas #}
-                    {% with r=lectura %}
-                      {% for item_val in r.respuestas_dict.values %}
-                        <span class="resp-pill {% if not item_val %}empty{% endif %}">
-                          {{ item_val|default:"—" }}
-                        </span>
-                      {% endfor %}
-                    {% endwith %}
-                  </div>
-                </td>
-                <td>
-                  {% if lectura.revisado_manualmente %}
-                    <span class="badge-ok">Revisado</span>
-                  {% else %}
-                    <span class="badge-warn">Auto</span>
-                  {% endif %}
-                </td>
-                <td style="font-size:.82rem; color:var(--muted); white-space:nowrap;">
-                  {{ lectura.fecha_lectura|date:"d/m/Y" }}<br>
-                  {{ lectura.fecha_lectura|date:"H:i" }}
-                </td>
-                <td>
-                  <a href="{% url 'evaluaciones_educativas:omr_lector:detalle_lectura' lectura.public_id %}" class="btn-ver">Ver →</a>
-                </td>
-              </tr>
+                <tr>
+                  <td class="student-cell" data-label="Alumno"><span class="person-name">{{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</span><span class="person-meta">DNI {{ lectura.alumno.dni|default:"—" }}</span></td>
+                  <td class="table-muted" data-label="Establecimiento">{% if lectura.alumno.seccion.grado.Establecimiento %}{{ lectura.alumno.seccion.grado.Establecimiento.escuela }}{% else %}—{% endif %}</td>
+                  <td class="table-muted" data-label="Curso">{% if lectura.alumno.seccion %}{{ lectura.alumno.seccion.grado.nombre_grado }} · Sección {{ lectura.alumno.seccion.seccion }}{% else %}—{% endif %}</td>
+                  <td data-label="Modelo">{% if lectura.modelo_examen %}<span class="model-pill">{{ lectura.modelo_examen }}</span>{% else %}—{% endif %}</td>
+                  <td class="answers-cell" data-label="Respuestas"><div class="answers" aria-label="Respuestas registradas">{% for item_val in lectura.respuestas_dict.values %}<span class="answer {% if not item_val %}empty{% endif %}">{{ item_val|default:"—" }}</span>{% endfor %}</div></td>
+                  <td data-label="Estado">{% if lectura.revisado_manualmente %}<span class="status-pill reviewed"><i class="bi bi-check-circle-fill"></i>Revisado</span>{% else %}<span class="status-pill auto"><i class="bi bi-lightning-fill"></i>Automático</span>{% endif %}</td>
+                  <td class="table-muted" data-label="Fecha">{{ lectura.fecha_lectura|date:"d/m/Y" }}<br>{{ lectura.fecha_lectura|date:"H:i" }}</td>
+                  <td class="action-cell"><a class="view-link" href="{% url 'evaluaciones_educativas:omr_lector:detalle_lectura' lectura.public_id %}">Ver detalle<i class="bi bi-arrow-right"></i></a></td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
         {% if page_obj.paginator.num_pages > 1 %}
-        <nav class="pagination" aria-label="Páginas del historial">
-          {% if page_obj.has_previous %}
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}&cueanexo={{ cueanexo|urlencode }}">← Anterior</a>
-          {% endif %}
-          <span class="page-current">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-          {% if page_obj.has_next %}
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}&cueanexo={{ cueanexo|urlencode }}">Siguiente →</a>
-          {% endif %}
-        </nav>
+          <nav class="history-pagination" aria-label="Páginas del historial">
+            {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}&cueanexo={{ cueanexo|urlencode }}"><i class="bi bi-arrow-left"></i> Anterior</a>{% endif %}
+            <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}&cueanexo={{ cueanexo|urlencode }}">Siguiente <i class="bi bi-arrow-right"></i></a>{% endif %}
+          </nav>
         {% endif %}
       {% else %}
-        <div class="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" style="opacity:.3;margin-bottom:16px;">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          <p>No hay lecturas registradas aún.<br>
-          <a href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_alumno' %}" style="color:var(--primary); font-weight:600;">Crear la primera lectura →</a></p>
+        <div class="omr-empty">
+          <i class="bi bi-inbox"></i>
+          {% if query or cueanexo %}<strong>No encontramos lecturas con esos filtros</strong><div class="mt-2"><a href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}">Limpiar filtros</a></div>{% else %}<strong>Todavía no hay lecturas</strong><div class="mt-2">Cuando escanees el primer examen aparecerá aquí.</div>{% endif %}
         </div>
       {% endif %}
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    </section>
+  </main>
 </body>
 </html>

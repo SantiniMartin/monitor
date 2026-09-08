@@ -101,7 +101,7 @@ DATABASES = {
         "HOST": os.environ.get("POSTGRES_HOST_RENDER"),
         "PORT": os.environ.get("POSTGRES_PORT_RENDER"),
         "OPTIONS": {
-            "options": "-c search_path=public,diagnostico_2026,fluidez_2026,lector_omr",
+            "options": "-c search_path=public,diagnostico_2026,fluidez_2026,diagnostico_ingreso_2026",
         },
     },
 }

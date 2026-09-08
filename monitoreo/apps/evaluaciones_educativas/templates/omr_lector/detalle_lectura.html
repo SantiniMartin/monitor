@@ -2,201 +2,128 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OMR — Detalle Lectura — {{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OMR · Detalle de lectura · {{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{% static 'evaluaciones_educativas/css/omr_fluidez.css' %}" rel="stylesheet">
   <style>
-    :root {
-      --primary: #1a56db; --primary-dark: #1e429f; --accent: #0ea5e9;
-      --bg: #f0f4ff; --card: #ffffff; --text: #1e293b;
-      --muted: #64748b; --border: #e2e8f0;
-      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    .detail-page { max-width:1000px; }
+    .detail-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .detail-nav .back-link { display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:8px 13px; color:#495057; background:#fff; border:1px solid #dee2e6; border-radius:9px; text-decoration:none; font-size:.82rem; font-weight:600; }
+    .detail-nav .back-link:hover { color:#004a99; border-color:#9ec5fe; }
+    .detail-nav span { color:#6c757d; font-size:.76rem; }
+    .student-hero { display:flex; align-items:flex-start; justify-content:space-between; gap:22px; }
+    .student-hero h1 { margin-top:3px; }
+    .student-meta { display:flex; flex-wrap:wrap; gap:7px 15px; margin-top:10px; color:rgba(255,255,255,.8); font-size:.8rem; }
+    .student-meta span { display:inline-flex; align-items:center; gap:6px; }
+    .record-status { flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; padding:7px 10px; color:#0f5132; background:#d1e7dd; border-radius:999px; font-size:.72rem; font-weight:800; }
+    .record-status.auto { color:#664d03; background:#fff3cd; }
+    .record-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-bottom:1px solid #e9ecef; }
+    .fact { padding:17px 20px; border-right:1px solid #e9ecef; }
+    .fact:last-child { border:0; }
+    .fact span { display:block; color:#6c757d; font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+    .fact strong { display:block; margin-top:4px; color:#17365d; font-size:.9rem; }
+    .detail-content { padding:22px; }
+    .section-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:14px; }
+    .section-heading h2 { margin:0; color:#17365d; font-size:1.05rem; font-weight:800; }
+    .section-heading p { margin:3px 0 0; color:#6c757d; font-size:.77rem; }
+    .confidence-legend { display:flex; align-items:center; gap:10px; color:#6c757d; font-size:.68rem; white-space:nowrap; }
+    .legend-dot { display:inline-block; width:8px; height:8px; margin-right:3px; border-radius:50%; }
+    .legend-dot.high { background:#198754; }.legend-dot.mid { background:#f59e0b; }.legend-dot.low { background:#dc3545; }
+    .response-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .response-card { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; min-height:76px; padding:12px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; }
+    .response-card.doubtful { background:#fffaf0; border-color:#ffda6a; }
+    .response-card.missing { background:#fff6f7; border-color:#f1aeb5; }
+    .item-number { display:grid; width:34px; height:34px; place-items:center; color:#495057; background:#fff; border:1px solid #dee2e6; border-radius:9px; font-size:.78rem; font-weight:800; }
+    .options { display:flex; gap:5px; }
+    .option { display:grid; width:30px; height:30px; place-items:center; color:#6c757d; background:#fff; border:1px solid #ced4da; border-radius:50%; font-size:.72rem; font-weight:800; }
+    .option.active { color:#fff; background:#0066cc; border-color:#0066cc; box-shadow:0 2px 7px rgba(0,102,204,.2); }
+    .response-card.doubtful .option.active { color:#664d03; background:#ffda6a; border-color:#ffc107; }
+    .missing-value { color:#842029; font-size:.72rem; font-weight:700; }
+    .confidence { min-width:54px; text-align:right; }
+    .confidence strong { display:block; font-size:.76rem; }
+    .confidence small { display:block; margin-top:2px; color:#6c757d; font-size:.6rem; }
+    .confidence.high strong { color:#198754; }.confidence.mid strong { color:#997404; }.confidence.low strong { color:#dc3545; }.confidence.manual strong { color:#6c757d; }
+    .notes { margin-top:20px; padding:15px 17px; color:#495057; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; font-size:.84rem; line-height:1.5; }
+    .notes strong { display:block; margin-bottom:5px; color:#17365d; }
+    .detail-actions { display:flex; justify-content:flex-end; gap:10px; padding:18px 22px; background:#f8fafc; border-top:1px solid #e9ecef; }
+    @media(max-width:700px) {
+      .detail-nav span { display:none; }
+      .student-hero { flex-direction:column; }
+      .record-facts { grid-template-columns:1fr; }
+      .fact { padding:12px 18px; border-right:0; border-bottom:1px solid #e9ecef; }
+      .response-grid { grid-template-columns:1fr; }
+      .section-heading { align-items:flex-start; flex-direction:column; }
+      .detail-content { padding:18px; }
+      .detail-actions { flex-direction:column-reverse; }
+      .detail-actions .omr-btn { width:100%; }
     }
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 28px 16px 64px; min-height: 100vh; }
-
-    .max-w { max-width: 780px; margin: 0 auto; }
-
-    /* Header */
-    .page-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
-    .back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: .85rem; background: var(--card); border: 1px solid var(--border); padding: 7px 14px; border-radius: 9px; margin-bottom: 16px; }
-    .back-btn:hover { color: var(--primary); border-color: var(--primary); }
-
-    .alumno-card { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; border-radius: 16px; padding: 22px 24px; margin-bottom: 20px; }
-    .alumno-card .name { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; }
-    .alumno-card .meta { font-size: .88rem; opacity: .85; display: flex; flex-wrap: wrap; gap: 16px; }
-    .alumno-card .meta-item { display: flex; align-items: center; gap: 5px; }
-
-    /* Info row */
-    .info-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-    .chip { padding: 6px 14px; border-radius: 20px; font-size: .82rem; font-weight: 600; }
-    .chip.model { background: #dbeafe; color: #1e40af; }
-    .chip.date { background: #f1f5f9; color: var(--muted); }
-    .chip.reviewed { background: #d1fae5; color: #065f46; }
-    .chip.auto { background: #fef3c7; color: #92400e; }
-
-    /* Items grid */
-    .section-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 12px; }
-    .items-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-
-    .item-card {
-      background: var(--card); border: 1.5px solid var(--border);
-      border-radius: 12px; padding: 14px 18px;
-      display: flex; align-items: center; gap: 14px;
-    }
-    .item-card.dudoso { border-color: var(--warning); background: #fffbeb; }
-    .item-card.sinresp { border-color: var(--danger); background: #fff5f5; }
-
-    .item-num-big { font-size: 1.1rem; font-weight: 800; color: var(--muted); min-width: 32px; }
-
-    .resp-display { display: flex; gap: 8px; align-items: center; flex: 1; }
-    .resp-circle {
-      width: 38px; height: 38px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; font-weight: 800;
-      border: 2px solid var(--border); color: var(--muted);
-      transition: all .2s;
-    }
-    .resp-circle.active {
-      background: var(--primary); border-color: var(--primary); color: white;
-      box-shadow: 0 2px 10px rgba(26,86,219,.35);
-    }
-    .resp-circle.active.dudoso {
-      background: var(--warning); border-color: var(--warning); color: #1c1917;
-    }
-    .resp-circle.empty-resp { background: #fee2e2; border-color: var(--danger); color: var(--danger); font-size: .75rem; }
-
-    .conf-col { min-width: 70px; text-align: right; }
-    .conf-text { font-size: .78rem; font-weight: 600; }
-    .conf-text.high { color: var(--success); }
-    .conf-text.mid { color: var(--warning); }
-    .conf-text.low { color: var(--danger); }
-    .conf-text.manual { color: var(--muted); }
-
-    .dudoso-tag { font-size: .72rem; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
-
-    /* Observaciones */
-    .obs-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; font-size: .9rem; color: var(--muted); }
-    .obs-box strong { display: block; color: var(--text); margin-bottom: 6px; }
-
-    /* Acciones */
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .btn-action { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 10px; font-size: .9rem; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: opacity .2s, transform .15s; }
-    .btn-action:hover { opacity: .9; transform: translateY(-1px); }
-    .btn-action.primary { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; }
-    .btn-action.secondary { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+    @media(max-width:390px) { .response-card { grid-template-columns:auto 1fr; }.confidence { grid-column:2; text-align:left; }.option { width:27px; height:27px; } }
   </style>
 </head>
 <body>
-<div class="max-w">
+  <main class="omr-page detail-page">
+    <nav class="detail-nav" aria-label="Navegación">
+      <a class="back-link" href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}"><i class="bi bi-arrow-left"></i>Volver al historial</a>
+      <span>Detalle de lectura OMR</span>
+    </nav>
 
-  <a href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}" class="back-btn">
-    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-    Volver al historial
-  </a>
-
-  <!-- Alumno -->
-  <div class="alumno-card">
-    <div class="name">{{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</div>
-    <div class="meta">
-      <span class="meta-item">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" /></svg>
-        DNI: {{ lectura.alumno.dni|default:"—" }}
-      </span>
-      {% if lectura.alumno.seccion %}
-      <span class="meta-item">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-        {{ lectura.alumno.seccion.grado.nombre_grado }} — Secc. {{ lectura.alumno.seccion.seccion }} {{ lectura.alumno.seccion.turno }}
-      </span>
-      {% endif %}
-      {% if lectura.alumno.seccion.grado.Establecimiento %}
-      <span class="meta-item">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-        {{ lectura.alumno.seccion.grado.Establecimiento.escuela }}
-      </span>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Chips info -->
-  <div class="info-chips">
-    {% if lectura.modelo_examen %}
-      <span class="chip model">Modelo {{ lectura.modelo_examen }}</span>
-    {% endif %}
-    <span class="chip date">📅 {{ lectura.fecha_lectura|date:"d/m/Y H:i" }}</span>
-    {% if lectura.revisado_manualmente %}
-      <span class="chip reviewed">✔ Revisado manualmente</span>
-    {% else %}
-      <span class="chip auto">⚡ Detección automática</span>
-    {% endif %}
-    {% if lectura.encargado_carga %}
-      <span class="chip date">👤 {{ lectura.encargado_carga }}</span>
-    {% endif %}
-  </div>
-
-  <!-- Ítems -->
-  <p class="section-title">Respuestas registradas</p>
-  <div class="items-list">
-    {% for item in items_detalle %}
-    <div class="item-card {% if item.dudoso %}dudoso{% elif not item.respuesta %}sinresp{% endif %}">
-      <div class="item-num-big">{{ item.num }})</div>
-
-      <div class="resp-display">
-        {% for opc in opciones %}
-          <div class="resp-circle {% if item.respuesta == opc %}active {% if item.dudoso %}dudoso{% endif %}{% endif %}">
-            {{ opc }}
+    <article class="omr-card">
+      <header class="omr-card-header student-hero">
+        <div>
+          <span class="text-uppercase fw-semibold small opacity-75">Examen procesado</span>
+          <h1>{{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</h1>
+          <div class="student-meta">
+            <span><i class="bi bi-person-vcard"></i>DNI {{ lectura.alumno.dni|default:"—" }}</span>
+            {% if lectura.alumno.seccion %}<span><i class="bi bi-mortarboard"></i>{{ lectura.alumno.seccion.grado.nombre_grado }} · Sección {{ lectura.alumno.seccion.seccion }} {{ lectura.alumno.seccion.turno }}</span>{% endif %}
+            {% if lectura.alumno.seccion.grado.Establecimiento %}<span><i class="bi bi-building"></i>{{ lectura.alumno.seccion.grado.Establecimiento.escuela }}</span>{% endif %}
           </div>
-        {% endfor %}
-        {% if not item.respuesta %}
-          <div class="resp-circle empty-resp">S/R</div>
-        {% endif %}
-      </div>
+        </div>
+        {% if lectura.revisado_manualmente %}<span class="record-status"><i class="bi bi-check-circle-fill"></i>Revisado</span>{% else %}<span class="record-status auto"><i class="bi bi-lightning-fill"></i>Automático</span>{% endif %}
+      </header>
 
-      {% if item.dudoso %}
-        <span class="dudoso-tag">⚠ Dudoso</span>
-      {% endif %}
+      <section class="record-facts" aria-label="Datos de la lectura">
+        <div class="fact"><span>Modelo</span><strong>{% if lectura.modelo_examen %}Modelo {{ lectura.modelo_examen }}{% else %}Sin especificar{% endif %}</strong></div>
+        <div class="fact"><span>Fecha de lectura</span><strong>{{ lectura.fecha_lectura|date:"d/m/Y · H:i" }}</strong></div>
+        <div class="fact"><span>Cargado por</span><strong>{{ lectura.encargado_carga|default:"Sin especificar" }}</strong></div>
+      </section>
 
-      <div class="conf-col">
-        {% if item.confianza is not None %}
-          {% if item.confianza >= 70 %}
-            <span class="conf-text high">{{ item.confianza }}% ✓</span>
-          {% elif item.confianza >= 40 %}
-            <span class="conf-text mid">{{ item.confianza }}%</span>
-          {% else %}
-            <span class="conf-text low">{{ item.confianza }}%</span>
-          {% endif %}
-        {% elif lectura.revisado_manualmente %}
-          <span class="conf-text manual">Manual</span>
-        {% endif %}
-      </div>
-    </div>
-    {% endfor %}
-  </div>
+      <section class="detail-content">
+        <div class="section-heading">
+          <div><h2>Respuestas registradas</h2><p>La confianza refleja la claridad de la detección, no si la respuesta es correcta.</p></div>
+          <div class="confidence-legend" aria-label="Referencia de confianza"><span><i class="legend-dot high"></i>Alta</span><span><i class="legend-dot mid"></i>Media</span><span><i class="legend-dot low"></i>Baja</span></div>
+        </div>
 
-  <!-- Observaciones -->
-  {% if lectura.observaciones %}
-  <div class="obs-box">
-    <strong>Observaciones</strong>
-    {{ lectura.observaciones }}
-  </div>
-  {% endif %}
+        <div class="response-grid">
+          {% for item in items_detalle %}
+            <div class="response-card {% if item.dudoso %}doubtful{% elif not item.respuesta %}missing{% endif %}">
+              <span class="item-number">{{ item.num }}</span>
+              <div class="options" aria-label="Ítem {{ item.num }}: {{ item.respuesta|default:'sin respuesta' }}">
+                {% for opc in opciones %}<span class="option {% if item.respuesta == opc %}active{% endif %}">{{ opc }}</span>{% endfor %}
+                {% if not item.respuesta %}<span class="missing-value">Sin respuesta</span>{% endif %}
+              </div>
+              {% if item.confianza is not None %}
+                <div class="confidence {% if item.confianza >= 70 %}high{% elif item.confianza >= 40 %}mid{% else %}low{% endif %}"><strong>{{ item.confianza }}%</strong><small>{% if item.dudoso %}Revisar{% else %}Confianza{% endif %}</small></div>
+              {% elif lectura.revisado_manualmente %}
+                <div class="confidence manual"><strong>Manual</strong><small>Revisado</small></div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
 
-  <!-- Acciones -->
-  <div class="actions">
-    <a href="{% url 'evaluaciones_educativas:omr_lector:lector_omr' lectura.alumno.public_id %}" class="btn-action primary">
-      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-      Re-escanear examen
-    </a>
-    <a href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}" class="btn-action secondary">
-      Volver al historial
-    </a>
-  </div>
+        {% if lectura.observaciones %}<div class="notes"><strong><i class="bi bi-chat-left-text me-1"></i>Observaciones</strong>{{ lectura.observaciones }}</div>{% endif %}
+      </section>
 
-</div>
+      <footer class="detail-actions">
+        <a class="omr-btn secondary" href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}">Volver al historial</a>
+        <a class="omr-btn" href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_materia' lectura.alumno.id_alumno %}"><i class="bi bi-arrow-repeat"></i>Volver a escanear</a>
+      </footer>
+    </article>
+  </main>
 </body>
 </html>

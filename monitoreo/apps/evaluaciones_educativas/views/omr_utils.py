@@ -13,8 +13,11 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
+from apps.evaluaciones_educativas.models.omr_lector import LecturaOMR
 
-LETTERS = ("A", "B", "C", "D")
+
+# Mantiene el detector sincronizado con las respuestas permitidas por el modelo.
+LETTERS = tuple(value for value, _ in LecturaOMR.OPCIONES_RESPUESTA if value)
 CONF_LOW = 45
 GRID_W, GRID_H = 1200, 900
 EXTENDED_H = 1450

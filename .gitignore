@@ -7,3 +7,8 @@ __pycache__
 .pyc
 
 monitoreo/apps/evaluaciones_educativas/static/evaluaciones_educativas/omr-mejorado
+
+AGENTS.md
+
+monitoreo/monitoreo/__pycache__/settings.cpython-313.pyc
+monitoreo/monitoreo/__pycache__/urls.cpython-313.pyc

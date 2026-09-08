@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OMR — Escanear Examen — {{ alumno.apellido }}, {{ alumno.nombre }}</title>
+  <title>OMR — {{ materia_nombre }} — {{ alumno.apellido }}, {{ alumno.nombre }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -65,6 +65,19 @@
       gap: 0;
       height: calc(100vh - 65px);
     }
+    .image-slots {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .image-slot {
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--muted); border-radius: 12px; padding: 12px 16px;
+      cursor: pointer; text-align: left; font-weight: 700;
+    }
+    .image-slot.active { border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 2px rgba(14,165,233,.2); }
+    .image-slot.complete::after { content: ' ✓'; color: var(--success); }
     @media (max-width: 900px) {
       .main-layout { grid-template-columns: 1fr; height: auto; }
     }
@@ -417,33 +430,61 @@
       margin-bottom: 10px;
     }
   </style>
+  <link href="{% static 'evaluaciones_educativas/css/omr_fluidez.css' %}" rel="stylesheet" />
 </head>
 <body>
 
   <!-- Topbar -->
   <div class="topbar">
     <div class="topbar-left">
-      <a href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_alumno' %}" class="back-btn">
+      <a href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_materia' alumno.id_alumno %}" class="back-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
-        Cambiar alumno
+        Cambiar materia
       </a>
       <div class="alumno-badge">
         <div class="name">{{ alumno.apellido }}, {{ alumno.nombre }}</div>
         <div class="meta">
-          DNI: {{ alumno.dni|default:"—" }}
+          {{ materia_nombre }} · DNI: {{ alumno.dni|default:"—" }}
           {% if alumno.seccion %} · {{ alumno.seccion.grado.nombre_grado }} · Secc. {{ alumno.seccion.seccion }} {{ alumno.seccion.turno }}{% endif %}
         </div>
       </div>
     </div>
-    <a href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}" style="font-size:.82rem; color:var(--muted); text-decoration:none;">
-      Ver historial →
-    </a>
+    {% if modo_simulacion %}
+      <span class="omr-simulation">Modo simulación · sin persistencia</span>
+    {% else %}
+      <a href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}" style="font-size:.82rem; color:var(--muted); text-decoration:none;">Ver historial →</a>
+    {% endif %}
   </div>
 
   <!-- Layout principal -->
-  <div class="main-layout">
+  <main class="main-layout" id="main-layout">
+
+    <header class="scanner-intro">
+      <div>
+        <span class="omr-kicker">Paso 3 de 3 · Escaneo</span>
+        <h1>Escanear examen de {{ materia_nombre }}</h1>
+        <p>Cargá las dos imágenes. El sistema detectará las respuestas y te permitirá revisarlas antes de guardar.</p>
+      </div>
+      <div class="scanner-progress" aria-live="polite">
+        <strong id="scanner-progress-count">0 de 2</strong>
+        <span>partes completas</span>
+      </div>
+    </header>
+
+    <div class="image-slots" role="tablist" aria-label="Imágenes del examen">
+      <button type="button" role="tab" aria-selected="true" class="image-slot active" data-image-slot="1">
+        <span class="slot-number">1</span>
+        <span class="slot-copy"><strong>Hoja principal</strong><small data-slot-status>Primera imagen · Pendiente</small></span>
+        <span class="slot-check" aria-hidden="true">✓</span>
+      </button>
+      <button type="button" role="tab" aria-selected="false" class="image-slot" data-image-slot="2">
+        <span class="slot-number">2</span>
+        <span class="slot-copy"><strong>Detalle adicional</strong><small data-slot-status>Segunda imagen · Pendiente</small></span>
+        <span class="slot-check" aria-hidden="true">✓</span>
+      </button>
+    </div>
 
     <!-- Zona izquierda: cámara / imagen -->
     <div class="camera-zone" id="camera-zone">
@@ -478,8 +519,26 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
-        <p>Usá la cámara o subí una foto<br>del examen completo.</p>
-        <p style="font-size: 0.8rem; margin-top: 12px; color: var(--warning);">Encuadrá toda la hoja en el rectángulo<br>incluyendo los 12 ítems.</p>
+        <span class="placeholder-step" id="slot-placeholder-label">Imagen 1 de 2</span>
+        <h2 id="slot-placeholder-title">Cargá la hoja principal</h2>
+        <p>Podés sacarle una foto ahora o elegir una imagen de tu dispositivo.</p>
+        <div class="capture-tips">
+          <span>Hoja completa</span>
+          <span>Buena luz</span>
+          <span>Sin sombras</span>
+        </div>
+      </div>
+
+      <!-- Estado de carga manual -->
+      <div class="manual-placeholder" id="manual-placeholder" hidden>
+        <div class="manual-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </div>
+        <span class="placeholder-step" id="manual-slot-label">Imagen 1 de 2</span>
+        <h2>Carga manual activa</h2>
+        <p>Completá las 12 respuestas en el panel de revisión. No necesitás adjuntar una foto.</p>
       </div>
 
       <!-- Badge procesando -->
@@ -512,7 +571,14 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          Sacar / subir foto
+          <span id="upload-button-label">Elegir imagen 1</span>
+        </button>
+
+        <button class="btn-cam secondary manual" id="btn-carga-manual" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+          Cargar manualmente
         </button>
 
         <button class="btn-cam secondary" id="btn-cancelar" style="display:none;" type="button">
@@ -525,14 +591,15 @@
           id="input-foto"
           accept="image/*"
           capture="environment"
+          multiple
         />
       </div>
     </div>
 
     <!-- Panel lateral: resultados OMR -->
-    <div class="results-panel">
+    <aside class="results-panel is-hidden" id="results-panel" aria-label="Revisión de respuestas">
       <div class="panel-header">
-        <h2>Respuestas detectadas</h2>
+        <h2 id="results-title">Respuestas · Imagen 1</h2>
         <span class="panel-status waiting" id="panel-status-badge">En espera</span>
       </div>
 
@@ -583,8 +650,8 @@
           Guardar resultado
         </button>
       </div>
-    </div>
-  </div>
+    </aside>
+  </main>
 
   <!-- Toast éxito -->
   <div class="toast-success" id="toast-success">✔ Lectura guardada correctamente</div>
@@ -597,27 +664,38 @@
 
   <script>
     // ── Estado global ──────────────────────────────────────────────────────
-    const SAVE_URL    = "{% url 'evaluaciones_educativas:omr_lector:guardar_lectura' alumno.public_id %}";
+    const SAVE_URL    = "{% url 'evaluaciones_educativas:omr_lector:guardar_lectura' alumno.id_alumno materia %}";
     const PROCESS_URL = "{% url 'evaluaciones_educativas:omr_lector:procesar_imagen_omr' %}";
     const CSRF_TOKEN  = "{{ csrf_token }}";
 
     // Inicializar el cliente OMR con el endpoint del backend y el CSRF token
     OMRProcessor.init(PROCESS_URL, CSRF_TOKEN);
 
-    let respuestasActuales = {};
-    let confianzaActual = {};
+    const crearLecturaVacia = () => ({
+      respuestas: Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, ''])),
+      confianza: Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, 0])),
+      itemsDudosos: new Set(Array.from({ length: 12 }, (_, i) => i + 1)),
+      preview: null,
+      procesada: false,
+      modo: null,
+    });
+    const lecturasPorImagen = { 1: crearLecturaVacia(), 2: crearLecturaVacia() };
+    let imagenActiva = 1;
+    let respuestasActuales = lecturasPorImagen[1].respuestas;
+    let confianzaActual = lecturasPorImagen[1].confianza;
     let streamActivo = null;
     let procesamientoController = null;
     let procesando = false;
     let guardando = false;
     let confirmacionDudosos = false;
-    let itemsDudososActuales = new Set();
+    let itemsDudososActuales = lecturasPorImagen[1].itemsDudosos;
 
     // ── Elementos DOM ──────────────────────────────────────────────────────
     const videoEl       = document.getElementById('video-live');
     const canvasPreview = document.getElementById('canvas-preview');
     const canvasOMR     = document.getElementById('canvas-omr');
     const placeholder   = document.getElementById('placeholder');
+    const manualPlaceholder = document.getElementById('manual-placeholder');
     const guideOverlay  = document.getElementById('guide-overlay');
     const procBadge     = document.getElementById('processing-badge');
     const panelEmpty    = document.getElementById('panel-empty');
@@ -627,10 +705,21 @@
     const btnAbrirCam   = document.getElementById('btn-abrir-camara');
     const btnCapLive    = document.getElementById('btn-capturar-live');
     const btnSubir      = document.getElementById('btn-subir-foto');
+    const btnCargaManual = document.getElementById('btn-carga-manual');
     const btnCancelar   = document.getElementById('btn-cancelar');
     const inputFoto     = document.getElementById('input-foto');
     const toastEl       = document.getElementById('toast-success');
     const appMessage    = document.getElementById('app-message');
+    const cameraZone    = document.getElementById('camera-zone');
+    const mainLayout    = document.getElementById('main-layout');
+    const resultsPanel  = document.getElementById('results-panel');
+    const slotButtons   = Array.from(document.querySelectorAll('[data-image-slot]'));
+    const slotLabel     = document.getElementById('slot-placeholder-label');
+    const slotTitle     = document.getElementById('slot-placeholder-title');
+    const uploadLabel   = document.getElementById('upload-button-label');
+    const manualSlotLabel = document.getElementById('manual-slot-label');
+    const progressCount = document.getElementById('scanner-progress-count');
+    const resultsTitle  = document.getElementById('results-title');
 
     const GUARDAR_HTML = btnGuardar.innerHTML;
 
@@ -644,17 +733,109 @@
       appMessage.textContent = '';
     }
 
+    function mostrarPanelResultados(visible) {
+      resultsPanel.classList.toggle('is-hidden', !visible);
+      mainLayout.classList.toggle('results-visible', visible);
+    }
+
+    function marcarZonaConImagen(visible) {
+      cameraZone.classList.toggle('media-active', visible);
+    }
+
     function respuestasFaltantes() {
-      return Array.from({ length: 12 }, (_, index) => index + 1)
-        .filter(item => !respuestasActuales[item]);
+      return [1, 2].flatMap(numeroImagen => {
+        const lectura = lecturasPorImagen[numeroImagen];
+        if (!lectura.procesada) return [`Imagen ${numeroImagen} sin cargar`];
+        return Array.from({ length: 12 }, (_, index) => index + 1)
+          .filter(item => !lectura.respuestas[item])
+          .map(item => `Imagen ${numeroImagen} / ítem ${item}`);
+      });
     }
 
     function actualizarEstadoGuardado() {
       const faltantes = respuestasFaltantes();
       btnGuardar.disabled = procesando || guardando || faltantes.length > 0;
       if (!guardando && !confirmacionDudosos) btnGuardar.innerHTML = GUARDAR_HTML;
+      slotButtons.forEach(button => {
+        const numero = Number(button.dataset.imageSlot);
+        const lectura = lecturasPorImagen[numero];
+        const completa = Array.from({ length: 12 }, (_, i) => i + 1)
+          .every(item => lectura.respuestas[item]);
+        button.classList.toggle('complete', completa);
+        button.classList.toggle('needs-review', lectura.procesada && !completa);
+        const status = button.querySelector('[data-slot-status]');
+        if (status) {
+          const faltan = Array.from({ length: 12 }, (_, i) => i + 1)
+            .filter(item => !lectura.respuestas[item]).length;
+          status.textContent = completa
+            ? `${lectura.modo === 'manual' ? 'Carga manual · ' : ''}Lista para guardar`
+            : lectura.procesada
+              ? `${lectura.modo === 'manual' ? 'Carga manual · faltan ' : 'Revisar '}${faltan} respuesta${faltan === 1 ? '' : 's'}`
+              : `${numero === 1 ? 'Primera' : 'Segunda'} imagen · Pendiente`;
+        }
+      });
+      const completas = slotButtons.filter(button => button.classList.contains('complete')).length;
+      progressCount.textContent = `${completas} de 2`;
       return faltantes;
     }
+
+    function cambiarImagenActiva(numeroImagen) {
+      if (procesando || numeroImagen === imagenActiva) return;
+      detenerCamara();
+      imagenActiva = numeroImagen;
+      const lectura = lecturasPorImagen[numeroImagen];
+      respuestasActuales = lectura.respuestas;
+      confianzaActual = lectura.confianza;
+      itemsDudososActuales = lectura.itemsDudosos;
+      slotButtons.forEach(button => button.classList.toggle(
+        'active', Number(button.dataset.imageSlot) === numeroImagen
+      ));
+      slotButtons.forEach(button => button.setAttribute(
+        'aria-selected', String(Number(button.dataset.imageSlot) === numeroImagen)
+      ));
+      slotLabel.textContent = `Imagen ${numeroImagen} de 2`;
+      slotTitle.textContent = numeroImagen === 1 ? 'Cargá la hoja principal' : 'Cargá el detalle adicional';
+      uploadLabel.textContent = `Elegir imagen ${numeroImagen}`;
+      manualSlotLabel.textContent = `Imagen ${numeroImagen} de 2`;
+      resultsTitle.textContent = `${lectura.modo === 'manual' ? 'Carga manual' : 'Respuestas'} · Imagen ${numeroImagen}`;
+      ocultarMensaje();
+      manualPlaceholder.hidden = true;
+
+      if (lectura.preview) {
+        const previewImage = new Image();
+        previewImage.onload = () => {
+          canvasPreview.width = previewImage.naturalWidth;
+          canvasPreview.height = previewImage.naturalHeight;
+          canvasPreview.getContext('2d', { alpha: false }).drawImage(previewImage, 0, 0);
+          canvasPreview.style.display = 'block';
+          placeholder.style.display = 'none';
+          marcarZonaConImagen(true);
+        };
+        previewImage.src = lectura.preview;
+      } else {
+        canvasPreview.style.display = 'none';
+        const esManual = lectura.modo === 'manual';
+        placeholder.style.display = esManual ? 'none' : 'flex';
+        manualPlaceholder.hidden = !esManual;
+        marcarZonaConImagen(false);
+      }
+
+      if (lectura.procesada) {
+        renderizarRespuestas(
+          lectura.respuestas, lectura.confianza, Array.from(lectura.itemsDudosos)
+        );
+      } else {
+        mostrarPanelResultados(false);
+        itemsGrid.style.display = 'none';
+        panelEmpty.style.display = 'block';
+        setStatus('waiting', `Imagen ${numeroImagen} pendiente`);
+      }
+      actualizarEstadoGuardado();
+    }
+
+    slotButtons.forEach(button => button.addEventListener('click', () =>
+      cambiarImagenActiva(Number(button.dataset.imageSlot))
+    ));
 
     // ── Manejo de cámara en vivo ──────────────────────────────────────────
 
@@ -673,7 +854,9 @@
         videoEl.srcObject = streamActivo;
         videoEl.style.display = 'block';
         placeholder.style.display = 'none';
+        manualPlaceholder.hidden = true;
         canvasPreview.style.display = 'none';
+        marcarZonaConImagen(true);
         guideOverlay.classList.add('visible');
         btnCapLive.style.display = 'flex';
         btnAbrirCam.innerHTML = `
@@ -720,8 +903,25 @@
       btnAbrirCam.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-        Cámara en vivo`;
+          </svg>
+          Cámara en vivo`;
+      const lectura = lecturasPorImagen[imagenActiva];
+      if (lectura.preview) {
+        canvasPreview.style.display = 'block';
+        placeholder.style.display = 'none';
+        manualPlaceholder.hidden = true;
+        marcarZonaConImagen(true);
+      } else if (lectura.modo === 'manual') {
+        canvasPreview.style.display = 'none';
+        placeholder.style.display = 'none';
+        manualPlaceholder.hidden = false;
+        marcarZonaConImagen(false);
+      } else {
+        canvasPreview.style.display = 'none';
+        placeholder.style.display = 'flex';
+        manualPlaceholder.hidden = true;
+        marcarZonaConImagen(false);
+      }
     }
 
     // ── Botón "Sacar / subir foto" ─────────────────────────────────────────
@@ -730,23 +930,67 @@
       inputFoto.click();
     });
 
-    inputFoto.addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (file) procesarImagen(file);
+    btnCargaManual.addEventListener('click', () => {
+      if (procesando) return;
+      detenerCamara();
+      const lectura = lecturasPorImagen[imagenActiva];
+
+      // Si ya existe una lectura OMR, el panel actual ya permite corregirla
+      // sin descartar ni reemplazar las respuestas detectadas.
+      if (lectura.procesada && lectura.modo !== 'manual') {
+        renderizarRespuestas(
+          lectura.respuestas,
+          lectura.confianza,
+          Array.from(lectura.itemsDudosos),
+        );
+        mostrarMensaje('info', 'La imagen ya fue analizada. Podés corregir sus respuestas directamente en el panel.');
+        return;
+      }
+
+      lectura.procesada = true;
+      lectura.modo = 'manual';
+      lectura.preview = null;
+      lectura.itemsDudosos = new Set();
+      respuestasActuales = lectura.respuestas;
+      confianzaActual = lectura.confianza;
+      itemsDudososActuales = lectura.itemsDudosos;
+
+      canvasPreview.style.display = 'none';
+      placeholder.style.display = 'none';
+      manualPlaceholder.hidden = false;
+      marcarZonaConImagen(false);
+      resultsTitle.textContent = `Carga manual · Imagen ${imagenActiva}`;
+      renderizarRespuestas(respuestasActuales, confianzaActual, []);
+      actualizarEstadoGuardado();
+    });
+
+    inputFoto.addEventListener('change', async e => {
+      const files = Array.from(e.target.files).slice(0, 2);
       inputFoto.value = '';
+      if (files.length === 2) {
+        cambiarImagenActiva(1);
+        await procesarImagen(files[0]);
+        cambiarImagenActiva(2);
+        await procesarImagen(files[1]);
+        return;
+      }
+      if (files[0]) await procesarImagen(files[0]);
     });
 
     // ── Procesamiento OMR ─────────────────────────────────────────────────
 
     async function procesarImagen(file) {
       if (procesamientoController) procesamientoController.abort();
+      const numeroImagen = imagenActiva;
       const controller = new AbortController();
       procesamientoController = controller;
       procesando = true;
       confirmacionDudosos = false;
       ocultarMensaje();
       placeholder.style.display = 'none';
+      manualPlaceholder.hidden = true;
       canvasPreview.style.display = 'block';
+      marcarZonaConImagen(true);
       procBadge.classList.add('visible');
       btnCancelar.style.display = 'flex';
       setStatus('processing', 'Procesando…');
@@ -758,6 +1002,11 @@
         );
         respuestasActuales = { ...resultado.respuestas };
         confianzaActual = { ...resultado.confianza };
+        lecturasPorImagen[numeroImagen].respuestas = respuestasActuales;
+        lecturasPorImagen[numeroImagen].confianza = confianzaActual;
+        lecturasPorImagen[numeroImagen].preview = canvasPreview.toDataURL('image/jpeg', 0.82);
+        lecturasPorImagen[numeroImagen].procesada = true;
+        lecturasPorImagen[numeroImagen].modo = 'omr';
         renderizarRespuestas(respuestasActuales, confianzaActual, resultado.itemsDudosos);
         if (resultado.detection_method === 'not_found') {
           mostrarMensaje('error', 'No se detectó la hoja. Probá con más luz, sin sombras y encuadrando la hoja completa. También podés completar las respuestas manualmente.');
@@ -768,13 +1017,31 @@
         }
       } catch (err) {
         if (err.name === 'AbortError') {
+          const lecturaCancelada = lecturasPorImagen[numeroImagen];
+          const volverAManual = lecturaCancelada.modo === 'manual' && !lecturaCancelada.preview;
+          if (volverAManual) {
+            canvasPreview.style.display = 'none';
+            placeholder.style.display = 'none';
+            manualPlaceholder.hidden = false;
+            marcarZonaConImagen(false);
+            renderizarRespuestas(
+              lecturaCancelada.respuestas,
+              lecturaCancelada.confianza,
+              [],
+            );
+          }
           mostrarMensaje('info', 'Procesamiento cancelado. Podés elegir otra imagen.');
-          setStatus('waiting', 'Cancelado');
+          if (!volverAManual) setStatus('waiting', 'Cancelado');
           return;
         }
         respuestasActuales = {};
         confianzaActual = {};
         for (let i = 1; i <= 12; i++) { respuestasActuales[i] = ''; confianzaActual[i] = 0; }
+        lecturasPorImagen[numeroImagen].respuestas = respuestasActuales;
+        lecturasPorImagen[numeroImagen].confianza = confianzaActual;
+        lecturasPorImagen[numeroImagen].preview = canvasPreview.toDataURL('image/jpeg', 0.82);
+        lecturasPorImagen[numeroImagen].procesada = true;
+        lecturasPorImagen[numeroImagen].modo = 'omr';
         renderizarRespuestas(respuestasActuales, confianzaActual, Array.from({length:12},(_,i)=>i+1));
         setStatus('error', 'Error — editá manualmente');
         const messages = {
@@ -796,21 +1063,27 @@
     btnCancelar.addEventListener('click', () => procesamientoController?.abort());
 
     function renderizarRespuestas(respuestas, confianza, itemsDudosos) {
+      mostrarPanelResultados(true);
+      const cargaManual = lecturasPorImagen[imagenActiva].modo === 'manual';
+      resultsTitle.textContent = `${cargaManual ? 'Carga manual' : 'Respuestas'} · Imagen ${imagenActiva}`;
       panelEmpty.style.display = 'none';
       itemsGrid.style.display = 'flex';
       itemsGrid.innerHTML = '';
       itemsDudososActuales = new Set(itemsDudosos.map(Number));
+      lecturasPorImagen[imagenActiva].itemsDudosos = itemsDudososActuales;
 
       const totalDetectados = Object.values(respuestas).filter(r => r).length;
       const hayDudosos = itemsDudososActuales.size > 0;
 
-      const confidenceHelp = document.createElement('div');
-      confidenceHelp.className = 'warning-box';
-      confidenceHelp.style.background = '#eff6ff';
-      confidenceHelp.style.borderColor = '#93c5fd';
-      confidenceHelp.style.color = '#1e3a8a';
-      confidenceHelp.textContent = 'La confianza indica qué tan clara fue la detección; no es el porcentaje de respuestas correctas.';
-      itemsGrid.appendChild(confidenceHelp);
+      if (!cargaManual) {
+        const confidenceHelp = document.createElement('div');
+        confidenceHelp.className = 'warning-box';
+        confidenceHelp.style.background = '#eff6ff';
+        confidenceHelp.style.borderColor = '#93c5fd';
+        confidenceHelp.style.color = '#1e3a8a';
+        confidenceHelp.textContent = 'La confianza indica qué tan clara fue la detección; no es el porcentaje de respuestas correctas.';
+        itemsGrid.appendChild(confidenceHelp);
+      }
 
       // Aviso de dudosos
       if (hayDudosos) {
@@ -876,7 +1149,9 @@
         // Barra de confianza
         const confWrap = document.createElement('div');
         confWrap.className = 'conf-bar-wrap';
-        if (conf !== null) {
+        if (cargaManual) {
+          confWrap.innerHTML = '<span class="manual-entry-label">Manual</span>';
+        } else if (conf !== null) {
           const nivel = conf >= 70 ? 'high' : conf >= 40 ? 'mid' : 'low';
           confWrap.innerHTML = `
             <div class="conf-bar"><div class="conf-fill ${nivel}" style="width:${conf}%"></div></div>
@@ -895,11 +1170,11 @@
 
       const sinRespCount = 12 - totalDetectados;
       if (sinRespCount > 0) {
-        setStatus('error', `${sinRespCount} sin respuesta`);
+        setStatus('error', `${sinRespCount} ${cargaManual ? 'por completar' : 'sin respuesta'}`);
       } else if (hayDudosos) {
         setStatus('processing', `${itemsDudososActuales.size} dudoso(s)`);
       } else {
-        setStatus('ready', 'Listo ✓');
+        setStatus('ready', cargaManual ? 'Carga manual lista' : 'Listo ✓');
       }
 
       actualizarEstadoGuardado();
@@ -928,9 +1203,13 @@
         mostrarMensaje('error', `Faltan las respuestas: ${faltantes.join(', ')}. Completalas antes de guardar.`);
         return;
       }
-      if (itemsDudososActuales.size && !confirmacionDudosos) {
+      const dudas = [1, 2].flatMap(numeroImagen =>
+        Array.from(lecturasPorImagen[numeroImagen].itemsDudosos)
+          .map(item => `Imagen ${numeroImagen} / ítem ${item}`)
+      );
+      if (dudas.length && !confirmacionDudosos) {
         confirmacionDudosos = true;
-        mostrarMensaje('warning', `Todavía hay respuestas dudosas (${Array.from(itemsDudososActuales).join(', ')}). Revisalas o presioná “Guardar igualmente” para confirmar.`);
+        mostrarMensaje('warning', `Todavía hay respuestas dudosas (${dudas.join(', ')}). Revisalas o presioná “Guardar igualmente” para confirmar.`);
         btnGuardar.textContent = 'Guardar igualmente';
         return;
       }
@@ -940,13 +1219,19 @@
       btnGuardar.innerHTML = '<div class="spinner-sm" style="border-color:rgba(255,255,255,.3);border-top-color:white;width:18px;height:18px;"></div> Guardando…';
 
       const payload = {
-        respuestas: respuestasActuales,
-        confianza: Object.fromEntries(
-          Array.from({ length: 12 }, (_, index) => {
-            const item = index + 1;
-            return [item, Math.max(0, Math.min(100, Math.round(Number(confianzaActual[item]) || 0)))];
-          })
-        ),
+        lecturas: Object.fromEntries([1, 2].map(numeroImagen => [
+          `imagen_${numeroImagen}`,
+          {
+            respuestas: lecturasPorImagen[numeroImagen].respuestas,
+            confianza: Object.fromEntries(
+              Array.from({ length: 12 }, (_, index) => {
+                const item = index + 1;
+                const valor = lecturasPorImagen[numeroImagen].confianza[item];
+                return [item, Math.max(0, Math.min(100, Math.round(Number(valor) || 0)))];
+              })
+            ),
+          },
+        ])),
         modelo_examen: document.getElementById('modelo-select').value,
         revisado_manualmente: true,
         observaciones: document.getElementById('obs-input').value,

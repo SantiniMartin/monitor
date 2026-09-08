@@ -5,7 +5,7 @@ Vistas para el módulo OMR (Optical Mark Recognition) de exámenes de opción m�
 
 Flujo:
   1. seleccionar_alumno  → busca y selecciona el alumno del sistema
-  2. lector_omr          → captura de foto + procesamiento frontend + edición manual
+  2. lector_omr          → captura y procesamiento OMR, o carga completamente manual
   3. guardar_lectura     → POST JSON con las respuestas finales → guarda en DB
   4. lista_lecturas      → historial de lecturas del alumno o globales
   5. detalle_lectura     → detalle de una lectura específica
@@ -14,9 +14,11 @@ Flujo:
 import io
 import json
 import logging
+from types import SimpleNamespace
 
 from PIL import Image, UnidentifiedImageError
-from django.core.exceptions import RequestDataTooBig
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, RequestDataTooBig
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
@@ -24,14 +26,27 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 from django.urls import reverse
 
-from apps.evaluaciones_educativas.models.fluidez_2026 import AlumnoFluidez2026, EstablecimientosFluidez2026
-from apps.evaluaciones_educativas.models.omr_lector import LecturaOMR
+from apps.evaluaciones_educativas.models.omr_lector import (
+    AlumnoDiagnostico_Ingreso_2026,
+    EstablecimientosDiagnostico_Ingreso_2026,
+    LecturaOMR,
+)
+from apps.evaluaciones_educativas.services.omr_catalogo import (
+    MATERIAS,
+    SIMULATION_MODE,
+    alumno_autorizado,
+    alumnos_de_oferta,
+    materia_valida,
+    oferta_autorizada,
+    ofertas_del_usuario,
+)
 
 
 logger = logging.getLogger(__name__)
 ITEM_KEYS = {str(i) for i in range(1, 13)}
+IMAGE_KEYS = {'imagen_1', 'imagen_2'}
 SAVE_PAYLOAD_KEYS = {
-    'respuestas', 'confianza', 'modelo_examen',
+    'lecturas', 'modelo_examen',
     'revisado_manualmente', 'observaciones',
 }
 MAX_JSON_BYTES = 32 * 1024
@@ -40,6 +55,7 @@ MAX_IMAGE_PIXELS = 25_000_000
 ALLOWED_IMAGE_FORMATS = {'JPEG', 'PNG', 'WEBP'}
 ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
 FORMAT_CONTENT_TYPES = {'JPEG': 'image/jpeg', 'PNG': 'image/png', 'WEBP': 'image/webp'}
+LOGIN_URL = '/admin/login/'
 
 
 def _json_error(message, code, status=400):
@@ -56,24 +72,37 @@ def _validar_payload_lectura(payload):
     if set(payload) != SAVE_PAYLOAD_KEYS:
         raise ValueError('Faltan campos obligatorios en la lectura.')
 
-    respuestas = payload['respuestas']
-    confianza = payload['confianza']
-    if not isinstance(respuestas, dict) or set(respuestas) != ITEM_KEYS:
-        raise ValueError('Las respuestas deben incluir exactamente los ítems 1 a 12.')
-    if not isinstance(confianza, dict) or set(confianza) != ITEM_KEYS:
-        raise ValueError('La confianza debe incluir exactamente los ítems 1 a 12.')
+    lecturas = payload['lecturas']
+    if not isinstance(lecturas, dict) or set(lecturas) != IMAGE_KEYS:
+        raise ValueError('Deben enviarse exactamente las lecturas imagen_1 e imagen_2.')
 
-    normalized_respuestas = {}
-    normalized_confianza = {}
-    for key in sorted(ITEM_KEYS, key=int):
-        response = respuestas[key]
-        if not isinstance(response, str) or response not in {'A', 'B', 'C', 'D'}:
-            raise ValueError(f'El ítem {key} debe tener una respuesta entre A y D.')
-        confidence = confianza[key]
-        if isinstance(confidence, bool) or not isinstance(confidence, int) or not 0 <= confidence <= 100:
-            raise ValueError(f'La confianza del ítem {key} debe ser un entero entre 0 y 100.')
-        normalized_respuestas[key] = response
-        normalized_confianza[key] = confidence
+    normalized_lecturas = {}
+    for image_key in sorted(IMAGE_KEYS):
+        lectura = lecturas[image_key]
+        if not isinstance(lectura, dict) or set(lectura) != {'respuestas', 'confianza'}:
+            raise ValueError(f'La lectura {image_key} no tiene el formato esperado.')
+        respuestas = lectura['respuestas']
+        confianza = lectura['confianza']
+        if not isinstance(respuestas, dict) or set(respuestas) != ITEM_KEYS:
+            raise ValueError(f'Las respuestas de {image_key} deben incluir los ítems 1 a 12.')
+        if not isinstance(confianza, dict) or set(confianza) != ITEM_KEYS:
+            raise ValueError(f'La confianza de {image_key} debe incluir los ítems 1 a 12.')
+
+        normalized_respuestas = {}
+        normalized_confianza = {}
+        for key in sorted(ITEM_KEYS, key=int):
+            response = respuestas[key]
+            if not isinstance(response, str) or response not in {'A', 'B', 'C', 'D'}:
+                raise ValueError(f'El ítem {key} de {image_key} debe tener una respuesta entre A y D.')
+            confidence = confianza[key]
+            if isinstance(confidence, bool) or not isinstance(confidence, int) or not 0 <= confidence <= 100:
+                raise ValueError(f'La confianza del ítem {key} de {image_key} debe estar entre 0 y 100.')
+            normalized_respuestas[key] = response
+            normalized_confianza[key] = confidence
+        normalized_lecturas[image_key] = {
+            'respuestas': normalized_respuestas,
+            'confianza': normalized_confianza,
+        }
 
     modelo = payload['modelo_examen']
     if not isinstance(modelo, str) or modelo not in {'', 'A', 'B', 'C', 'D'}:
@@ -86,8 +115,7 @@ def _validar_payload_lectura(payload):
         raise ValueError('Las observaciones no pueden superar los 2000 caracteres.')
 
     return {
-        'respuestas': normalized_respuestas,
-        'confianza': normalized_confianza,
+        'lecturas': normalized_lecturas,
         'modelo_examen': modelo,
         'revisado_manualmente': revisado,
         'observaciones': observaciones.strip(),
@@ -122,83 +150,99 @@ def _validar_imagen_subida(upload):
     return image_bytes
 
 
-# ─── 1. Selección de alumno ───────────────────────────────────────────────────
+# ─── 1. Oferta, establecimiento y selección provisoria de alumno ─────────────
 
+
+# @login_required()
 def seleccionar_alumno(request):
-    """
-    Permite buscar y seleccionar un alumno existente del sistema antes
-    de proceder a la carga OMR de su examen.
-
-    GET: muestra formulario de búsqueda
-    POST: filtra alumnos por nombre/apellido/DNI y cueanexo
-    """
+    """Lista únicamente establecimientos y alumnos habilitados al usuario."""
+    username = request.user.get_username()
+    ofertas = ofertas_del_usuario(username)
+    id_establecimiento = request.GET.get('establecimiento', '').strip()
+    query_original = request.GET.get('q', '').strip()
+    query = query_original.casefold()
+    oferta = None
     alumnos = None
-    query = ''
-    cueanexo_seleccionado = ''
 
-    # Obtener lista de cueanexos disponibles
-    establecimientos = EstablecimientosFluidez2026.objects.using('Evaluacion').order_by('escuela')
-
-    if request.method == 'POST':
-        query = request.POST.get('q', '').strip()
-        cueanexo_seleccionado = request.POST.get('cueanexo', '').strip()
-
-        qs = AlumnoFluidez2026.objects.using('Evaluacion').select_related(
-            'seccion',
-            'seccion__grado',
-            'seccion__grado__Establecimiento',
-        )
-
-        if cueanexo_seleccionado:
-            qs = qs.filter(seccion__grado__cueanexo=cueanexo_seleccionado)
-
+    if id_establecimiento:
+        oferta = oferta_autorizada(username, id_establecimiento)
+        if oferta is None:
+            raise PermissionDenied('El establecimiento no pertenece a la oferta del usuario.')
+        alumnos = alumnos_de_oferta(username, id_establecimiento)
         if query:
-            qs = qs.filter(
-                Q(nombre__icontains=query) |
-                Q(apellido__icontains=query) |
-                Q(dni__icontains=query)
+            alumnos = tuple(
+                alumno for alumno in alumnos
+                if query in f'{alumno.apellido} {alumno.nombre} {alumno.dni}'.casefold()
             )
 
-        alumnos = qs.order_by('apellido', 'nombre')[:50]  # Limitar a 50 resultados
-
-    contexto = {
+    return render(request, 'omr_lector/flujo_alumnos.html', {
+        'ofertas': ofertas,
+        'oferta_seleccionada': oferta,
         'alumnos': alumnos,
-        'query': query,
-        'cueanexo_seleccionado': cueanexo_seleccionado,
-        'establecimientos': establecimientos,
-    }
-    return render(request, 'omr_lector/seleccionar_alumno.html', contexto)
+        'query': query_original,
+        'modo_simulacion': SIMULATION_MODE,
+    })
 
 
-# ─── 2. Lector OMR (captura + procesamiento) ─────────────────────────────────
+# @login_required()
+def seleccionar_materia(request, id_alumno):
+    alumno = alumno_autorizado(request.user.get_username(), id_alumno)
+    if alumno is None:
+        raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
+    return render(request, 'omr_lector/seleccionar_materia.html', {
+        'alumno': alumno,
+        'materias': MATERIAS,
+        'modo_simulacion': SIMULATION_MODE,
+    })
 
-def lector_omr(request, alumno_public_id):
+
+# ─── 2. Lector OMR (captura, procesamiento o carga manual) ───────────────────
+
+# @login_required()
+def lector_omr(request, id_alumno, materia):
     """
     Página principal del lector OMR para un alumno específico.
 
     Muestra:
     - Datos del alumno seleccionado
-    - Interfaz de captura de foto (cámara o archivo)
-    - Panel de resultados OMR editable
+    - Interfaz de captura de foto (cámara o archivo) o carga manual
+    - Panel de respuestas editable para las dos partes del examen
     - Botón para guardar
     """
-    alumno = get_object_or_404(
-        AlumnoFluidez2026.objects.using('Evaluacion').select_related(
-            'seccion',
-            'seccion__grado',
-            'seccion__grado__Establecimiento',
-        ),
-        public_id=alumno_public_id,
-    )
+    alumno_oferta = alumno_autorizado(request.user.get_username(), id_alumno)
+    if alumno_oferta is None:
+        raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
+    if not materia_valida(materia):
+        raise PermissionDenied('La materia seleccionada no es válida.')
 
-    # Verificar si ya existe una lectura OMR para este alumno
-    lectura_existente = LecturaOMR.objects.using('Evaluacion').filter(
-        alumno=alumno
-    ).order_by('-fecha_lectura').first()
+    oferta = oferta_autorizada(
+        request.user.get_username(), alumno_oferta.id_establecimiento
+    )
+    establecimiento = SimpleNamespace(escuela=oferta.establecimiento)
+    grado = SimpleNamespace(
+        nombre_grado=alumno_oferta.grado,
+        Establecimiento=establecimiento,
+    )
+    seccion = SimpleNamespace(
+        grado=grado,
+        seccion=alumno_oferta.seccion,
+        turno=alumno_oferta.turno,
+    )
+    alumno = SimpleNamespace(
+        public_id=alumno_oferta.id_alumno,
+        id_alumno=alumno_oferta.id_alumno,
+        dni=alumno_oferta.dni,
+        nombre=alumno_oferta.nombre,
+        apellido=alumno_oferta.apellido,
+        seccion=seccion,
+    )
 
     contexto = {
         'alumno': alumno,
-        'lectura_existente': lectura_existente,
+        'lectura_existente': None,
+        'materia': materia,
+        'materia_nombre': MATERIAS[materia],
+        'modo_simulacion': SIMULATION_MODE,
         'num_items': range(1, 13),  # ítems 1 a 12
         'opciones': ['A', 'B', 'C', 'D'],
     }
@@ -208,15 +252,18 @@ def lector_omr(request, alumno_public_id):
 # ─── 3. Guardar lectura ───────────────────────────────────────────────────────
 
 @require_POST
-def guardar_lectura(request, alumno_public_id):
+# @login_required()
+def guardar_lectura(request, id_alumno, materia):
     """
     Recibe las respuestas OMR como JSON (desde el frontend) y las guarda
     en la base de datos como un registro LecturaOMR.
 
     Payload esperado (JSON):
     {
-        "respuestas": {"1": "A", "2": "C", ..., "12": "B"},
-        "confianza":  {"1": 95,  "2": 40,  ..., "12": 78},
+        "lecturas": {
+            "imagen_1": {"respuestas": {...}, "confianza": {...}},
+            "imagen_2": {"respuestas": {...}, "confianza": {...}}
+        },
         "modelo_examen": "B",
         "revisado_manualmente": true,
         "observaciones": "..."
@@ -242,56 +289,31 @@ def guardar_lectura(request, alumno_public_id):
     except (UnicodeDecodeError, ValueError) as exc:
         return _json_error(str(exc), 'INVALID_PAYLOAD')
 
-    respuestas = payload['respuestas']
-    confianza = payload['confianza']
-    alumno = get_object_or_404(
-        AlumnoFluidez2026.objects.using('Evaluacion'),
-        public_id=alumno_public_id,
-    )
+    if alumno_autorizado(request.user.get_username(), id_alumno) is None:
+        raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
+    if not materia_valida(materia):
+        raise PermissionDenied('La materia seleccionada no es válida.')
 
-    # Crear o actualizar la lectura OMR
-    # Si ya existe una lectura para este alumno, se reemplaza (para permitir re-escaneo)
-    lectura, creada = LecturaOMR.objects.using('Evaluacion').update_or_create(
-        alumno=alumno,
-        defaults={
-            'modelo_examen': payload['modelo_examen'],
-            'item_1':  respuestas.get('1', ''),
-            'item_2':  respuestas.get('2', ''),
-            'item_3':  respuestas.get('3', ''),
-            'item_4':  respuestas.get('4', ''),
-            'item_5':  respuestas.get('5', ''),
-            'item_6':  respuestas.get('6', ''),
-            'item_7':  respuestas.get('7', ''),
-            'item_8':  respuestas.get('8', ''),
-            'item_9':  respuestas.get('9', ''),
-            'item_10': respuestas.get('10', ''),
-            'item_11': respuestas.get('11', ''),
-            'item_12': respuestas.get('12', ''),
-            'confianza_json': confianza,
-            'revisado_manualmente': payload['revisado_manualmente'],
-            'observaciones': payload['observaciones'],
-            'encargado_carga': str(request.user)[:9] if request.user.is_authenticated else '',
-        }
+    # El payload completo ya fue validado. No se inventa una FK ni se escribe
+    # en la base externa mientras el catálogo funciona en modo simulado.
+    return _json_error(
+        'La lectura fue validada, pero la persistencia está deshabilitada durante la simulación.',
+        'SIMULATION_MODE',
+        503,
     )
-
-    return JsonResponse({
-        'ok': True,
-        'creada': creada,
-        'lectura_public_id': str(lectura.public_id),
-        'redirect_url': reverse(
-            'evaluaciones_educativas:omr_lector:detalle_lectura',
-            kwargs={'public_id': lectura.public_id},
-        ),
-    })
 
 
 # ─── 4. Lista de lecturas ─────────────────────────────────────────────────────
 
+# @login_required()
 def lista_lecturas(request):
     """
     Historial de todas las lecturas OMR.
     Soporta filtrado por cueanexo y búsqueda por nombre/apellido de alumno.
     """
+    if SIMULATION_MODE:
+        raise PermissionDenied('El historial no está disponible durante la simulación.')
+
     query = request.GET.get('q', '').strip()
     cueanexo = request.GET.get('cueanexo', '').strip()
 
@@ -312,7 +334,9 @@ def lista_lecturas(request):
             Q(alumno__dni__icontains=query)
         )
 
-    establecimientos = EstablecimientosFluidez2026.objects.using('Evaluacion').order_by('escuela')
+    establecimientos = EstablecimientosDiagnostico_Ingreso_2026.objects.using(
+        'Evaluacion'
+    ).order_by('escuela')
 
     paginator = Paginator(lecturas, 25)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -329,11 +353,15 @@ def lista_lecturas(request):
 
 # ─── 5. Detalle de lectura ────────────────────────────────────────────────────
 
+# @login_required()
 def detalle_lectura(request, public_id):
     """
     Muestra el detalle completo de una lectura OMR específica.
     Permite al docente editar y corregir respuestas desde esta vista también.
     """
+    if SIMULATION_MODE:
+        raise PermissionDenied('El detalle no está disponible durante la simulación.')
+
     lectura = get_object_or_404(
         LecturaOMR.objects.using('Evaluacion').select_related(
             'alumno',
@@ -368,6 +396,7 @@ def detalle_lectura(request, public_id):
 # ─── 6. Procesar imagen con OpenCV (backend) ──────────────────────────────────
 
 @require_POST
+# @login_required()
 def procesar_imagen_omr(request):
     """
     Endpoint de procesamiento OMR server-side.
