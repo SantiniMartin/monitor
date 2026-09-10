@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OMR · Seleccionar materia</title>
+  <title>OMR · Seleccionar examen</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,19 +18,25 @@
     .student-summary strong { display:block; font-size:1.05rem; }
     .student-summary span { color:#6c757d; font-size:.84rem; }
     .subjects { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; padding:24px; }
-    .subject { display:flex; align-items:center; gap:15px; min-height:112px; padding:20px; color:#212529; background:#fff; border:2px solid #e2e8f0; border-radius:14px; text-decoration:none; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+    .subject { position:relative; display:flex; align-items:center; gap:15px; min-height:112px; padding:20px; color:#212529; background:#fff; border:2px solid #e2e8f0; border-radius:14px; text-decoration:none; transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
     .subject:hover { color:#004a99; border-color:#0066cc; transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,102,204,.14); }
+    .subject.context { grid-column:1/-1; background:linear-gradient(135deg,#f8f5ff,#fff); border-color:#c4b5fd; }
+    .subject.context .subject-icon { color:#6d28d9; background:#ede9fe; }
+    .subject.saved { color:#14532d; background:linear-gradient(135deg,#ecfdf3,#f7fff9); border-color:#22a447; box-shadow:0 8px 18px rgba(34,164,71,.14); }
+    .subject.saved:hover { color:#14532d; border-color:#17883a; box-shadow:0 10px 22px rgba(34,164,71,.2); }
+    .subject.saved .subject-icon { color:#fff; background:#198754; }
+    .subject-status { margin-left:auto; display:inline-flex; align-items:center; gap:5px; padding:5px 9px; color:#166534; background:#dcfce7; border:1px solid #86efac; border-radius:999px; font-size:.72rem; font-weight:700; white-space:nowrap; }
     .subject-icon { display:grid; place-items:center; flex:0 0 52px; height:52px; color:#0066cc; background:#e7f1ff; border-radius:13px; font-size:1.35rem; }
     .subject strong,.subject small { display:block; }
     .subject small { margin-top:4px; color:#6c757d; }
-    @media(max-width:620px) { .subjects { grid-template-columns:1fr; padding:18px; } .student-summary { grid-template-columns:auto 1fr; } .student-summary .omr-simulation { grid-column:1/-1; width:max-content; } }
+    @media(max-width:620px) { .subjects { grid-template-columns:1fr; padding:18px; } .subject.context { grid-column:auto; } .subject-status { position:absolute; top:10px; right:10px; } .student-summary { grid-template-columns:auto 1fr; } .student-summary .omr-simulation { grid-column:1/-1; width:max-content; } }
   </style>
 </head>
 <body>
   <main class="omr-page subject-page">
     <nav class="omr-stepper" aria-label="Progreso de carga">
       <div class="omr-step done" data-step="1"><span>Alumno</span></div><div class="omr-step-line"></div>
-      <div class="omr-step active" data-step="2"><span>Materia</span></div><div class="omr-step-line"></div>
+      <div class="omr-step active" data-step="2"><span>Examen</span></div><div class="omr-step-line"></div>
       <div class="omr-step" data-step="3"><span>Escanear</span></div>
     </nav>
     <a class="omr-btn secondary mb-3" href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_alumno' %}?establecimiento={{ alumno.id_establecimiento }}"><i class="bi bi-arrow-left"></i> Volver a alumnos</a>
@@ -38,7 +44,7 @@
     <section class="omr-card">
       <header class="omr-card-header">
         <div class="text-uppercase fw-semibold small opacity-75 mb-1">Paso 2 de 3</div>
-        <h1><i class="bi bi-journal-check me-2"></i>Seleccionar materia</h1>
+        <h1><i class="bi bi-journal-check me-2"></i>Seleccionar examen</h1>
         <p>Elegí qué examen vas a escanear para este alumno.</p>
       </header>
       <div class="student-summary">
@@ -47,10 +53,11 @@
         {% if modo_simulacion %}<span class="omr-simulation"><i class="bi bi-cone-striped"></i> Simulación</span>{% endif %}
       </div>
       <div class="subjects">
-        {% for slug, nombre in materias.items %}
-          <a class="subject" href="{% url 'evaluaciones_educativas:omr_lector:lector_omr' alumno.id_alumno slug %}">
-            <span class="subject-icon"><i class="bi {% if slug == 'lengua' %}bi-book{% else %}bi-calculator{% endif %}"></i></span>
-            <span><strong>{{ nombre }}</strong><small>Abrir escáner de dos imágenes <i class="bi bi-arrow-right ms-1"></i></small></span>
+        {% for examen in examenes %}
+          <a class="subject{% if examen.slug == 'contexto' %} context{% endif %}{% if examen.guardado %} saved{% endif %}" href="{% url 'evaluaciones_educativas:omr_lector:lector_omr' alumno.id_alumno examen.slug %}">
+            <span class="subject-icon"><i class="bi {% if examen.slug == 'lengua' %}bi-book{% elif examen.slug == 'matematica' %}bi-calculator{% else %}bi-ui-checks-grid{% endif %}"></i></span>
+            <span><strong>{{ examen.nombre }}</strong><small>Abrir escáner de {{ examen.cantidad_hojas }} hoja{{ examen.cantidad_hojas|pluralize }} <i class="bi bi-arrow-right ms-1"></i></small></span>
+            {% if examen.guardado %}<span class="subject-status"><i class="bi bi-check-circle-fill"></i> Guardado</span>{% endif %}
           </a>
         {% endfor %}
       </div>

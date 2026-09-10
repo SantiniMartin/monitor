@@ -36,7 +36,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://monitoreo-2026.onrender.com"]
+CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://monitoreo-2026.onrender.com", "lector-examen-dehabvcxbpetdphd.brazilsouth-01.azurewebsites.net"]
 
 
 # Application definition

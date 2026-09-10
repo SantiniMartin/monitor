@@ -13,7 +13,18 @@ from dataclasses import dataclass
 
 MATERIAS = {
     "lengua": "Lengua",
+    "contexto": "Examen de contexto",
     "matematica": "Matemática",
+}
+HOJAS_POR_EXAMEN = {
+    "lengua": ("Hoja principal",),
+    "matematica": ("Hoja principal",),
+    "contexto": ("Hoja de contexto 1", "Hoja de contexto 2"),
+}
+ITEMS_POR_HOJA_EXAMEN = {
+    "lengua": (12,),
+    "matematica": (24,),
+    "contexto": (12, 12),
 }
 SIMULATION_MODE = True
 
@@ -107,3 +118,13 @@ def alumno_autorizado(username: str, id_alumno: str) -> AlumnoOferta | None:
 
 def materia_valida(slug: str) -> bool:
     return slug in MATERIAS
+
+
+def hojas_del_examen(slug: str) -> tuple[str, ...]:
+    """Devuelve las hojas requeridas por el examen solicitado."""
+    return HOJAS_POR_EXAMEN.get(slug, ())
+
+
+def items_por_hoja_del_examen(slug: str) -> tuple[int, ...]:
+    """Devuelve cuántos ítems contiene cada hoja del examen."""
+    return ITEMS_POR_HOJA_EXAMEN.get(slug, ())

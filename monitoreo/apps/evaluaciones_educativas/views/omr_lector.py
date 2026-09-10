@@ -23,6 +23,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
 
@@ -36,6 +37,8 @@ from apps.evaluaciones_educativas.services.omr_catalogo import (
     SIMULATION_MODE,
     alumno_autorizado,
     alumnos_de_oferta,
+    hojas_del_examen,
+    items_por_hoja_del_examen,
     materia_valida,
     oferta_autorizada,
     ofertas_del_usuario,
@@ -43,8 +46,6 @@ from apps.evaluaciones_educativas.services.omr_catalogo import (
 
 
 logger = logging.getLogger(__name__)
-ITEM_KEYS = {str(i) for i in range(1, 13)}
-IMAGE_KEYS = {'imagen_1', 'imagen_2'}
 SAVE_PAYLOAD_KEYS = {
     'lecturas', 'modelo_examen',
     'revisado_manualmente', 'observaciones',
@@ -58,11 +59,15 @@ FORMAT_CONTENT_TYPES = {'JPEG': 'image/jpeg', 'PNG': 'image/png', 'WEBP': 'image
 LOGIN_URL = '/admin/login/'
 
 
+def _session_key_examenes_guardados(id_alumno):
+    return f'omr_examenes_guardados_{id_alumno}'
+
+
 def _json_error(message, code, status=400):
     return JsonResponse({'ok': False, 'error': message, 'code': code}, status=status)
 
 
-def _validar_payload_lectura(payload):
+def _validar_payload_lectura(payload, items_por_hoja):
     """Valida y normaliza el contrato JSON antes de tocar la base de datos."""
     if not isinstance(payload, dict):
         raise ValueError('El cuerpo JSON debe ser un objeto.')
@@ -72,25 +77,39 @@ def _validar_payload_lectura(payload):
     if set(payload) != SAVE_PAYLOAD_KEYS:
         raise ValueError('Faltan campos obligatorios en la lectura.')
 
+    cantidad_hojas = len(items_por_hoja)
+    image_keys = {f'imagen_{numero}' for numero in range(1, cantidad_hojas + 1)}
     lecturas = payload['lecturas']
-    if not isinstance(lecturas, dict) or set(lecturas) != IMAGE_KEYS:
-        raise ValueError('Deben enviarse exactamente las lecturas imagen_1 e imagen_2.')
+    if not isinstance(lecturas, dict) or set(lecturas) != image_keys:
+        raise ValueError(
+            f'Deben enviarse exactamente {cantidad_hojas} hoja(s) para este examen.'
+        )
 
     normalized_lecturas = {}
-    for image_key in sorted(IMAGE_KEYS):
+    for image_key in sorted(image_keys):
+        numero_hoja = int(image_key.removeprefix('imagen_'))
+        item_keys = {
+            str(item) for item in range(1, items_por_hoja[numero_hoja - 1] + 1)
+        }
         lectura = lecturas[image_key]
         if not isinstance(lectura, dict) or set(lectura) != {'respuestas', 'confianza'}:
             raise ValueError(f'La lectura {image_key} no tiene el formato esperado.')
         respuestas = lectura['respuestas']
         confianza = lectura['confianza']
-        if not isinstance(respuestas, dict) or set(respuestas) != ITEM_KEYS:
-            raise ValueError(f'Las respuestas de {image_key} deben incluir los ítems 1 a 12.')
-        if not isinstance(confianza, dict) or set(confianza) != ITEM_KEYS:
-            raise ValueError(f'La confianza de {image_key} debe incluir los ítems 1 a 12.')
+        if not isinstance(respuestas, dict) or set(respuestas) != item_keys:
+            raise ValueError(
+                f'Las respuestas de {image_key} deben incluir los ítems '
+                f'1 a {len(item_keys)}.'
+            )
+        if not isinstance(confianza, dict) or set(confianza) != item_keys:
+            raise ValueError(
+                f'La confianza de {image_key} debe incluir los ítems '
+                f'1 a {len(item_keys)}.'
+            )
 
         normalized_respuestas = {}
         normalized_confianza = {}
-        for key in sorted(ITEM_KEYS, key=int):
+        for key in sorted(item_keys, key=int):
             response = respuestas[key]
             if not isinstance(response, str) or response not in {'A', 'B', 'C', 'D'}:
                 raise ValueError(f'El ítem {key} de {image_key} debe tener una respuesta entre A y D.')
@@ -150,6 +169,28 @@ def _validar_imagen_subida(upload):
     return image_bytes
 
 
+def _campos_lectura(payload, materia, items_por_hoja, username):
+    """Convierte las hojas validadas en los campos persistibles de LecturaOMR."""
+    defaults = {
+        'tipo_examen': materia,
+        'modelo_examen': payload['modelo_examen'],
+        'revisado_manualmente': payload['revisado_manualmente'],
+        'observaciones': payload['observaciones'],
+        'encargado_carga': str(username)[:9],
+        'confianza_json': {},
+    }
+    defaults.update({f'item_{item}': '' for item in range(1, 25)})
+
+    global_item = 0
+    for numero_hoja, cantidad_items in enumerate(items_por_hoja, start=1):
+        lectura = payload['lecturas'][f'imagen_{numero_hoja}']
+        for local_item in range(1, cantidad_items + 1):
+            global_item += 1
+            defaults[f'item_{global_item}'] = lectura['respuestas'][str(local_item)]
+            defaults['confianza_json'][str(global_item)] = lectura['confianza'][str(local_item)]
+    return defaults
+
+
 # ─── 1. Oferta, establecimiento y selección provisoria de alumno ─────────────
 
 
@@ -189,9 +230,20 @@ def seleccionar_materia(request, id_alumno):
     alumno = alumno_autorizado(request.user.get_username(), id_alumno)
     if alumno is None:
         raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
+    guardados = set(request.session.get(_session_key_examenes_guardados(id_alumno), []))
+    examenes = [
+        {
+            'slug': slug,
+            'nombre': nombre,
+            'cantidad_hojas': len(hojas_del_examen(slug)),
+            'guardado': slug in guardados,
+        }
+        for slug, nombre in MATERIAS.items()
+    ]
+    examenes.sort(key=lambda examen: examen['slug'] == 'contexto')
     return render(request, 'omr_lector/seleccionar_materia.html', {
         'alumno': alumno,
-        'materias': MATERIAS,
+        'examenes': examenes,
         'modo_simulacion': SIMULATION_MODE,
     })
 
@@ -206,7 +258,7 @@ def lector_omr(request, id_alumno, materia):
     Muestra:
     - Datos del alumno seleccionado
     - Interfaz de captura de foto (cámara o archivo) o carga manual
-    - Panel de respuestas editable para las dos partes del examen
+    - Panel de respuestas editable para las hojas requeridas por el examen
     - Botón para guardar
     """
     alumno_oferta = alumno_autorizado(request.user.get_username(), id_alumno)
@@ -215,6 +267,8 @@ def lector_omr(request, id_alumno, materia):
     if not materia_valida(materia):
         raise PermissionDenied('La materia seleccionada no es válida.')
 
+    nombres_hojas = hojas_del_examen(materia)
+    items_por_hoja = items_por_hoja_del_examen(materia)
     oferta = oferta_autorizada(
         request.user.get_username(), alumno_oferta.id_establecimiento
     )
@@ -242,8 +296,11 @@ def lector_omr(request, id_alumno, materia):
         'lectura_existente': None,
         'materia': materia,
         'materia_nombre': MATERIAS[materia],
+        'nombres_hojas': nombres_hojas,
+        'total_hojas': len(nombres_hojas),
+        'items_por_hoja': items_por_hoja,
         'modo_simulacion': SIMULATION_MODE,
-        'num_items': range(1, 13),  # ítems 1 a 12
+        'num_items': range(1, max(items_por_hoja) + 1),
         'opciones': ['A', 'B', 'C', 'D'],
     }
     return render(request, 'omr_lector/lector.html', contexto)
@@ -261,14 +318,18 @@ def guardar_lectura(request, id_alumno, materia):
     Payload esperado (JSON):
     {
         "lecturas": {
-            "imagen_1": {"respuestas": {...}, "confianza": {...}},
-            "imagen_2": {"respuestas": {...}, "confianza": {...}}
+            "imagen_1": {"respuestas": {...}, "confianza": {...}}
         },
         "modelo_examen": "B",
         "revisado_manualmente": true,
         "observaciones": "..."
     }
+    La clave imagen_2 se exige solamente para el examen de contexto.
     """
+    if not materia_valida(materia):
+        raise PermissionDenied('El tipo de examen seleccionado no es válido.')
+    items_por_hoja = items_por_hoja_del_examen(materia)
+
     if request.content_type != 'application/json':
         return _json_error('El contenido debe enviarse como JSON.', 'INVALID_CONTENT_TYPE', 415)
     try:
@@ -281,7 +342,7 @@ def guardar_lectura(request, id_alumno, materia):
         body = request.body
         if len(body) > MAX_JSON_BYTES:
             return _json_error('El JSON supera el tamaño permitido.', 'JSON_TOO_LARGE', 413)
-        payload = _validar_payload_lectura(json.loads(body))
+        payload = _validar_payload_lectura(json.loads(body), items_por_hoja)
     except RequestDataTooBig:
         return _json_error('El JSON supera el tamaño permitido.', 'JSON_TOO_LARGE', 413)
     except json.JSONDecodeError:
@@ -291,16 +352,49 @@ def guardar_lectura(request, id_alumno, materia):
 
     if alumno_autorizado(request.user.get_username(), id_alumno) is None:
         raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
-    if not materia_valida(materia):
-        raise PermissionDenied('La materia seleccionada no es válida.')
 
-    # El payload completo ya fue validado. No se inventa una FK ni se escribe
-    # en la base externa mientras el catálogo funciona en modo simulado.
-    return _json_error(
-        'La lectura fue validada, pero la persistencia está deshabilitada durante la simulación.',
-        'SIMULATION_MODE',
-        503,
-    )
+    # Mientras el catálogo usa alumnos ficticios no se crean registros huérfanos.
+    # Al conectar la oferta real, se persiste siempre en la BD dedicada.
+    lectura = None
+    if not SIMULATION_MODE:
+        alumno = get_object_or_404(
+            AlumnoDiagnostico_Ingreso_2026.objects.using('Evaluacion'),
+            pk=id_alumno,
+        )
+        defaults = _campos_lectura(
+            payload,
+            materia,
+            items_por_hoja,
+            request.user.get_username(),
+        )
+        with transaction.atomic(using='Evaluacion'):
+            lectura = (
+                LecturaOMR.objects.using('Evaluacion')
+                .filter(alumno=alumno, tipo_examen=materia)
+                .order_by('-fecha_lectura')
+                .first()
+            )
+            if lectura is None:
+                lectura = LecturaOMR(alumno=alumno, **defaults)
+            else:
+                for field, value in defaults.items():
+                    setattr(lectura, field, value)
+            lectura.save(using='Evaluacion')
+
+    session_key = _session_key_examenes_guardados(id_alumno)
+    guardados = set(request.session.get(session_key, []))
+    guardados.add(materia)
+    request.session[session_key] = sorted(guardados)
+
+    return JsonResponse({
+        'ok': True,
+        'modo_simulacion': SIMULATION_MODE,
+        'lectura_public_id': str(lectura.public_id) if lectura else None,
+        'redirect_url': reverse(
+            'evaluaciones_educativas:omr_lector:seleccionar_materia',
+            args=[id_alumno],
+        ),
+    })
 
 
 # ─── 4. Lista de lecturas ─────────────────────────────────────────────────────
@@ -375,7 +469,7 @@ def detalle_lectura(request, public_id):
     # Construir lista de ítems con respuesta y confianza para el template
     items_detalle = []
     confianza = lectura.confianza_json or {}
-    for i in range(1, 13):
+    for i in range(1, lectura.cantidad_items + 1):
         resp = getattr(lectura, f'item_{i}', '')
         conf = confianza.get(str(i), None)
         items_detalle.append({
@@ -425,11 +519,14 @@ def procesar_imagen_omr(request):
         return _json_error('No se recibió ninguna imagen.', 'IMAGE_REQUIRED')
 
     imagen_file = request.FILES['imagen']
+    tipo_examen = request.POST.get('tipo_examen', '').strip()
+    if not materia_valida(tipo_examen):
+        return _json_error('El tipo de examen no es válido.', 'INVALID_EXAM_TYPE')
 
     try:
         from apps.evaluaciones_educativas.views.omr_utils import procesar_imagen
         imagen_bytes = _validar_imagen_subida(imagen_file)
-        resultado = procesar_imagen(imagen_bytes)
+        resultado = procesar_imagen(imagen_bytes, tipo_examen=tipo_examen)
         return JsonResponse({'ok': True, **resultado})
 
     except ImportError:

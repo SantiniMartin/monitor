@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 import uuid
 
 class EstablecimientosDiagnostico_Ingreso_2026(models.Model):
@@ -120,7 +121,7 @@ class LecturaOMR(models.Model):
     leída mediante OMR (Optical Mark Recognition) desde foto.
 
     Se vincula a un AlumnoFluidez2026 existente.
-    Almacena las 12 respuestas detectadas (ítems 1-12, opciones A/B/C/D).
+    Almacena hasta 24 respuestas detectadas (opciones A/B/C/D).
     """
 
     OPCIONES_RESPUESTA = [
@@ -139,6 +140,26 @@ class LecturaOMR(models.Model):
         ('', 'Sin especificar'),
     ]
 
+    TIPOS_EXAMEN = [
+        ('lengua', 'Lengua'),
+        ('matematica', 'Matemática'),
+        ('contexto', 'Examen de contexto'),
+    ]
+
+    RESPUESTAS_CORRECTAS_MATEMATICA = {
+        1: 'C', 2: 'A', 3: 'B', 4: 'D', 5: 'B',
+        6: 'C', 7: 'C', 8: 'A', 9: 'B', 10: 'C',
+        11: 'B', 12: 'C', 13: 'A', 14: 'C', 15: 'D',
+        16: 'C', 17: 'D', 18: 'C', 19: 'C', 20: 'B',
+    }
+
+    PUNTAJES_MATEMATICA_21_A_24 = {
+        21: {'A': Decimal('3'), 'B': Decimal('2'), 'C': Decimal('1'), 'D': Decimal('0')},
+        22: {'A': Decimal('4'), 'B': Decimal('3'), 'C': Decimal('1.5'), 'D': Decimal('0')},
+        23: {'A': Decimal('4.5'), 'B': Decimal('3'), 'C': Decimal('1.5'), 'D': Decimal('0')},
+        24: {'A': Decimal('6'), 'B': Decimal('3'), 'C': Decimal('1.5'), 'D': Decimal('0')},
+    }
+
     public_id = models.UUIDField(
         default=uuid.uuid4,
         editable=False,
@@ -155,6 +176,13 @@ class LecturaOMR(models.Model):
     )
 
     # Metadatos del examen
+    tipo_examen = models.CharField(
+        max_length=12,
+        choices=TIPOS_EXAMEN,
+        default='lengua',
+        db_index=True,
+        help_text='Tipo de examen asociado a la lectura OMR',
+    )
     modelo_examen = models.CharField(
         max_length=1,
         choices=OPCIONES_MODELO,
@@ -170,7 +198,7 @@ class LecturaOMR(models.Model):
         help_text='Cuil/ID del docente que realizó la carga',
     )
 
-    # Respuestas detectadas por OMR (ítems 1 a 12)
+    # Respuestas detectadas por OMR (hasta 24 ítems según el examen)
     item_1  = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
     item_2  = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
     item_3  = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
@@ -183,6 +211,18 @@ class LecturaOMR(models.Model):
     item_10 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
     item_11 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
     item_12 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_13 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_14 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_15 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_16 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_17 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_18 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_19 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_20 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_21 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_22 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_23 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
+    item_24 = models.CharField(max_length=1, choices=OPCIONES_RESPUESTA, blank=True, default='')
 
     # Nivel de confianza de la detección por ítem (0-100), almacenado como JSON
     # Ejemplo: {"1": 95, "2": 40, "3": 88, ...}
@@ -213,13 +253,20 @@ class LecturaOMR(models.Model):
         """Devuelve las respuestas como diccionario {1: 'A', 2: 'B', ...}"""
         return {
             i: getattr(self, f'item_{i}', '')
-            for i in range(1, 13)
+            for i in range(1, self.cantidad_items + 1)
         }
+
+    @property
+    def cantidad_items(self):
+        return 24 if self.tipo_examen in {'matematica', 'contexto'} else 12
 
     @property
     def items_sin_respuesta(self):
         """Lista de ítems donde no se detectó ninguna respuesta"""
-        return [i for i in range(1, 13) if not getattr(self, f'item_{i}', '')]
+        return [
+            i for i in range(1, self.cantidad_items + 1)
+            if not getattr(self, f'item_{i}', '')
+        ]
 
     @property
     def items_dudosos(self):
@@ -227,3 +274,27 @@ class LecturaOMR(models.Model):
         if not self.confianza_json:
             return []
         return [int(k) for k, v in self.confianza_json.items() if v < 50]
+
+    def puntaje_item_matematica(self, numero_item):
+        """Calcula el puntaje de un ítem de Matemática según su respuesta."""
+        if numero_item not in range(1, 25):
+            raise ValueError('El número de ítem debe estar entre 1 y 24.')
+
+        respuesta = (getattr(self, f'item_{numero_item}', '') or '').upper()
+        if numero_item <= 20:
+            correcta = self.RESPUESTAS_CORRECTAS_MATEMATICA[numero_item]
+            return Decimal('1') if respuesta == correcta else Decimal('0')
+
+        return self.PUNTAJES_MATEMATICA_21_A_24[numero_item].get(
+            respuesta,
+            Decimal('0'),
+        )
+
+    def calcular_puntaje_matematica(self):
+        """Devuelve el puntaje total; el máximo posible es 37.5 puntos."""
+        if self.tipo_examen != 'matematica':
+            return None
+        return sum(
+            (self.puntaje_item_matematica(item) for item in range(1, 25)),
+            Decimal('0'),
+        )

@@ -84,6 +84,7 @@ const OMRProcessor = (() => {
     const imagenOptimizada = await prepararImagen(file, canvasPreview);
     const formData = new FormData();
     formData.append('imagen', imagenOptimizada);
+    formData.append('tipo_examen', options.tipoExamen || 'lengua');
 
     let response;
     try {
@@ -110,7 +111,8 @@ const OMRProcessor = (() => {
 
     const respuestas = {};
     const confianza = {};
-    for (let item = 1; item <= 12; item++) {
+    const cantidadItems = Number(options.cantidadItems) || 12;
+    for (let item = 1; item <= cantidadItems; item++) {
       respuestas[item] = data.respuestas?.[String(item)] || '';
       confianza[item] = Number(data.confianza?.[String(item)] || 0);
     }

@@ -71,6 +71,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
+    .image-slots.single { grid-template-columns: minmax(0, 1fr); }
     .image-slot {
       border: 1px solid var(--border); background: var(--surface);
       color: var(--muted); border-radius: 12px; padding: 12px 16px;
@@ -441,7 +442,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
-        Cambiar materia
+        Cambiar examen
       </a>
       <div class="alumno-badge">
         <div class="name">{{ alumno.apellido }}, {{ alumno.nombre }}</div>
@@ -465,25 +466,22 @@
       <div>
         <span class="omr-kicker">Paso 3 de 3 · Escaneo</span>
         <h1>Escanear examen de {{ materia_nombre }}</h1>
-        <p>Cargá las dos imágenes. El sistema detectará las respuestas y te permitirá revisarlas antes de guardar.</p>
+        <p>Cargá {{ total_hojas }} hoja{{ total_hojas|pluralize }}. El sistema detectará las respuestas y te permitirá revisarlas antes de guardar.</p>
       </div>
       <div class="scanner-progress" aria-live="polite">
-        <strong id="scanner-progress-count">0 de 2</strong>
-        <span>partes completas</span>
+        <strong id="scanner-progress-count">0 de {{ total_hojas }}</strong>
+        <span>hoja{{ total_hojas|pluralize }} completa{{ total_hojas|pluralize }}</span>
       </div>
     </header>
 
-    <div class="image-slots" role="tablist" aria-label="Imágenes del examen">
-      <button type="button" role="tab" aria-selected="true" class="image-slot active" data-image-slot="1">
-        <span class="slot-number">1</span>
-        <span class="slot-copy"><strong>Hoja principal</strong><small data-slot-status>Primera imagen · Pendiente</small></span>
+    <div class="image-slots{% if total_hojas == 1 %} single{% endif %}" role="tablist" aria-label="Hojas del examen">
+      {% for nombre_hoja in nombres_hojas %}
+      <button type="button" role="tab" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}" class="image-slot{% if forloop.first %} active{% endif %}" data-image-slot="{{ forloop.counter }}">
+        <span class="slot-number">{{ forloop.counter }}</span>
+        <span class="slot-copy"><strong>{{ nombre_hoja }}</strong><small data-slot-status>Hoja {{ forloop.counter }} · Pendiente</small></span>
         <span class="slot-check" aria-hidden="true">✓</span>
       </button>
-      <button type="button" role="tab" aria-selected="false" class="image-slot" data-image-slot="2">
-        <span class="slot-number">2</span>
-        <span class="slot-copy"><strong>Detalle adicional</strong><small data-slot-status>Segunda imagen · Pendiente</small></span>
-        <span class="slot-check" aria-hidden="true">✓</span>
-      </button>
+      {% endfor %}
     </div>
 
     <!-- Zona izquierda: cámara / imagen -->
@@ -519,8 +517,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
-        <span class="placeholder-step" id="slot-placeholder-label">Imagen 1 de 2</span>
-        <h2 id="slot-placeholder-title">Cargá la hoja principal</h2>
+        <span class="placeholder-step" id="slot-placeholder-label">Hoja 1 de {{ total_hojas }}</span>
+        <h2 id="slot-placeholder-title">Cargá {{ nombres_hojas.0|lower }}</h2>
         <p>Podés sacarle una foto ahora o elegir una imagen de tu dispositivo.</p>
         <div class="capture-tips">
           <span>Hoja completa</span>
@@ -536,9 +534,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
           </svg>
         </div>
-        <span class="placeholder-step" id="manual-slot-label">Imagen 1 de 2</span>
+        <span class="placeholder-step" id="manual-slot-label">Hoja 1 de {{ total_hojas }}</span>
         <h2>Carga manual activa</h2>
-        <p>Completá las 12 respuestas en el panel de revisión. No necesitás adjuntar una foto.</p>
+        <p>Completá las {{ items_por_hoja.0 }} respuestas en el panel de revisión. No necesitás adjuntar una foto.</p>
       </div>
 
       <!-- Badge procesando -->
@@ -571,7 +569,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span id="upload-button-label">Elegir imagen 1</span>
+          <span id="upload-button-label">Elegir hoja 1</span>
         </button>
 
         <button class="btn-cam secondary manual" id="btn-carga-manual" type="button">
@@ -599,7 +597,7 @@
     <!-- Panel lateral: resultados OMR -->
     <aside class="results-panel is-hidden" id="results-panel" aria-label="Revisión de respuestas">
       <div class="panel-header">
-        <h2 id="results-title">Respuestas · Imagen 1</h2>
+        <h2 id="results-title">Respuestas · Hoja 1</h2>
         <span class="panel-status waiting" id="panel-status-badge">En espera</span>
       </div>
 
@@ -658,28 +656,41 @@
 
   <!-- Canvas oculto de trabajo OMR -->
   <canvas id="canvas-omr" style="display:none;"></canvas>
+  {{ nombres_hojas|json_script:"omr-sheet-names" }}
+  {{ items_por_hoja|json_script:"omr-items-per-sheet" }}
 
   <!-- omr_processor.js: cliente liviano del backend OMR, sin librerías externas -->
-  <script src="{% static 'evaluaciones_educativas/js/omr_processor.js' %}?v=6"></script>
+  <script src="{% static 'evaluaciones_educativas/js/omr_processor.js' %}?v=7"></script>
 
   <script>
     // ── Estado global ──────────────────────────────────────────────────────
     const SAVE_URL    = "{% url 'evaluaciones_educativas:omr_lector:guardar_lectura' alumno.id_alumno materia %}";
     const PROCESS_URL = "{% url 'evaluaciones_educativas:omr_lector:procesar_imagen_omr' %}";
     const CSRF_TOKEN  = "{{ csrf_token }}";
+    const TIPO_EXAMEN = "{{ materia|escapejs }}";
+    const NOMBRES_HOJAS = JSON.parse(document.getElementById('omr-sheet-names').textContent);
+    const ITEMS_POR_HOJA = JSON.parse(document.getElementById('omr-items-per-sheet').textContent);
+    const NUMEROS_HOJA = NOMBRES_HOJAS.map((_, index) => index + 1);
+    const TOTAL_HOJAS = NUMEROS_HOJA.length;
+    const itemsDeHoja = numeroHoja => Array.from(
+      { length: ITEMS_POR_HOJA[numeroHoja - 1] },
+      (_, index) => index + 1,
+    );
 
     // Inicializar el cliente OMR con el endpoint del backend y el CSRF token
     OMRProcessor.init(PROCESS_URL, CSRF_TOKEN);
 
-    const crearLecturaVacia = () => ({
-      respuestas: Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, ''])),
-      confianza: Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, 0])),
-      itemsDudosos: new Set(Array.from({ length: 12 }, (_, i) => i + 1)),
+    const crearLecturaVacia = cantidadItems => ({
+      respuestas: Object.fromEntries(Array.from({ length: cantidadItems }, (_, i) => [i + 1, ''])),
+      confianza: Object.fromEntries(Array.from({ length: cantidadItems }, (_, i) => [i + 1, 0])),
+      itemsDudosos: new Set(Array.from({ length: cantidadItems }, (_, i) => i + 1)),
       preview: null,
       procesada: false,
       modo: null,
     });
-    const lecturasPorImagen = { 1: crearLecturaVacia(), 2: crearLecturaVacia() };
+    const lecturasPorImagen = Object.fromEntries(
+      NUMEROS_HOJA.map((numero, index) => [numero, crearLecturaVacia(ITEMS_POR_HOJA[index])])
+    );
     let imagenActiva = 1;
     let respuestasActuales = lecturasPorImagen[1].respuestas;
     let confianzaActual = lecturasPorImagen[1].confianza;
@@ -743,12 +754,12 @@
     }
 
     function respuestasFaltantes() {
-      return [1, 2].flatMap(numeroImagen => {
+      return NUMEROS_HOJA.flatMap(numeroImagen => {
         const lectura = lecturasPorImagen[numeroImagen];
-        if (!lectura.procesada) return [`Imagen ${numeroImagen} sin cargar`];
-        return Array.from({ length: 12 }, (_, index) => index + 1)
+        if (!lectura.procesada) return [`Hoja ${numeroImagen} sin cargar`];
+        return itemsDeHoja(numeroImagen)
           .filter(item => !lectura.respuestas[item])
-          .map(item => `Imagen ${numeroImagen} / ítem ${item}`);
+          .map(item => `Hoja ${numeroImagen} / ítem ${item}`);
       });
     }
 
@@ -759,23 +770,23 @@
       slotButtons.forEach(button => {
         const numero = Number(button.dataset.imageSlot);
         const lectura = lecturasPorImagen[numero];
-        const completa = Array.from({ length: 12 }, (_, i) => i + 1)
+        const completa = itemsDeHoja(numero)
           .every(item => lectura.respuestas[item]);
         button.classList.toggle('complete', completa);
         button.classList.toggle('needs-review', lectura.procesada && !completa);
         const status = button.querySelector('[data-slot-status]');
         if (status) {
-          const faltan = Array.from({ length: 12 }, (_, i) => i + 1)
+          const faltan = itemsDeHoja(numero)
             .filter(item => !lectura.respuestas[item]).length;
           status.textContent = completa
             ? `${lectura.modo === 'manual' ? 'Carga manual · ' : ''}Lista para guardar`
             : lectura.procesada
               ? `${lectura.modo === 'manual' ? 'Carga manual · faltan ' : 'Revisar '}${faltan} respuesta${faltan === 1 ? '' : 's'}`
-              : `${numero === 1 ? 'Primera' : 'Segunda'} imagen · Pendiente`;
+              : `Hoja ${numero} · Pendiente`;
         }
       });
       const completas = slotButtons.filter(button => button.classList.contains('complete')).length;
-      progressCount.textContent = `${completas} de 2`;
+      progressCount.textContent = `${completas} de ${TOTAL_HOJAS}`;
       return faltantes;
     }
 
@@ -793,11 +804,11 @@
       slotButtons.forEach(button => button.setAttribute(
         'aria-selected', String(Number(button.dataset.imageSlot) === numeroImagen)
       ));
-      slotLabel.textContent = `Imagen ${numeroImagen} de 2`;
-      slotTitle.textContent = numeroImagen === 1 ? 'Cargá la hoja principal' : 'Cargá el detalle adicional';
-      uploadLabel.textContent = `Elegir imagen ${numeroImagen}`;
-      manualSlotLabel.textContent = `Imagen ${numeroImagen} de 2`;
-      resultsTitle.textContent = `${lectura.modo === 'manual' ? 'Carga manual' : 'Respuestas'} · Imagen ${numeroImagen}`;
+      slotLabel.textContent = `Hoja ${numeroImagen} de ${TOTAL_HOJAS}`;
+      slotTitle.textContent = `Cargá ${NOMBRES_HOJAS[numeroImagen - 1].toLocaleLowerCase('es')}`;
+      uploadLabel.textContent = `Elegir hoja ${numeroImagen}`;
+      manualSlotLabel.textContent = `Hoja ${numeroImagen} de ${TOTAL_HOJAS}`;
+      resultsTitle.textContent = `${lectura.modo === 'manual' ? 'Carga manual' : 'Respuestas'} · Hoja ${numeroImagen}`;
       ocultarMensaje();
       manualPlaceholder.hidden = true;
 
@@ -828,7 +839,7 @@
         mostrarPanelResultados(false);
         itemsGrid.style.display = 'none';
         panelEmpty.style.display = 'block';
-        setStatus('waiting', `Imagen ${numeroImagen} pendiente`);
+        setStatus('waiting', `Hoja ${numeroImagen} pendiente`);
       }
       actualizarEstadoGuardado();
     }
@@ -959,19 +970,19 @@
       placeholder.style.display = 'none';
       manualPlaceholder.hidden = false;
       marcarZonaConImagen(false);
-      resultsTitle.textContent = `Carga manual · Imagen ${imagenActiva}`;
+      resultsTitle.textContent = `Carga manual · Hoja ${imagenActiva}`;
       renderizarRespuestas(respuestasActuales, confianzaActual, []);
       actualizarEstadoGuardado();
     });
 
     inputFoto.addEventListener('change', async e => {
-      const files = Array.from(e.target.files).slice(0, 2);
+      const files = Array.from(e.target.files).slice(0, TOTAL_HOJAS);
       inputFoto.value = '';
-      if (files.length === 2) {
-        cambiarImagenActiva(1);
-        await procesarImagen(files[0]);
-        cambiarImagenActiva(2);
-        await procesarImagen(files[1]);
+      if (files.length > 1) {
+        for (let index = 0; index < files.length; index += 1) {
+          cambiarImagenActiva(index + 1);
+          await procesarImagen(files[index]);
+        }
         return;
       }
       if (files[0]) await procesarImagen(files[0]);
@@ -998,10 +1009,22 @@
 
       try {
         const resultado = await OMRProcessor.procesarExamen(
-          file, canvasPreview, { signal: controller.signal }
+          file,
+          canvasPreview,
+          {
+            signal: controller.signal,
+            tipoExamen: TIPO_EXAMEN,
+            cantidadItems: ITEMS_POR_HOJA[numeroImagen - 1],
+          },
         );
-        respuestasActuales = { ...resultado.respuestas };
-        confianzaActual = { ...resultado.confianza };
+        respuestasActuales = {
+          ...lecturasPorImagen[numeroImagen].respuestas,
+          ...resultado.respuestas,
+        };
+        confianzaActual = {
+          ...lecturasPorImagen[numeroImagen].confianza,
+          ...resultado.confianza,
+        };
         lecturasPorImagen[numeroImagen].respuestas = respuestasActuales;
         lecturasPorImagen[numeroImagen].confianza = confianzaActual;
         lecturasPorImagen[numeroImagen].preview = canvasPreview.toDataURL('image/jpeg', 0.82);
@@ -1036,13 +1059,13 @@
         }
         respuestasActuales = {};
         confianzaActual = {};
-        for (let i = 1; i <= 12; i++) { respuestasActuales[i] = ''; confianzaActual[i] = 0; }
+        for (const i of itemsDeHoja(numeroImagen)) { respuestasActuales[i] = ''; confianzaActual[i] = 0; }
         lecturasPorImagen[numeroImagen].respuestas = respuestasActuales;
         lecturasPorImagen[numeroImagen].confianza = confianzaActual;
         lecturasPorImagen[numeroImagen].preview = canvasPreview.toDataURL('image/jpeg', 0.82);
         lecturasPorImagen[numeroImagen].procesada = true;
         lecturasPorImagen[numeroImagen].modo = 'omr';
-        renderizarRespuestas(respuestasActuales, confianzaActual, Array.from({length:12},(_,i)=>i+1));
+        renderizarRespuestas(respuestasActuales, confianzaActual, itemsDeHoja(numeroImagen));
         setStatus('error', 'Error — editá manualmente');
         const messages = {
           INVALID_IMAGE: 'El archivo no es una imagen JPEG, PNG o WebP válida.',
@@ -1065,7 +1088,7 @@
     function renderizarRespuestas(respuestas, confianza, itemsDudosos) {
       mostrarPanelResultados(true);
       const cargaManual = lecturasPorImagen[imagenActiva].modo === 'manual';
-      resultsTitle.textContent = `${cargaManual ? 'Carga manual' : 'Respuestas'} · Imagen ${imagenActiva}`;
+      resultsTitle.textContent = `${cargaManual ? 'Carga manual' : 'Respuestas'} · Hoja ${imagenActiva}`;
       panelEmpty.style.display = 'none';
       itemsGrid.style.display = 'flex';
       itemsGrid.innerHTML = '';
@@ -1099,8 +1122,9 @@
       }
 
       // Fila por cada ítem
-      for (let i = 1; i <= 12; i++) {
-        if (i === 10) {
+      for (const i of itemsDeHoja(imagenActiva)) {
+        const inicioSeccionDocente = TIPO_EXAMEN === 'matematica' ? 21 : 10;
+        if (i === inicioSeccionDocente) {
           const docHeader = document.createElement('div');
           docHeader.style = 'margin-top: 16px; margin-bottom: 4px; padding: 10px; background: rgba(14,165,233,.1); border: 1px dashed rgba(14,165,233,.4); border-radius: 8px; text-align: center; font-size: 0.85rem; color: var(--accent); font-weight: 600;';
           docHeader.innerHTML = '📋 Sección Docente (revisar y completar si corresponde)';
@@ -1159,7 +1183,7 @@
         }
         row.appendChild(confWrap);
 
-        if (i >= 10) {
+        if (i >= inicioSeccionDocente) {
           row.style.borderStyle = 'dashed';
           row.style.borderColor = 'rgba(14,165,233,.3)';
           if (!resp) row.style.opacity = '1'; // No atenuar tanto si no hay respuesta en DOC
@@ -1168,7 +1192,7 @@
         itemsGrid.appendChild(row);
       }
 
-      const sinRespCount = 12 - totalDetectados;
+      const sinRespCount = ITEMS_POR_HOJA[imagenActiva - 1] - totalDetectados;
       if (sinRespCount > 0) {
         setStatus('error', `${sinRespCount} ${cargaManual ? 'por completar' : 'sin respuesta'}`);
       } else if (hayDudosos) {
@@ -1203,9 +1227,9 @@
         mostrarMensaje('error', `Faltan las respuestas: ${faltantes.join(', ')}. Completalas antes de guardar.`);
         return;
       }
-      const dudas = [1, 2].flatMap(numeroImagen =>
+      const dudas = NUMEROS_HOJA.flatMap(numeroImagen =>
         Array.from(lecturasPorImagen[numeroImagen].itemsDudosos)
-          .map(item => `Imagen ${numeroImagen} / ítem ${item}`)
+          .map(item => `Hoja ${numeroImagen} / ítem ${item}`)
       );
       if (dudas.length && !confirmacionDudosos) {
         confirmacionDudosos = true;
@@ -1219,13 +1243,12 @@
       btnGuardar.innerHTML = '<div class="spinner-sm" style="border-color:rgba(255,255,255,.3);border-top-color:white;width:18px;height:18px;"></div> Guardando…';
 
       const payload = {
-        lecturas: Object.fromEntries([1, 2].map(numeroImagen => [
+        lecturas: Object.fromEntries(NUMEROS_HOJA.map(numeroImagen => [
           `imagen_${numeroImagen}`,
           {
             respuestas: lecturasPorImagen[numeroImagen].respuestas,
             confianza: Object.fromEntries(
-              Array.from({ length: 12 }, (_, index) => {
-                const item = index + 1;
+              itemsDeHoja(numeroImagen).map(item => {
                 const valor = lecturasPorImagen[numeroImagen].confianza[item];
                 return [item, Math.max(0, Math.min(100, Math.round(Number(valor) || 0)))];
               })
