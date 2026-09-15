@@ -88,12 +88,15 @@ WSGI_APPLICATION = "monitoreo.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB_RENDER"),
-        "USER": os.environ.get("POSTGRES_USER_RENDER"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD_RENDER"),
-        "HOST": os.environ.get("POSTGRES_HOST_RENDER"),
-        "PORT": os.environ.get("POSTGRES_PORT_RENDER"),
-    },
+         'NAME': os.environ.get('POSTGRES_DB'),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': os.environ.get('POSTGRES_HOST'),
+        'PORT': os.environ.get('POSTGRES_PORT'),
+        'OPTIONS': {
+            'options': '-c search_path=reunidas_pof,sirtee,bnh,public,supervisores,evaluacion,cenpe,indicadores,operativoschaco,pem,pof,cef,bnh_alumno'
+        }
+    },        
     "Evaluacion": {
        "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB_EVALUACION"),
