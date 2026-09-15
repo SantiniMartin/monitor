@@ -7,6 +7,9 @@ from django.db.models import Case, CharField, Count, F, Prefetch, Q, Sum, Value,
 from django.db.models.functions import Lower, Trim
 from django.views.decorators.http import require_POST
 from django.urls import reverse
+from openpyxl import Workbook
+from django.http import HttpResponse
+from datetime import datetime
 
 from apps.evaluaciones_educativas.models.validaciones_2026 import (
     ValReferenteCargaTemporal,
@@ -1000,3 +1003,188 @@ def validar_establecimiento_completo(request, cueanexo):
         )
 
     return JsonResponse({'ok': True, 'carga_completa': est.carga_completa})
+
+
+def descargar_excel_establecimientos_validaciones_2026(request):
+    datos = ValSeccion.objects.select_related('grado', 'grado__establecimiento', 'grado__establecimiento__cabecera').all() 
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="reporte_monitoreo_regiones.xlsx"'
+
+    wb = Workbook()
+    ws = wb.active
+    fecha_hora_actual = datetime.now()
+    ws["A1"] = "REPORTE DE MONITOREO CARGA"
+    ws["D1"] = f'FECHA Y HORA:  {fecha_hora_actual.strftime("%d/%m/%Y %I:%M:%S %p")}'
+    
+    lista = [
+        "REGIÓN",
+        "CABECERA",
+        "CUEANEXO",
+        "NOMBRE_ESTABLECIMIENTO",
+        "ESTADO_VALIDACION",
+        "GRADO",
+        "SECCION",
+        "TURNO",
+        "MATRICULA",
+        "ESTADO",
+        "ESTABLECIMIENTO_PARTICIPA_APRENDER"
+    ]
+    ws.append(lista)
+
+    for dato in datos:
+        region = dato.grado.establecimiento.region
+        cabecera = dato.grado.establecimiento.cabecera.nombre_cabecera if dato.grado.establecimiento.cabecera else ""
+        cueanexo = dato.grado.establecimiento.cueanexo
+        nombre_escuela = dato.grado.establecimiento.escuela
+        estado_validacion = dato.estado_validacion
+        grado = dato.grado.nombre_grado
+        seccion = dato.seccion
+        turno = dato.turno
+        matricula = dato.matricula
+        estado = dato.estado_validacion
+        establecimiento_participa_aprender = dato.grado.establecimiento.participa_aprender
+        
+
+        
+        ws.append([
+            region,
+            cabecera,
+            cueanexo,
+            nombre_escuela,
+            estado_validacion,
+            grado,
+            seccion,
+            turno,
+            matricula,
+            estado,
+            establecimiento_participa_aprender
+        ])
+
+    wb.save(response)
+    return response
+
+
+def pagina_descarga_excel_validaciones_2026(request):
+    """
+    Renderiza la página HTML con el botón para descargar el Excel de establecimientos.
+    """
+    return render(request, 'validaciones_2026/descarga_excel.html')
+
+
+# ---------------------------------------------------------------------------
+# DESCARGA EXCEL — MODELO ESTABLECIMIENTO
+# ---------------------------------------------------------------------------
+def descargar_excel_modelo_establecimientos(request):
+    """
+    Descarga un Excel con los campos del modelo ValEstablecimiento:
+    cueanexo, escuela, direccion, codigo_postal, codigo_area, telefono,
+    codigo_provincia, sector, codigo_localidad, codigo_departamento,
+    ambito, participa_aprender
+    """
+    datos = ValEstablecimiento.objects.all().order_by('cueanexo')
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="establecimientos_validaciones_2026.xlsx"'
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Establecimientos"
+
+    fecha_hora_actual = datetime.now()
+    ws["A1"] = "ESTABLECIMIENTOS — VALIDACIONES 2026"
+    ws["G1"] = f'FECHA Y HORA:  {fecha_hora_actual.strftime("%d/%m/%Y %I:%M:%S %p")}'
+
+    encabezados = [
+        "CUEANEXO",
+        "ESCUELA",
+        "DIRECCIÓN",
+        "CÓDIGO POSTAL",
+        "CÓDIGO ÁREA",
+        "TELÉFONO",
+        "CÓDIGO PROVINCIA",
+        "SECTOR",
+        "CÓDIGO LOCALIDAD",
+        "CÓDIGO DEPARTAMENTO",
+        "ÁMBITO",
+        "PARTICIPA APRENDER",
+        "CABECERA,"
+    ]
+    ws.append(encabezados)
+
+    for est in datos:
+        ws.append([
+            est.cueanexo,
+            est.escuela,
+            est.direccion or "0",
+            est.codigo_postal or "0",
+            est.codigo_area or "0",
+            est.telefono or "0",
+            est.codigo_provincia or "0",
+            est.sector,
+            est.codigo_localidad or "0",
+            est.codigo_departamento or "0",
+            est.ambito,
+            est.participa_aprender,
+            est.cabecera.nombre_cabecera if est.cabecera else "SIN CABECERA",
+        ])
+
+    wb.save(response)
+    return response
+
+
+# ---------------------------------------------------------------------------
+# DESCARGA EXCEL — MODELO SECCION
+# ---------------------------------------------------------------------------
+def descargar_excel_modelo_secciones(request):
+    """
+    Descarga un Excel con los campos del modelo ValSeccion:
+    cueanexo, seccion, turno, matricula
+    """
+    datos = (
+        ValSeccion.objects
+        .select_related('grado', 'grado__establecimiento')
+        .all()
+        .order_by('grado__establecimiento__cueanexo', 'seccion', 'turno')
+    )
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="secciones_validaciones_2026.xlsx"'
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Secciones"
+
+    fecha_hora_actual = datetime.now()
+    ws["A1"] = "SECCIONES — VALIDACIONES 2026"
+    ws["E1"] = f'FECHA Y HORA:  {fecha_hora_actual.strftime("%d/%m/%Y %I:%M:%S %p")}'
+
+    encabezados = [
+        "CUEANEXO",
+        "SECCIÓN",
+        "TURNO",
+        "MATRÍCULA",
+        "ESTADO_VALIDACION",
+        "CABECERA",
+    ]
+    ws.append(encabezados)
+
+    for sec in datos:
+        ws.append([
+            sec.grado.establecimiento.cueanexo,
+            sec.seccion,
+            sec.turno,
+            sec.matricula if sec.matricula is not None else "",
+            sec.estado_validacion if sec.grado.establecimiento.participa_aprender == 'participa' and sec.estado_validacion == 'MODIFICADO'
+            else "VALIDADO" if sec.grado.establecimiento.participa_aprender == 'participa' and sec.estado_validacion == 'APROBADO'
+            else "DESHABILITADO",
+            sec.grado.establecimiento.cabecera.nombre_cabecera if sec.grado.establecimiento.cabecera else "SIN CABECERA",
+        ])
+
+    wb.save(response)
+    return response

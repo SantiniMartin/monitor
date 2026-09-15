@@ -113,4 +113,32 @@ urlpatterns = [
         validaciones_2026.editar_seccion,
         name='editar_seccion',
     ),
+
+    # Página para descargar el excel
+    path(
+        'descargar-excel-pagina/',
+        validaciones_2026.pagina_descarga_excel_validaciones_2026,
+        name='pagina_descarga_excel',
+    ),
+
+    # Acción de descargar el excel (monitoreo completo)
+    path(
+        'descargar-excel/',
+        validaciones_2026.descargar_excel_establecimientos_validaciones_2026,
+        name='descargar_excel',
+    ),
+
+    # Acción de descargar el excel — Modelo Establecimiento
+    path(
+        'descargar-excel-establecimientos/',
+        validaciones_2026.descargar_excel_modelo_establecimientos,
+        name='descargar_excel_establecimientos',
+    ),
+
+    # Acción de descargar el excel — Modelo Sección
+    path(
+        'descargar-excel-secciones/',
+        validaciones_2026.descargar_excel_modelo_secciones,
+        name='descargar_excel_secciones',
+    ),
 ]
