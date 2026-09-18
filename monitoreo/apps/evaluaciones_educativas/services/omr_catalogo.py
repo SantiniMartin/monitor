@@ -19,14 +19,19 @@ MATERIAS = {
 HOJAS_POR_EXAMEN = {
     "lengua": ("Hoja principal",),
     "matematica": ("Hoja principal",),
-    "contexto": ("Hoja de contexto 1", "Hoja de contexto 2"),
+    "contexto": ("Hoja de contexto · preguntas 1 a 8", "Hoja de contexto · preguntas 9 a 17"),
 }
 ITEMS_POR_HOJA_EXAMEN = {
-    "lengua": (12,),
+    # 1-24 más los tres criterios adicionales 24.1, 24.2 y 24.3.
+    "lengua": (27,),
     "matematica": (24,),
-    "contexto": (12, 12),
+    "contexto": (8, 9),
 }
-SIMULATION_MODE = True
+# Cantidad de casilleros impresos en cada pregunta del cuestionario.
+OPCIONES_POR_ITEM_CONTEXTO = (6, 2, 3, 6, 5, 3, 4, 6, 3, 6, 3, 3, 3, 5, 4, 4, 3)
+ITEMS_MULTIPLES_CONTEXTO = frozenset({1, 4, 7, 8, 14})
+# El lector ya persiste en los modelos OMR de la base dedicada.
+SIMULATION_MODE = False
 
 
 @dataclass(frozen=True)

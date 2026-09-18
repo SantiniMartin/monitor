@@ -24,6 +24,7 @@
     .record-status { flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; padding:7px 10px; color:#0f5132; background:#d1e7dd; border-radius:999px; font-size:.72rem; font-weight:800; }
     .record-status.auto { color:#664d03; background:#fff3cd; }
     .record-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-bottom:1px solid #e9ecef; }
+    .record-facts.has-score { grid-template-columns:repeat(4,minmax(0,1fr)); }
     .fact { padding:17px 20px; border-right:1px solid #e9ecef; }
     .fact:last-child { border:0; }
     .fact span { display:block; color:#6c757d; font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
@@ -49,13 +50,11 @@
     .confidence strong { display:block; font-size:.76rem; }
     .confidence small { display:block; margin-top:2px; color:#6c757d; font-size:.6rem; }
     .confidence.high strong { color:#198754; }.confidence.mid strong { color:#997404; }.confidence.low strong { color:#dc3545; }.confidence.manual strong { color:#6c757d; }
-    .notes { margin-top:20px; padding:15px 17px; color:#495057; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; font-size:.84rem; line-height:1.5; }
-    .notes strong { display:block; margin-bottom:5px; color:#17365d; }
     .detail-actions { display:flex; justify-content:flex-end; gap:10px; padding:18px 22px; background:#f8fafc; border-top:1px solid #e9ecef; }
     @media(max-width:700px) {
       .detail-nav span { display:none; }
       .student-hero { flex-direction:column; }
-      .record-facts { grid-template-columns:1fr; }
+      .record-facts, .record-facts.has-score { grid-template-columns:1fr; }
       .fact { padding:12px 18px; border-right:0; border-bottom:1px solid #e9ecef; }
       .response-grid { grid-template-columns:1fr; }
       .section-heading { align-items:flex-start; flex-direction:column; }
@@ -87,8 +86,9 @@
         {% if lectura.revisado_manualmente %}<span class="record-status"><i class="bi bi-check-circle-fill"></i>Revisado</span>{% else %}<span class="record-status auto"><i class="bi bi-lightning-fill"></i>Automático</span>{% endif %}
       </header>
 
-      <section class="record-facts" aria-label="Datos de la lectura">
+      <section class="record-facts {% if lectura.tipo_examen == 'lengua' %}has-score{% endif %}" aria-label="Datos de la lectura">
         <div class="fact"><span>Modelo</span><strong>{% if lectura.modelo_examen %}Modelo {{ lectura.modelo_examen }}{% else %}Sin especificar{% endif %}</strong></div>
+        {% if lectura.tipo_examen == 'lengua' %}<div class="fact"><span>Puntaje</span><strong>{{ lectura.puntaje_total }} / 100</strong></div>{% endif %}
         <div class="fact"><span>Fecha de lectura</span><strong>{{ lectura.fecha_lectura|date:"d/m/Y · H:i" }}</strong></div>
         <div class="fact"><span>Cargado por</span><strong>{{ lectura.encargado_carga|default:"Sin especificar" }}</strong></div>
       </section>
@@ -104,19 +104,18 @@
             <div class="response-card {% if item.dudoso %}doubtful{% elif not item.respuesta %}missing{% endif %}">
               <span class="item-number">{{ item.num }}</span>
               <div class="options" aria-label="Ítem {{ item.num }}: {{ item.respuesta|default:'sin respuesta' }}">
-                {% for opc in opciones %}<span class="option {% if item.respuesta == opc %}active{% endif %}">{{ opc }}</span>{% endfor %}
+                {% for opc in item.opciones %}<span class="option {% if opc in item.seleccionadas %}active{% endif %}">{{ opc }}</span>{% endfor %}
                 {% if not item.respuesta %}<span class="missing-value">Sin respuesta</span>{% endif %}
               </div>
               {% if item.confianza is not None %}
-                <div class="confidence {% if item.confianza >= 70 %}high{% elif item.confianza >= 40 %}mid{% else %}low{% endif %}"><strong>{{ item.confianza }}%</strong><small>{% if item.dudoso %}Revisar{% else %}Confianza{% endif %}</small></div>
+                <div class="confidence {% if item.confianza >= 70 %}high{% elif item.confianza >= 40 %}mid{% else %}low{% endif %}"><strong>{{ item.confianza }}%</strong><small>{% if item.dudoso %}Revisar{% else %}Confianza{% endif %}</small>{% if item.puntaje is not None %}<small>{{ item.puntaje }} pts</small>{% endif %}</div>
               {% elif lectura.revisado_manualmente %}
-                <div class="confidence manual"><strong>Manual</strong><small>Revisado</small></div>
+                <div class="confidence manual"><strong>Manual</strong><small>Revisado</small>{% if item.puntaje is not None %}<small>{{ item.puntaje }} pts</small>{% endif %}</div>
               {% endif %}
             </div>
           {% endfor %}
         </div>
 
-        {% if lectura.observaciones %}<div class="notes"><strong><i class="bi bi-chat-left-text me-1"></i>Observaciones</strong>{{ lectura.observaciones }}</div>{% endif %}
       </section>
 
       <footer class="detail-actions">

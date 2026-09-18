@@ -22,9 +22,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    os.path.join(BASE_DIR, "static"),
 ]
-
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
@@ -35,10 +34,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://monitoreo-2026.onrender.com", "lector-examen-dehabvcxbpetdphd.brazilsouth-01.azurewebsites.net"]
+CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://monitoreo-2026.onrender.com", "https://lector-examen-dehabvcxbpetdphd.brazilsouth-01.azurewebsites.net", "https://lector-examen.azurewebsites.net"]
 
 
 # Application definition

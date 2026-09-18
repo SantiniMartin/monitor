@@ -111,7 +111,7 @@ const OMRProcessor = (() => {
 
     const respuestas = {};
     const confianza = {};
-    const cantidadItems = Number(options.cantidadItems) || 12;
+    const cantidadItems = Number(data.cantidad_items) || Number(options.cantidadItems) || 12;
     for (let item = 1; item <= cantidadItems; item++) {
       respuestas[item] = data.respuestas?.[String(item)] || '';
       confianza[item] = Number(data.confianza?.[String(item)] || 0);
@@ -124,6 +124,10 @@ const OMRProcessor = (() => {
       used_warp: Boolean(data.used_warp),
       detection_method: data.detection_method || '',
       detection_score: data.detection_score || 0,
+      modeloExamen: data.modelo_examen || '',
+      modeloConfianza: Number(data.modelo_confianza || 0),
+      numeroHoja: Number(data.numero_hoja) || null,
+      cantidadItems,
     };
   }
 

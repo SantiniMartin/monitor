@@ -99,6 +99,11 @@
       object-fit: cover;
       display: none;
     }
+    body.exam-contexto #video-live {
+      /* La guía debe representar el fotograma completo, sin recortar arriba
+         ni abajo una hoja vertical dentro de una pantalla horizontal. */
+      object-fit: contain;
+    }
     .camera-guide-overlay {
       position: absolute; inset: 0;
       pointer-events: none;
@@ -121,6 +126,17 @@
       overflow: hidden;     /* Para clip de la línea de escaneo */
       pointer-events: none;
       transition: border-color .4s, box-shadow .4s;
+    }
+    body.exam-contexto .guide-rect {
+      width: auto;
+      height: calc(100% - 132px);
+      max-width: 88%;
+      max-height: 86%;
+    }
+    @media (max-width: 900px) {
+      body.exam-contexto .camera-zone {
+        min-height: min(145vw, 680px);
+      }
     }
     /* Estado: examen detectado → borde verde */
     .guide-rect.detected {
@@ -226,7 +242,7 @@
     }
 
     /* Input file oculto */
-    #input-foto { display: none; }
+    #input-foto, #input-camara-nativa { display: none; }
 
     /* Badge procesando */
     .processing-badge {
@@ -390,14 +406,6 @@
       font-size: .85rem; flex: 1;
     }
 
-    .obs-input {
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text); border-radius: 8px; padding: 8px 12px;
-      font-size: .85rem; width: 100%; resize: none;
-      font-family: 'Inter', sans-serif;
-    }
-    .obs-input:focus { outline: none; border-color: var(--primary); }
-
     .btn-guardar {
       width: 100%; padding: 13px;
       background: linear-gradient(135deg, var(--success), #059669);
@@ -433,7 +441,7 @@
   </style>
   <link href="{% static 'evaluaciones_educativas/css/omr_fluidez.css' %}" rel="stylesheet" />
 </head>
-<body>
+<body{% if materia == 'contexto' %} class="exam-contexto"{% endif %}>
 
   <!-- Topbar -->
   <div class="topbar">
@@ -492,7 +500,7 @@
 
       <!-- Overlay guía encuadre -->
       <div class="camera-guide-overlay" id="guide-overlay">
-        <div class="guide-label">📋 Encuadrá todo el examen</div>
+        <div class="guide-label">Encuadrá toda la hoja</div>
 
         <div class="guide-rect" id="guide-rect">
           <!-- Esquinas de alineación -->
@@ -558,7 +566,7 @@
         </button>
 
         <!-- Botón de captura (visible cuando cámara activa) -->
-        <button class="btn-cam capture-live" id="btn-capturar-live" style="display:none;" title="Tomar foto">
+        <button class="btn-cam capture-live" id="btn-capturar-live" style="display:none;" type="button" title="Tomar foto" aria-label="Tomar foto del examen">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" />
           </svg>
@@ -588,8 +596,13 @@
           type="file"
           id="input-foto"
           accept="image/*"
-          capture="environment"
           multiple
+        />
+        <input
+          type="file"
+          id="input-camara-nativa"
+          accept="image/*"
+          capture="environment"
         />
       </div>
     </div>
@@ -628,19 +641,24 @@
 
       </div>
 
-      <!-- Footer: modelo, observaciones, guardar -->
+      <!-- Footer: datos opcionales y guardar -->
       <div class="panel-footer">
+        {% if materia != 'contexto' %}
         <div class="modelo-row">
           <label for="modelo-select">Modelo:</label>
           <select class="modelo-select" id="modelo-select">
-            <option value="">Sin especificar</option>
+            <option value="">{% if materia == 'lengua' %}Seleccionar modelo{% else %}Sin especificar{% endif %}</option>
             <option value="A">A</option>
-            <option value="B" selected>B</option>
+            <option value="B">B</option>
+            {% if materia == 'matematica' %}
             <option value="C">C</option>
             <option value="D">D</option>
+            {% endif %}
           </select>
         </div>
-        <textarea class="obs-input" id="obs-input" rows="2" maxlength="2000" placeholder="Observaciones opcionales…"></textarea>
+        {% else %}
+        <input type="hidden" id="modelo-select" value="">
+        {% endif %}
         <button class="btn-guardar" id="btn-guardar" disabled>
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -658,9 +676,11 @@
   <canvas id="canvas-omr" style="display:none;"></canvas>
   {{ nombres_hojas|json_script:"omr-sheet-names" }}
   {{ items_por_hoja|json_script:"omr-items-per-sheet" }}
+  {{ opciones_contexto|json_script:"omr-context-options" }}
+  {{ items_multiples_contexto|json_script:"omr-context-multiple-items" }}
 
   <!-- omr_processor.js: cliente liviano del backend OMR, sin librerías externas -->
-  <script src="{% static 'evaluaciones_educativas/js/omr_processor.js' %}?v=7"></script>
+  <script src="{% static 'evaluaciones_educativas/js/omr_processor.js' %}?v=10"></script>
 
   <script>
     // ── Estado global ──────────────────────────────────────────────────────
@@ -672,6 +692,19 @@
     const ITEMS_POR_HOJA = JSON.parse(document.getElementById('omr-items-per-sheet').textContent);
     const NUMEROS_HOJA = NOMBRES_HOJAS.map((_, index) => index + 1);
     const TOTAL_HOJAS = NUMEROS_HOJA.length;
+    const OPCIONES_CONTEXTO = JSON.parse(document.getElementById('omr-context-options').textContent);
+    const ITEMS_MULTIPLES_CONTEXTO = new Set(
+      JSON.parse(document.getElementById('omr-context-multiple-items').textContent)
+    );
+    const numeroItemGlobal = (numeroHoja, itemLocal) => (
+      ITEMS_POR_HOJA.slice(0, numeroHoja - 1).reduce((total, cantidad) => total + cantidad, 0)
+      + itemLocal
+    );
+    const etiquetaItem = numeroItem => (
+      TIPO_EXAMEN === 'lengua' && numeroItem >= 25
+        ? `24.${numeroItem - 24}`
+        : `${numeroItem}`
+    );
     const itemsDeHoja = numeroHoja => Array.from(
       { length: ITEMS_POR_HOJA[numeroHoja - 1] },
       (_, index) => index + 1,
@@ -719,6 +752,7 @@
     const btnCargaManual = document.getElementById('btn-carga-manual');
     const btnCancelar   = document.getElementById('btn-cancelar');
     const inputFoto     = document.getElementById('input-foto');
+    const inputCamaraNativa = document.getElementById('input-camara-nativa');
     const toastEl       = document.getElementById('toast-success');
     const appMessage    = document.getElementById('app-message');
     const cameraZone    = document.getElementById('camera-zone');
@@ -733,6 +767,9 @@
     const resultsTitle  = document.getElementById('results-title');
 
     const GUARDAR_HTML = btnGuardar.innerHTML;
+    document.getElementById('modelo-select').addEventListener(
+      'change', actualizarEstadoGuardado,
+    );
 
     function mostrarMensaje(type, text) {
       appMessage.className = `app-message visible ${type}`;
@@ -754,13 +791,15 @@
     }
 
     function respuestasFaltantes() {
-      return NUMEROS_HOJA.flatMap(numeroImagen => {
+      const faltantes = NUMEROS_HOJA.flatMap(numeroImagen => {
         const lectura = lecturasPorImagen[numeroImagen];
         if (!lectura.procesada) return [`Hoja ${numeroImagen} sin cargar`];
-        return itemsDeHoja(numeroImagen)
-          .filter(item => !lectura.respuestas[item])
-          .map(item => `Hoja ${numeroImagen} / ítem ${item}`);
+        return [];
       });
+      if (TIPO_EXAMEN === 'lengua' && !document.getElementById('modelo-select').value) {
+        faltantes.unshift('Modelo A/B sin seleccionar');
+      }
+      return faltantes;
     }
 
     function actualizarEstadoGuardado() {
@@ -770,19 +809,19 @@
       slotButtons.forEach(button => {
         const numero = Number(button.dataset.imageSlot);
         const lectura = lecturasPorImagen[numero];
-        const completa = itemsDeHoja(numero)
-          .every(item => lectura.respuestas[item]);
+        const completa = lectura.procesada;
+        const requiereRevision = lectura.procesada && lectura.itemsDudosos.size > 0;
         button.classList.toggle('complete', completa);
-        button.classList.toggle('needs-review', lectura.procesada && !completa);
+        button.classList.toggle('needs-review', requiereRevision);
         const status = button.querySelector('[data-slot-status]');
         if (status) {
           const faltan = itemsDeHoja(numero)
             .filter(item => !lectura.respuestas[item]).length;
-          status.textContent = completa
-            ? `${lectura.modo === 'manual' ? 'Carga manual · ' : ''}Lista para guardar`
-            : lectura.procesada
-              ? `${lectura.modo === 'manual' ? 'Carga manual · faltan ' : 'Revisar '}${faltan} respuesta${faltan === 1 ? '' : 's'}`
-              : `Hoja ${numero} · Pendiente`;
+          status.textContent = lectura.procesada
+            ? requiereRevision
+              ? `Revisar ${lectura.itemsDudosos.size} respuesta${lectura.itemsDudosos.size === 1 ? '' : 's'}`
+              : `${lectura.modo === 'manual' ? 'Carga manual · ' : ''}Lista para guardar${faltan ? ` · ${faltan} en blanco` : ''}`
+            : `Hoja ${numero} · Pendiente`;
         }
       });
       const completas = slotButtons.filter(button => button.classList.contains('complete')).length;
@@ -790,8 +829,8 @@
       return faltantes;
     }
 
-    function cambiarImagenActiva(numeroImagen) {
-      if (procesando || numeroImagen === imagenActiva) return;
+    function cambiarImagenActiva(numeroImagen, forzar = false) {
+      if ((!forzar && procesando) || numeroImagen === imagenActiva) return;
       detenerCamara();
       imagenActiva = numeroImagen;
       const lectura = lecturasPorImagen[numeroImagen];
@@ -856,13 +895,28 @@
         detenerCamara();
         return;
       }
+      if (TIPO_EXAMEN === 'contexto' && !('ImageCapture' in window)) {
+        // Safari/iOS no ofrece fotografías de alta resolución desde el stream.
+        // Su cámara nativa sí, y evita perder las casillas pequeñas.
+        inputCamaraNativa.click();
+        return;
+      }
       try {
         // Intentar cámara trasera (environment)
-        const constraints = {
-          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+        const videoConstraints = {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: TIPO_EXAMEN === 'contexto' ? 2160 : 1920 },
+          height: { ideal: TIPO_EXAMEN === 'contexto' ? 3840 : 1080 },
         };
+        if (TIPO_EXAMEN === 'contexto') {
+          // La hoja es vertical y contiene 34/35 casillas pequeñas. Pedir una
+          // relación vertical evita perder detalle en un fotograma 16:9.
+          videoConstraints.aspectRatio = { ideal: 0.75 };
+        }
+        const constraints = { video: videoConstraints };
         streamActivo = await navigator.mediaDevices.getUserMedia(constraints);
         videoEl.srcObject = streamActivo;
+        await videoEl.play();
         videoEl.style.display = 'block';
         placeholder.style.display = 'none';
         manualPlaceholder.hidden = true;
@@ -876,31 +930,69 @@
           </svg>
           Cerrar cámara`;
       } catch (err) {
-        // getUserMedia no disponible → fallback a input file
-        console.warn('[OMR] getUserMedia no disponible, usando input file:', err);
-        inputFoto.click();
+        // getUserMedia no disponible → cámara nativa de resolución completa.
+        console.warn('[OMR] getUserMedia no disponible, usando cámara nativa:', err);
+        detenerCamara();
+        inputCamaraNativa.click();
       }
     });
 
     // Capturar frame del video en vivo
-    btnCapLive.addEventListener('click', () => {
-      if (!streamActivo) return;
-      const sourceWidth = videoEl.videoWidth;
-      const sourceHeight = videoEl.videoHeight;
-      const scale = Math.min(1, 1800 / Math.max(sourceWidth, sourceHeight));
-      canvasOMR.width = Math.max(1, Math.round(sourceWidth * scale));
-      canvasOMR.height = Math.max(1, Math.round(sourceHeight * scale));
-      canvasOMR.getContext('2d', { alpha: false }).drawImage(
-        videoEl, 0, 0, canvasOMR.width, canvasOMR.height
-      );
+    btnCapLive.addEventListener('click', async () => {
+      if (!streamActivo || btnCapLive.disabled) return;
+      btnCapLive.disabled = true;
+      btnCapLive.setAttribute('aria-busy', 'true');
+      setStatus('processing', 'Capturando foto…');
 
-      // Convertir canvas a Blob y procesar
-      canvasOMR.toBlob(blob => {
+      try {
+        const track = streamActivo.getVideoTracks()[0];
+        let blob = null;
+
+        // Chrome/Android permite obtener una fotografía del sensor con mucha
+        // más resolución que el fotograma de previsualización. Es fundamental
+        // para distinguir las casillas pequeñas del examen de Contexto.
+        if (track && 'ImageCapture' in window) {
+          try {
+            blob = await new ImageCapture(track).takePhoto();
+          } catch (captureError) {
+            console.warn('[OMR] No se pudo usar la captura fotográfica; se usa el fotograma.', captureError);
+          }
+        }
+
+        // Respaldo para Safari y navegadores sin ImageCapture.
+        if (!blob) {
+          const sourceWidth = videoEl.videoWidth;
+          const sourceHeight = videoEl.videoHeight;
+          if (!sourceWidth || !sourceHeight) {
+            throw new Error('La cámara todavía no está lista.');
+          }
+          const maxSide = TIPO_EXAMEN === 'contexto' ? 2400 : 1800;
+          const scale = Math.min(1, maxSide / Math.max(sourceWidth, sourceHeight));
+          canvasOMR.width = Math.max(1, Math.round(sourceWidth * scale));
+          canvasOMR.height = Math.max(1, Math.round(sourceHeight * scale));
+          canvasOMR.getContext('2d', { alpha: false }).drawImage(
+            videoEl, 0, 0, canvasOMR.width, canvasOMR.height
+          );
+          blob = await new Promise(resolve => canvasOMR.toBlob(
+            resolve, 'image/jpeg', 0.97
+          ));
+        }
+
+        if (!blob) throw new Error('No se pudo generar la fotografía.');
         detenerCamara();
-        if (blob) procesarImagen(new File([blob], 'captura.jpg', { type: 'image/jpeg' }));
+        await procesarImagen(new File(
+          [blob], 'captura-omr.jpg', { type: blob.type || 'image/jpeg' }
+        ));
+      } catch (error) {
+        console.error('[OMR] Error al capturar la foto:', error);
+        mostrarMensaje('error', 'No se pudo tomar la foto. Esperá a que enfoque la hoja e intentá nuevamente.');
+        setStatus('error', 'Error de captura');
+      } finally {
         canvasOMR.width = 1;
         canvasOMR.height = 1;
-      }, 'image/jpeg', 0.85);
+        btnCapLive.disabled = false;
+        btnCapLive.removeAttribute('aria-busy');
+      }
     });
 
     function detenerCamara() {
@@ -988,6 +1080,12 @@
       if (files[0]) await procesarImagen(files[0]);
     });
 
+    inputCamaraNativa.addEventListener('change', async e => {
+      const file = e.target.files && e.target.files[0];
+      inputCamaraNativa.value = '';
+      if (file) await procesarImagen(file);
+    });
+
     // ── Procesamiento OMR ─────────────────────────────────────────────────
 
     async function procesarImagen(file) {
@@ -1017,26 +1115,47 @@
             cantidadItems: ITEMS_POR_HOJA[numeroImagen - 1],
           },
         );
+        const numeroDestino = TIPO_EXAMEN === 'contexto'
+          ? resultado.numeroHoja
+          : numeroImagen;
+        if (!numeroDestino || !lecturasPorImagen[numeroDestino]) {
+          throw new OMRProcessor.OMRClientError(
+            'No se pudo identificar si es la hoja 1–8 o la hoja 9–17. Encuadrá la hoja completa.',
+            'SHEET_NOT_IDENTIFIED',
+          );
+        }
         respuestasActuales = {
-          ...lecturasPorImagen[numeroImagen].respuestas,
+          ...lecturasPorImagen[numeroDestino].respuestas,
           ...resultado.respuestas,
         };
         confianzaActual = {
-          ...lecturasPorImagen[numeroImagen].confianza,
+          ...lecturasPorImagen[numeroDestino].confianza,
           ...resultado.confianza,
         };
-        lecturasPorImagen[numeroImagen].respuestas = respuestasActuales;
-        lecturasPorImagen[numeroImagen].confianza = confianzaActual;
-        lecturasPorImagen[numeroImagen].preview = canvasPreview.toDataURL('image/jpeg', 0.82);
-        lecturasPorImagen[numeroImagen].procesada = true;
-        lecturasPorImagen[numeroImagen].modo = 'omr';
+        lecturasPorImagen[numeroDestino].respuestas = respuestasActuales;
+        lecturasPorImagen[numeroDestino].confianza = confianzaActual;
+        lecturasPorImagen[numeroDestino].preview = canvasPreview.toDataURL('image/jpeg', 0.82);
+        lecturasPorImagen[numeroDestino].procesada = true;
+        lecturasPorImagen[numeroDestino].modo = 'omr';
+        if (numeroDestino !== imagenActiva) {
+          cambiarImagenActiva(numeroDestino, true);
+        }
+        if (resultado.modeloExamen && resultado.modeloConfianza >= 45) {
+          document.getElementById('modelo-select').value = resultado.modeloExamen;
+        }
         renderizarRespuestas(respuestasActuales, confianzaActual, resultado.itemsDudosos);
         if (resultado.detection_method === 'not_found') {
           mostrarMensaje('error', 'No se detectó la hoja. Probá con más luz, sin sombras y encuadrando la hoja completa. También podés completar las respuestas manualmente.');
         } else if (resultado.itemsDudosos.length) {
-          mostrarMensaje('warning', `Hay ${resultado.itemsDudosos.length} respuesta(s) dudosa(s). Revisalas antes de guardar.`);
+          const hojaDetectada = TIPO_EXAMEN === 'contexto' ? ` Hoja ${numeroDestino} detectada.` : '';
+          mostrarMensaje('warning', `${hojaDetectada} Hay ${resultado.itemsDudosos.length} respuesta(s) dudosa(s). Revisalas antes de guardar.`);
         } else {
-          mostrarMensaje('success', 'Imagen analizada. Revisá las respuestas antes de guardar.');
+          const modeloDetectado = TIPO_EXAMEN === 'contexto'
+            ? ` Hoja ${numeroDestino} detectada.`
+            : resultado.modeloExamen
+            ? ` Modelo ${resultado.modeloExamen} detectado.`
+            : ' No se pudo confirmar el modelo; seleccionalo manualmente.';
+          mostrarMensaje('success', `Imagen analizada.${modeloDetectado} Revisá las respuestas antes de guardar.`);
         }
       } catch (err) {
         if (err.name === 'AbortError') {
@@ -1116,14 +1235,16 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span>Respuestas dudosas: <strong>${Array.from(itemsDudososActuales).join(', ')}</strong>.
+          <span>Respuestas dudosas: <strong>${Array.from(itemsDudososActuales)
+            .map(item => etiquetaItem(numeroItemGlobal(imagenActiva, item))).join(', ')}</strong>.
           Verificá y corregí si es necesario.</span>`;
         itemsGrid.appendChild(warn);
       }
 
       // Fila por cada ítem
       for (const i of itemsDeHoja(imagenActiva)) {
-        const inicioSeccionDocente = TIPO_EXAMEN === 'matematica' ? 21 : 10;
+        const itemGlobal = numeroItemGlobal(imagenActiva, i);
+        const inicioSeccionDocente = ['matematica', 'lengua'].includes(TIPO_EXAMEN) ? 21 : 10;
         if (i === inicioSeccionDocente) {
           const docHeader = document.createElement('div');
           docHeader.style = 'margin-top: 16px; margin-bottom: 4px; padding: 10px; background: rgba(14,165,233,.1); border: 1px dashed rgba(14,165,233,.4); border-radius: 8px; text-align: center; font-size: 0.85rem; color: var(--accent); font-weight: 600;';
@@ -1143,28 +1264,34 @@
         // Número ítem
         const numEl = document.createElement('div');
         numEl.className = 'item-num';
-        numEl.textContent = i + ')';
+        numEl.textContent = etiquetaItem(itemGlobal) + ')';
         row.appendChild(numEl);
 
-        // Botones A/B/C/D + Sin respuesta
+        // Opciones impresas de la pregunta + Sin respuesta
         const optsEl = document.createElement('div');
         optsEl.className = 'item-options';
 
-        ['A','B','C','D'].forEach(opc => {
+        const opciones = TIPO_EXAMEN === 'contexto'
+          ? 'ABCDEF'.slice(0, OPCIONES_CONTEXTO[itemGlobal - 1]).split('')
+          : ['A','B','C','D'];
+        const seleccionadas = new Set(resp ? resp.split(',') : []);
+        opciones.forEach(opc => {
           const btn = document.createElement('button');
-          btn.className = 'opt-btn' + (resp === opc ? ' selected' + (isDudoso ? ' dudoso' : '') : '');
+          btn.className = 'opt-btn' + (seleccionadas.has(opc) ? ' selected' + (isDudoso ? ' dudoso' : '') : '');
           btn.textContent = opc;
           btn.dataset.opc = opc;
-          btn.title = `Ítem ${i}: respuesta ${opc}`;
+          btn.title = `Ítem ${etiquetaItem(itemGlobal)}: respuesta ${opc}`;
           btn.addEventListener('click', () => seleccionarOpcion(i, opc));
           optsEl.appendChild(btn);
         });
 
         // Botón vaciar
         const btnVaciar = document.createElement('button');
-        btnVaciar.className = 'opt-btn none-btn';
+        btnVaciar.className = 'opt-btn none-btn' + (
+          isSinResp ? ' selected' + (isDudoso ? ' dudoso' : '') : ''
+        );
         btnVaciar.textContent = '—';
-        btnVaciar.title = `Borrar respuesta ítem ${i}`;
+        btnVaciar.title = `Borrar respuesta ítem ${etiquetaItem(itemGlobal)}`;
         btnVaciar.addEventListener('click', () => seleccionarOpcion(i, ''));
         optsEl.appendChild(btnVaciar);
 
@@ -1194,7 +1321,7 @@
 
       const sinRespCount = ITEMS_POR_HOJA[imagenActiva - 1] - totalDetectados;
       if (sinRespCount > 0) {
-        setStatus('error', `${sinRespCount} ${cargaManual ? 'por completar' : 'sin respuesta'}`);
+        setStatus('processing', `${sinRespCount} respuesta${sinRespCount === 1 ? '' : 's'} en blanco`);
       } else if (hayDudosos) {
         setStatus('processing', `${itemsDudososActuales.size} dudoso(s)`);
       } else {
@@ -1205,8 +1332,23 @@
     }
 
     function seleccionarOpcion(itemNum, opcion) {
-      respuestasActuales[itemNum] = opcion;
-      confianzaActual[itemNum] = opcion ? 100 : 0;
+      const itemGlobal = numeroItemGlobal(imagenActiva, itemNum);
+      if (
+        TIPO_EXAMEN === 'contexto'
+        && ITEMS_MULTIPLES_CONTEXTO.has(itemGlobal)
+        && opcion
+      ) {
+        const seleccionadas = new Set(
+          respuestasActuales[itemNum] ? respuestasActuales[itemNum].split(',') : []
+        );
+        seleccionadas.has(opcion) ? seleccionadas.delete(opcion) : seleccionadas.add(opcion);
+        respuestasActuales[itemNum] = Array.from(seleccionadas).sort().join(',');
+      } else {
+        respuestasActuales[itemNum] = opcion;
+      }
+      // Una selección manual de "—" confirma que el ítem se deja en
+      // blanco; no es una falla de detección ni debe volver a quedar dudoso.
+      confianzaActual[itemNum] = 100;
       itemsDudososActuales.delete(itemNum);
       confirmacionDudosos = false;
       renderizarRespuestas(
@@ -1229,7 +1371,7 @@
       }
       const dudas = NUMEROS_HOJA.flatMap(numeroImagen =>
         Array.from(lecturasPorImagen[numeroImagen].itemsDudosos)
-          .map(item => `Hoja ${numeroImagen} / ítem ${item}`)
+          .map(item => `Hoja ${numeroImagen} / ítem ${etiquetaItem(numeroItemGlobal(numeroImagen, item))}`)
       );
       if (dudas.length && !confirmacionDudosos) {
         confirmacionDudosos = true;
@@ -1257,7 +1399,6 @@
         ])),
         modelo_examen: document.getElementById('modelo-select').value,
         revisado_manualmente: true,
-        observaciones: document.getElementById('obs-input').value,
       };
 
       try {

@@ -21,19 +21,23 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, RequestDataTooBig
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import CharField, Q, Value
 from django.urls import reverse
 
 from apps.evaluaciones_educativas.models.omr_lector import (
     AlumnoDiagnostico_Ingreso_2026,
+    ExamenContexto,
+    ExamenLengua,
+    ExamenMatematica,
     EstablecimientosDiagnostico_Ingreso_2026,
-    LecturaOMR,
 )
 from apps.evaluaciones_educativas.services.omr_catalogo import (
+    ITEMS_MULTIPLES_CONTEXTO,
     MATERIAS,
+    OPCIONES_POR_ITEM_CONTEXTO,
     SIMULATION_MODE,
     alumno_autorizado,
     alumnos_de_oferta,
@@ -48,7 +52,7 @@ from apps.evaluaciones_educativas.services.omr_catalogo import (
 logger = logging.getLogger(__name__)
 SAVE_PAYLOAD_KEYS = {
     'lecturas', 'modelo_examen',
-    'revisado_manualmente', 'observaciones',
+    'revisado_manualmente',
 }
 MAX_JSON_BYTES = 32 * 1024
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
@@ -67,7 +71,7 @@ def _json_error(message, code, status=400):
     return JsonResponse({'ok': False, 'error': message, 'code': code}, status=status)
 
 
-def _validar_payload_lectura(payload, items_por_hoja):
+def _validar_payload_lectura(payload, items_por_hoja, materia='lengua'):
     """Valida y normaliza el contrato JSON antes de tocar la base de datos."""
     if not isinstance(payload, dict):
         raise ValueError('El cuerpo JSON debe ser un objeto.')
@@ -111,8 +115,26 @@ def _validar_payload_lectura(payload, items_por_hoja):
         normalized_confianza = {}
         for key in sorted(item_keys, key=int):
             response = respuestas[key]
-            if not isinstance(response, str) or response not in {'A', 'B', 'C', 'D'}:
-                raise ValueError(f'El ítem {key} de {image_key} debe tener una respuesta entre A y D.')
+            if not isinstance(response, str):
+                raise ValueError(f'El ítem {key} de {image_key} debe ser texto.')
+            if materia == 'contexto':
+                global_item = sum(items_por_hoja[:numero_hoja - 1]) + int(key)
+                allowed = set('ABCDEF'[:OPCIONES_POR_ITEM_CONTEXTO[global_item - 1]])
+                selected = response.split(',') if response else []
+                if (
+                    len(selected) != len(set(selected))
+                    or any(option not in allowed for option in selected)
+                    or response != ','.join(sorted(selected))
+                    or (global_item not in ITEMS_MULTIPLES_CONTEXTO and len(selected) > 1)
+                ):
+                    raise ValueError(
+                        f'La respuesta del ítem {global_item} de Contexto no es válida.'
+                    )
+            elif response not in {'', 'A', 'B', 'C', 'D'}:
+                raise ValueError(
+                    f'El ítem {key} de {image_key} debe quedar vacío '
+                    'o tener una respuesta entre A y D.'
+                )
             confidence = confianza[key]
             if isinstance(confidence, bool) or not isinstance(confidence, int) or not 0 <= confidence <= 100:
                 raise ValueError(f'La confianza del ítem {key} de {image_key} debe estar entre 0 y 100.')
@@ -126,18 +148,17 @@ def _validar_payload_lectura(payload, items_por_hoja):
     modelo = payload['modelo_examen']
     if not isinstance(modelo, str) or modelo not in {'', 'A', 'B', 'C', 'D'}:
         raise ValueError('El modelo de examen no es válido.')
+    if materia == 'contexto' and modelo:
+        raise ValueError('El examen de contexto no utiliza modelo de respuestas.')
+    if materia == 'lengua' and modelo not in {'A', 'B'}:
+        raise ValueError('El examen de Lengua requiere el modelo A o B.')
     revisado = payload['revisado_manualmente']
     if not isinstance(revisado, bool):
         raise ValueError('El indicador de revisión debe ser verdadero o falso.')
-    observaciones = payload['observaciones']
-    if not isinstance(observaciones, str) or len(observaciones) > 2000:
-        raise ValueError('Las observaciones no pueden superar los 2000 caracteres.')
-
     return {
         'lecturas': normalized_lecturas,
         'modelo_examen': modelo,
         'revisado_manualmente': revisado,
-        'observaciones': observaciones.strip(),
     }
 
 
@@ -170,23 +191,38 @@ def _validar_imagen_subida(upload):
 
 
 def _campos_lectura(payload, materia, items_por_hoja, username):
-    """Convierte las hojas validadas en los campos persistibles de LecturaOMR."""
+    """Convierte las hojas validadas en campos del modelo de examen indicado."""
     defaults = {
-        'tipo_examen': materia,
-        'modelo_examen': payload['modelo_examen'],
         'revisado_manualmente': payload['revisado_manualmente'],
-        'observaciones': payload['observaciones'],
         'encargado_carga': str(username)[:9],
         'confianza_json': {},
     }
-    defaults.update({f'item_{item}': '' for item in range(1, 25)})
+    if materia == 'matematica':
+        defaults.update({
+            'tipo_examen': materia,
+            'modelo_examen': payload['modelo_examen'],
+        })
+    elif materia == 'lengua':
+        defaults['modelo_examen'] = payload['modelo_examen']
+    total_items = sum(items_por_hoja)
+    if materia == 'lengua':
+        defaults.update({
+            ExamenLengua.campo_item(item): ''
+            for item in range(1, total_items + 1)
+        })
+    else:
+        defaults.update({f'item_{item}': '' for item in range(1, total_items + 1)})
 
     global_item = 0
     for numero_hoja, cantidad_items in enumerate(items_por_hoja, start=1):
         lectura = payload['lecturas'][f'imagen_{numero_hoja}']
         for local_item in range(1, cantidad_items + 1):
             global_item += 1
-            defaults[f'item_{global_item}'] = lectura['respuestas'][str(local_item)]
+            field_name = (
+                ExamenLengua.campo_item(global_item)
+                if materia == 'lengua' else f'item_{global_item}'
+            )
+            defaults[field_name] = lectura['respuestas'][str(local_item)]
             defaults['confianza_json'][str(global_item)] = lectura['confianza'][str(local_item)]
     return defaults
 
@@ -299,6 +335,8 @@ def lector_omr(request, id_alumno, materia):
         'nombres_hojas': nombres_hojas,
         'total_hojas': len(nombres_hojas),
         'items_por_hoja': items_por_hoja,
+        'opciones_contexto': OPCIONES_POR_ITEM_CONTEXTO,
+        'items_multiples_contexto': sorted(ITEMS_MULTIPLES_CONTEXTO),
         'modo_simulacion': SIMULATION_MODE,
         'num_items': range(1, max(items_por_hoja) + 1),
         'opciones': ['A', 'B', 'C', 'D'],
@@ -313,7 +351,7 @@ def lector_omr(request, id_alumno, materia):
 def guardar_lectura(request, id_alumno, materia):
     """
     Recibe las respuestas OMR como JSON (desde el frontend) y las guarda
-    en la base de datos como un registro LecturaOMR.
+    en el modelo correspondiente de la base de datos dedicada.
 
     Payload esperado (JSON):
     {
@@ -322,7 +360,6 @@ def guardar_lectura(request, id_alumno, materia):
         },
         "modelo_examen": "B",
         "revisado_manualmente": true,
-        "observaciones": "..."
     }
     La clave imagen_2 se exige solamente para el examen de contexto.
     """
@@ -342,7 +379,7 @@ def guardar_lectura(request, id_alumno, materia):
         body = request.body
         if len(body) > MAX_JSON_BYTES:
             return _json_error('El JSON supera el tamaño permitido.', 'JSON_TOO_LARGE', 413)
-        payload = _validar_payload_lectura(json.loads(body), items_por_hoja)
+        payload = _validar_payload_lectura(json.loads(body), items_por_hoja, materia)
     except RequestDataTooBig:
         return _json_error('El JSON supera el tamaño permitido.', 'JSON_TOO_LARGE', 413)
     except json.JSONDecodeError:
@@ -368,17 +405,38 @@ def guardar_lectura(request, id_alumno, materia):
             request.user.get_username(),
         )
         with transaction.atomic(using='Evaluacion'):
-            lectura = (
-                LecturaOMR.objects.using('Evaluacion')
-                .filter(alumno=alumno, tipo_examen=materia)
-                .order_by('-fecha_lectura')
-                .first()
-            )
+            if materia == 'contexto':
+                lectura = (
+                    ExamenContexto.objects.using('Evaluacion')
+                    .filter(alumno=alumno)
+                    .order_by('-fecha_lectura')
+                    .first()
+                )
+                model_class = ExamenContexto
+            elif materia == 'lengua':
+                lectura = (
+                    ExamenLengua.objects.using('Evaluacion')
+                    .filter(alumno=alumno)
+                    .order_by('-fecha_lectura')
+                    .first()
+                )
+                model_class = ExamenLengua
+            else:
+                lectura = (
+                    ExamenMatematica.objects.using('Evaluacion')
+                    .filter(alumno=alumno, tipo_examen=materia)
+                    .order_by('-fecha_lectura')
+                    .first()
+                )
+                model_class = ExamenMatematica
             if lectura is None:
-                lectura = LecturaOMR(alumno=alumno, **defaults)
+                lectura = model_class(alumno=alumno, **defaults)
             else:
                 for field, value in defaults.items():
                     setattr(lectura, field, value)
+            # Además de la validación estricta del JSON, aplica las reglas del
+            # propio modelo antes de escribir en la base dedicada.
+            lectura.clean()
             lectura.save(using='Evaluacion')
 
     session_key = _session_key_examenes_guardados(id_alumno)
@@ -411,29 +469,66 @@ def lista_lecturas(request):
     query = request.GET.get('q', '').strip()
     cueanexo = request.GET.get('cueanexo', '').strip()
 
-    lecturas = LecturaOMR.objects.using('Evaluacion').select_related(
-        'alumno',
-        'alumno__seccion',
-        'alumno__seccion__grado',
-        'alumno__seccion__grado__Establecimiento',
+    def aplicar_filtros(queryset):
+        if cueanexo:
+            queryset = queryset.filter(alumno__seccion__grado__cueanexo=cueanexo)
+        if query:
+            queryset = queryset.filter(
+                Q(alumno__nombre__icontains=query) |
+                Q(alumno__apellido__icontains=query) |
+                Q(alumno__dni__icontains=query)
+            )
+        return queryset
+
+    matematica = aplicar_filtros(
+        ExamenMatematica.objects.using('Evaluacion').exclude(tipo_examen='contexto')
+    )
+    lengua_qs = aplicar_filtros(ExamenLengua.objects.using('Evaluacion'))
+    contexto_qs = aplicar_filtros(ExamenContexto.objects.using('Evaluacion'))
+    indice = matematica.order_by().annotate(
+        origen=Value('matematica', output_field=CharField()),
+    ).values('public_id', 'fecha_lectura', 'origen').union(
+        lengua_qs.order_by().annotate(
+            origen=Value('lengua', output_field=CharField()),
+        ).values('public_id', 'fecha_lectura', 'origen'),
+        contexto_qs.order_by().annotate(
+            origen=Value('contexto', output_field=CharField()),
+        ).values('public_id', 'fecha_lectura', 'origen'),
+        all=True,
     ).order_by('-fecha_lectura')
 
-    if cueanexo:
-        lecturas = lecturas.filter(alumno__seccion__grado__cueanexo=cueanexo)
-
-    if query:
-        lecturas = lecturas.filter(
-            Q(alumno__nombre__icontains=query) |
-            Q(alumno__apellido__icontains=query) |
-            Q(alumno__dni__icontains=query)
-        )
+    paginator = Paginator(indice, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    filas = list(page_obj.object_list)
+    ids_matematica = [fila['public_id'] for fila in filas if fila['origen'] == 'matematica']
+    ids_lengua = [fila['public_id'] for fila in filas if fila['origen'] == 'lengua']
+    ids_contexto = [fila['public_id'] for fila in filas if fila['origen'] == 'contexto']
+    relaciones = (
+        'alumno', 'alumno__seccion', 'alumno__seccion__grado',
+        'alumno__seccion__grado__Establecimiento',
+    )
+    objetos = {
+        ('matematica', lectura.public_id): lectura
+        for lectura in matematica.filter(public_id__in=ids_matematica).select_related(*relaciones)
+    }
+    objetos.update({
+        ('lengua', lectura.public_id): lectura
+        for lectura in lengua_qs.filter(public_id__in=ids_lengua).select_related(*relaciones)
+    })
+    objetos.update({
+        ('contexto', lectura.public_id): lectura
+        for lectura in contexto_qs.filter(public_id__in=ids_contexto).select_related(*relaciones)
+    })
+    page_obj.object_list = [
+        objetos[(fila['origen'], fila['public_id'])]
+        for fila in filas
+        if (fila['origen'], fila['public_id']) in objetos
+    ]
 
     establecimientos = EstablecimientosDiagnostico_Ingreso_2026.objects.using(
         'Evaluacion'
     ).order_by('escuela')
 
-    paginator = Paginator(lecturas, 25)
-    page_obj = paginator.get_page(request.GET.get('page'))
     contexto = {
         'lecturas': page_obj,
         'page_obj': page_obj,
@@ -456,33 +551,67 @@ def detalle_lectura(request, public_id):
     if SIMULATION_MODE:
         raise PermissionDenied('El detalle no está disponible durante la simulación.')
 
-    lectura = get_object_or_404(
-        LecturaOMR.objects.using('Evaluacion').select_related(
-            'alumno',
-            'alumno__seccion',
-            'alumno__seccion__grado',
-            'alumno__seccion__grado__Establecimiento',
-        ),
-        public_id=public_id,
+    relaciones = (
+        'alumno', 'alumno__seccion', 'alumno__seccion__grado',
+        'alumno__seccion__grado__Establecimiento',
     )
+    lectura = (
+        ExamenMatematica.objects.using('Evaluacion')
+        .exclude(tipo_examen='contexto')
+        .select_related(*relaciones)
+        .filter(public_id=public_id)
+        .first()
+    )
+    if lectura is None:
+        lectura = (
+            ExamenLengua.objects.using('Evaluacion')
+            .select_related(*relaciones)
+            .filter(public_id=public_id)
+            .first()
+        )
+    if lectura is None:
+        lectura = (
+            ExamenContexto.objects.using('Evaluacion')
+            .select_related(*relaciones)
+            .filter(public_id=public_id)
+            .first()
+        )
+    if lectura is None:
+        raise Http404('No se encontró el examen solicitado.')
 
     # Construir lista de ítems con respuesta y confianza para el template
     items_detalle = []
     confianza = lectura.confianza_json or {}
     for i in range(1, lectura.cantidad_items + 1):
-        resp = getattr(lectura, f'item_{i}', '')
+        field_name = (
+            lectura.campo_item(i)
+            if lectura.tipo_examen == 'lengua' else f'item_{i}'
+        )
+        item_label = (
+            lectura.etiqueta_item(i)
+            if lectura.tipo_examen == 'lengua' else str(i)
+        )
+        resp = getattr(lectura, field_name, '')
         conf = confianza.get(str(i), None)
         items_detalle.append({
-            'num': i,
+            'num': item_label,
             'respuesta': resp,
+            'seleccionadas': resp.split(',') if resp else [],
+            'opciones': (
+                list('ABCDEF'[:OPCIONES_POR_ITEM_CONTEXTO[i - 1]])
+                if lectura.tipo_examen == 'contexto' else ['A', 'B', 'C', 'D']
+            ),
             'confianza': conf,
             'dudoso': conf is not None and conf < 50,
+            'puntaje': (
+                lectura.puntajes_json.get(item_label)
+                if lectura.tipo_examen == 'lengua' else None
+            ),
         })
 
     contexto = {
         'lectura': lectura,
         'items_detalle': items_detalle,
-        'opciones': ['A', 'B', 'C', 'D'],
     }
     return render(request, 'omr_lector/detalle_lectura.html', contexto)
 
