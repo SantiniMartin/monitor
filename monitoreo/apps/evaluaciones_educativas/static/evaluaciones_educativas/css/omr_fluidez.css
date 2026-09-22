@@ -251,6 +251,9 @@ textarea:focus-visible {
 
 .camera-zone {
   grid-column: 1;
+  width: 100%;
+  max-width: 560px;
+  justify-self: center;
   min-height: 0 !important;
   padding-bottom: 0;
   align-items: stretch !important;
@@ -283,8 +286,19 @@ textarea:focus-visible {
   min-height: 0;
   background: #080d16;
 }
-.camera-live .camera-stage {
+.camera-zone.camera-live .camera-stage {
+  /* Encuadre vertical: el disparador aplica este mismo recorte a la foto. */
+  aspect-ratio: 3 / 4;
+  height: auto;
+  min-height: 0;
   flex: none;
+}
+.camera-live #video-live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .camera-placeholder {
   display: flex;

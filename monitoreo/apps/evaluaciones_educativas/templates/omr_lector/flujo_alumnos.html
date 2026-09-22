@@ -58,27 +58,32 @@
           <div>
             <div class="text-uppercase fw-semibold small opacity-75 mb-1">Evaluaciones educativas</div>
             <h1><i class="bi bi-ui-checks-grid me-2"></i>Lector de exámenes OMR</h1>
-            <p>Seleccioná el establecimiento y el alumno para comenzar la carga.</p>
+            <p>Seleccioná un alumno de 7mo Año/Grado para comenzar la carga.</p>
           </div>
           {% if modo_simulacion %}
             <span class="omr-simulation"><i class="bi bi-cone-striped"></i> Datos simulados</span>
           {% else %}
-            <a class="omr-btn header-action" href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}"><i class="bi bi-clock-history"></i> Ver historial</a>
+            <div class="d-flex flex-wrap gap-2">
+              <a class="omr-btn header-action" href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}"><i class="bi bi-clock-history"></i> Ver historial</a>
+              <form method="post" action="{% url 'evaluaciones_educativas:omr_lector:logout' %}">
+                {% csrf_token %}
+                <button class="omr-btn header-action" type="submit"><i class="bi bi-box-arrow-right"></i> Salir</button>
+              </form>
+            </div>
           {% endif %}
         </div>
 
         <div class="omr-header-controls">
           <form method="get" class="filter-grid" id="student-filter">
             <div>
-              <label class="omr-label text-white" for="establecimiento">Establecimiento y grado habilitado</label>
-              <select class="omr-control" id="establecimiento" name="establecimiento" required>
-                <option value="">Seleccionar establecimiento…</option>
-                {% for oferta in ofertas %}
-                  <option value="{{ oferta.id_establecimiento }}" {% if oferta_seleccionada.id_establecimiento == oferta.id_establecimiento %}selected{% endif %}>
-                    {{ oferta.establecimiento }} · CUE {{ oferta.cueanexo }} · {{ oferta.grado }}
-                  </option>
-                {% endfor %}
-              </select>
+              <label class="omr-label text-white">CUE/anexo y grado habilitado</label>
+              <div class="omr-control bg-white text-dark d-flex align-items-center">
+                {% if oferta_seleccionada %}
+                  {{ oferta_seleccionada.establecimiento }} · CUE {{ oferta_seleccionada.cueanexo }} · {{ oferta_seleccionada.grado }}
+                {% else %}
+                  No hay alumnos habilitados para este usuario.
+                {% endif %}
+              </div>
             </div>
             <div>
               <label class="omr-label text-white" for="q">Buscar alumno</label>
@@ -104,7 +109,7 @@
               <tbody>
               {% for alumno in alumnos %}
                 <tr>
-                  <td data-label="Alumno"><div class="student-name">{{ alumno.apellido }}, {{ alumno.nombre }}</div><div class="student-id">ID {{ alumno.id_alumno }}</div></td>
+                  <td data-label="Alumno"><div class="student-name">{{ alumno.apellido }}, {{ alumno.nombre }}</div></td>
                   <td data-label="DNI">{{ alumno.dni }}</td>
                   <td data-label="Sección y turno"><span class="section-badge">{{ alumno.seccion }} · {{ alumno.turno }}</span></td>
                   <td class="text-end" data-label="Acción"><a class="omr-btn" href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_materia' alumno.id_alumno %}">Elegir materia <i class="bi bi-arrow-right"></i></a></td>
@@ -117,15 +122,9 @@
           <div class="omr-empty"><i class="bi bi-person-x"></i><strong>No encontramos alumnos</strong><div class="mt-1">Probá con otro nombre o DNI.</div></div>
         {% endif %}
       {% else %}
-        <div class="omr-empty"><i class="bi bi-building-check"></i><strong>Elegí un establecimiento</strong><div class="mt-1">Se mostrarán únicamente los alumnos de tu oferta asignada.</div></div>
+        <div class="omr-empty"><i class="bi bi-building-check"></i><strong>No hay alumnos habilitados</strong><div class="mt-1">No se encontraron estudiantes de 7mo Año/Grado para el CUE/anexo de tu usuario.</div></div>
       {% endif %}
     </section>
   </main>
-  <script>
-    document.getElementById('establecimiento').addEventListener('change', function () {
-      document.getElementById('q').value = '';
-      this.form.submit();
-    });
-  </script>
 </body>
 </html>

@@ -33,11 +33,24 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Configuración segura por defecto; el desarrollo local puede usar DEBUG=True en .env.
+DEBUG = os.environ.get("DEBUG", "False").strip().lower() in {"1", "true", "yes", "on"}
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        "ALLOWED_HOSTS",
+        "localhost,127.0.0.1,lector-examen.azurewebsites.net,"
+        "lector-examen-dehabvcxbpetdphd.brazilsouth-01.azurewebsites.net",
+    ).split(",")
+    if host.strip()
+]
 CSRF_TRUSTED_ORIGINS = ["https://localhost", "https://monitoreo-2026.onrender.com", "https://lector-examen-dehabvcxbpetdphd.brazilsouth-01.azurewebsites.net", "https://lector-examen.azurewebsites.net"]
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 
 # Application definition
@@ -105,6 +118,18 @@ DATABASES = {
         "OPTIONS": {
             "options": "-c search_path=public,diagnostico_2026,fluidez_2026,diagnostico_ingreso_2026",
         },
+    },
+    "test": {
+        "ENGINE": "django.db.backends.postgresql",
+        'NAME': os.environ.get('SGE_NACION_DB_NAME'),
+        'USER': os.environ.get('SGE_NACION_DB_USER'),
+        'PASSWORD': os.environ.get('SGE_NACION_DB_PASSWORD'),
+        'HOST': os.environ.get('SGE_NACION_DB_HOST'),
+        'PORT': os.environ.get('SGE_NACION_DB_PORT'),
+        'OPTIONS': {
+        # Defensa adicional: esta conexión sólo admite transacciones de lectura.
+        'options': "-c search_path=public -c default_transaction_read_only=on"
+        }
     },
 }
 

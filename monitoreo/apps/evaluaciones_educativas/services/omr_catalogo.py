@@ -1,14 +1,9 @@
-"""Fuente de datos del flujo OMR.
-
-La implementacion actual es deliberadamente simulada.  Las vistas consumen
-este contrato en lugar de conocer la estructura de la futura base externa. Al
-conectar la capa de oferta unica solo sera necesario reemplazar las funciones
-publicas de este modulo.
-"""
+"""Fuente de datos autorizada para el flujo OMR."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 
 MATERIAS = {
@@ -32,6 +27,13 @@ OPCIONES_POR_ITEM_CONTEXTO = (6, 2, 3, 6, 5, 3, 4, 6, 3, 6, 3, 3, 3, 5, 4, 4, 3)
 ITEMS_MULTIPLES_CONTEXTO = frozenset({1, 4, 7, 8, 14})
 # El lector ya persiste en los modelos OMR de la base dedicada.
 SIMULATION_MODE = False
+ANIO_GRADO_OMR = '7mo Año/Grado'
+_CUEANEXO_RE = re.compile(r'^\d{9}$')
+_TRAYECTORIA_FIELDS = (
+    'id', 'id_alumno', 'cueanexo', 'escuela', 'c_grado_nivel_servicio',
+    'anio_grado', 'numero_documento', 'apellido', 'nombre',
+    'nombre_seccion', 'turno',
+)
 
 
 @dataclass(frozen=True)
@@ -56,29 +58,54 @@ class AlumnoOferta:
     turno: str
 
 
-# Datos provisorios. Los IDs son las unicas claves que atraviesan las URLs y
-# reproducen el contrato que tendra la base externa.
-_OFERTAS = (
-    OfertaUsuario("est-0001", "220000001", "E.E.P. N.º 1 - Simulada", "grado-7-01", "7.º grado"),
-    OfertaUsuario("est-0002", "220000002", "E.E.P. N.º 2 - Simulada", "grado-7-02", "7.º grado"),
-)
+# El identificador de trayectoria es la clave estable que atraviesa las URLs.
+def _cueanexo_del_usuario(username: str) -> str | None:
+    """Un usuario CUE/anexo sólo puede consultar su propio establecimiento."""
+    cueanexo = str(username or '').strip()
+    return cueanexo if _CUEANEXO_RE.fullmatch(cueanexo) else None
 
-_ALUMNOS = (
-    AlumnoOferta("alumno-0001", "45000001", "Gómez", "Ana", "est-0001", "grado-7-01", "7.º grado", "A", "Mañana"),
-    AlumnoOferta("alumno-0002", "45000002", "Pérez", "Bruno", "est-0001", "grado-7-01", "7.º grado", "A", "Mañana"),
-    AlumnoOferta("alumno-0003", "45000003", "López", "Carla", "est-0002", "grado-7-02", "7.º grado", "B", "Tarde"),
-)
+
+def _trayectorias_de_siete(cueanexo: str):
+    """Consulta de sólo lectura a la vista oficial mediante su alias dedicado."""
+    # Importación diferida: este servicio también es usado por los modelos OMR.
+    from apps.evaluaciones_educativas.models.modelo_oficial import V_Trayectoria_Alumnos_SGE
+
+    return (
+        V_Trayectoria_Alumnos_SGE.objects.using('test')
+        .filter(cueanexo=cueanexo, anio_grado=ANIO_GRADO_OMR)
+        .only(*_TRAYECTORIA_FIELDS)
+    )
+
+
+def _alumno_oferta(trayectoria) -> AlumnoOferta:
+    return AlumnoOferta(
+        id_alumno=str(trayectoria.id),
+        dni=str(trayectoria.numero_documento or ''),
+        apellido=str(trayectoria.apellido or ''),
+        nombre=str(trayectoria.nombre or ''),
+        id_establecimiento=str(trayectoria.cueanexo),
+        id_grado=str(trayectoria.c_grado_nivel_servicio or ''),
+        grado=str(trayectoria.anio_grado),
+        seccion=str(trayectoria.nombre_seccion or ''),
+        turno=str(trayectoria.turno or ''),
+    )
 
 
 def ofertas_del_usuario(username: str) -> tuple[OfertaUsuario, ...]:
-    """Devuelve las ofertas autorizadas para un usuario autenticado.
-
-    En simulacion todos los usuarios autenticados reciben el mismo catalogo.
-    La version real filtrara la capa de oferta unica por CUIL/username.
-    """
-    if not str(username).strip():
+    """Devuelve la oferta de 7mo Año/Grado autorizada para el usuario CUE."""
+    cueanexo = _cueanexo_del_usuario(username)
+    if cueanexo is None:
         return ()
-    return _OFERTAS
+    trayectoria = _trayectorias_de_siete(cueanexo).order_by('escuela', 'id').first()
+    if trayectoria is None:
+        return ()
+    return (OfertaUsuario(
+        id_establecimiento=cueanexo,
+        cueanexo=cueanexo,
+        establecimiento=str(trayectoria.escuela or ''),
+        id_grado=str(trayectoria.c_grado_nivel_servicio or ''),
+        grado=ANIO_GRADO_OMR,
+    ),)
 
 
 def oferta_autorizada(username: str, id_establecimiento: str) -> OfertaUsuario | None:
@@ -93,32 +120,22 @@ def oferta_autorizada(username: str, id_establecimiento: str) -> OfertaUsuario |
 
 
 def alumnos_de_oferta(username: str, id_establecimiento: str) -> tuple[AlumnoOferta, ...]:
-    """Lista alumnos del grado que el usuario posee en esa oferta."""
-    oferta = oferta_autorizada(username, id_establecimiento)
-    if oferta is None:
+    """Lista alumnos de 7mo Año/Grado del CUE/anexo autenticado."""
+    cueanexo = _cueanexo_del_usuario(username)
+    if cueanexo is None or id_establecimiento != cueanexo:
         return ()
     return tuple(
-        alumno
-        for alumno in _ALUMNOS
-        if alumno.id_establecimiento == oferta.id_establecimiento
-        and alumno.id_grado == oferta.id_grado
+        _alumno_oferta(trayectoria)
+        for trayectoria in _trayectorias_de_siete(cueanexo).order_by('apellido', 'nombre', 'id')
     )
 
 
 def alumno_autorizado(username: str, id_alumno: str) -> AlumnoOferta | None:
-    ofertas = {
-        (oferta.id_establecimiento, oferta.id_grado)
-        for oferta in ofertas_del_usuario(username)
-    }
-    return next(
-        (
-            alumno
-            for alumno in _ALUMNOS
-            if alumno.id_alumno == id_alumno
-            and (alumno.id_establecimiento, alumno.id_grado) in ofertas
-        ),
-        None,
-    )
+    cueanexo = _cueanexo_del_usuario(username)
+    if cueanexo is None:
+        return None
+    trayectoria = _trayectorias_de_siete(cueanexo).filter(id=str(id_alumno)).first()
+    return _alumno_oferta(trayectoria) if trayectoria is not None else None
 
 
 def materia_valida(slug: str) -> bool:

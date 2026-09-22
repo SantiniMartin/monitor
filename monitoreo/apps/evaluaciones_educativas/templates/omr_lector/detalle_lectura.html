@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OMR · Detalle de lectura · {{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</title>
+  <title>OMR · Detalle de lectura · {{ lectura.alumno_info.apellido }}, {{ lectura.alumno_info.nombre }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -76,11 +76,10 @@
       <header class="omr-card-header student-hero">
         <div>
           <span class="text-uppercase fw-semibold small opacity-75">Examen procesado</span>
-          <h1>{{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</h1>
+          <h1>{{ lectura.alumno_info.apellido }}, {{ lectura.alumno_info.nombre }}</h1>
           <div class="student-meta">
-            <span><i class="bi bi-person-vcard"></i>DNI {{ lectura.alumno.dni|default:"—" }}</span>
-            {% if lectura.alumno.seccion %}<span><i class="bi bi-mortarboard"></i>{{ lectura.alumno.seccion.grado.nombre_grado }} · Sección {{ lectura.alumno.seccion.seccion }} {{ lectura.alumno.seccion.turno }}</span>{% endif %}
-            {% if lectura.alumno.seccion.grado.Establecimiento %}<span><i class="bi bi-building"></i>{{ lectura.alumno.seccion.grado.Establecimiento.escuela }}</span>{% endif %}
+            <span><i class="bi bi-person-vcard"></i>DNI {{ lectura.alumno_info.dni|default:"—" }}</span>
+            <span><i class="bi bi-mortarboard"></i>{{ lectura.alumno_info.grado }} · Sección {{ lectura.alumno_info.seccion }} {{ lectura.alumno_info.turno }}</span>
           </div>
         </div>
         {% if lectura.revisado_manualmente %}<span class="record-status"><i class="bi bi-check-circle-fill"></i>Revisado</span>{% else %}<span class="record-status auto"><i class="bi bi-lightning-fill"></i>Automático</span>{% endif %}
@@ -120,7 +119,7 @@
 
       <footer class="detail-actions">
         <a class="omr-btn secondary" href="{% url 'evaluaciones_educativas:omr_lector:lista_lecturas' %}">Volver al historial</a>
-        <a class="omr-btn" href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_materia' lectura.alumno.id_alumno %}"><i class="bi bi-arrow-repeat"></i>Volver a escanear</a>
+        <a class="omr-btn" href="{% url 'evaluaciones_educativas:omr_lector:seleccionar_materia' lectura.alumno.id_uuid_alumno %}"><i class="bi bi-arrow-repeat"></i>Volver a escanear</a>
       </footer>
     </article>
   </main>

@@ -1,9 +1,22 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from apps.evaluaciones_educativas.views import omr_lector
 
 app_name = 'omr_lector'
 
 urlpatterns = [
+    path(
+        'login/',
+        omr_lector.OMRLoginView.as_view(),
+        name='login',
+    ),
+    path(
+        'salir/',
+        auth_views.LogoutView.as_view(
+            next_page='evaluaciones_educativas:omr_lector:login',
+        ),
+        name='logout',
+    ),
     # 1. Selección de alumno
     path('', omr_lector.seleccionar_alumno, name='seleccionar_alumno'),
 

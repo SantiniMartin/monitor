@@ -121,6 +121,81 @@ class AlumnoDiagnostico_Ingreso_2026(models.Model):
 	def __str__(self):
 		return self.id_alumno
 
+
+class Operativo(models.Model):
+    """Operativo general al que pertenecen las evaluaciones."""
+
+    tipo_operativo = models.CharField(max_length=100)
+    anio = models.PositiveSmallIntegerField()
+    mes = models.PositiveSmallIntegerField()
+
+    class Meta:
+        managed = False
+        db_table = '"datos_oficiales"."operativo"'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('tipo_operativo', 'anio', 'mes'),
+                name='operativo_tipo_anio_mes_uniq',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.tipo_operativo} {self.mes:02d}/{self.anio}'
+
+
+class Evaluacion(models.Model):
+    TIPOS = (
+        ('lengua', 'Lengua'),
+        ('matematica', 'Matemática'),
+        ('contexto', 'Contexto'),
+    )
+
+    operativo = models.ForeignKey(
+        Operativo,
+        on_delete=models.PROTECT,
+        related_name='evaluaciones',
+    )
+    tipo_evaluacion = models.CharField(max_length=20, choices=TIPOS)
+
+    class Meta:
+        managed = False
+        db_table = '"datos_oficiales"."evaluacion"'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('operativo', 'tipo_evaluacion'),
+                name='evaluacion_operativo_tipo_uniq',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.get_tipo_evaluacion_display()} · {self.operativo}'
+
+
+class DatosCompleto(models.Model):
+    """Vínculo local y persistente entre una trayectoria SGE y su evaluación."""
+
+    id_uuid_alumno = models.CharField(max_length=255)
+    cueanexo_original = models.CharField(max_length=50)
+    cueanexo = models.CharField(max_length=50, null=True, blank=True)
+    evaluacion = models.ForeignKey(
+        Evaluacion,
+        on_delete=models.PROTECT,
+        related_name='alumnos',
+    )
+
+    class Meta:
+        managed = False
+        db_table = '"datos_oficiales"."datos_completo"'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('id_uuid_alumno', 'evaluacion'),
+                name='datos_completo_alumno_evaluacion_uniq',
+            ),
+        ]
+
+    def __str__(self):
+        return self.id_uuid_alumno
+
 class ExamenMatematica(models.Model):
     """
     Registro de una hoja de respuestas de opción múltiple
@@ -173,19 +248,22 @@ class ExamenMatematica(models.Model):
     )
 
     # Relación con el alumno existente en el sistema
-    alumno = models.ForeignKey(
-        'evaluaciones_educativas.AlumnoDiagnostico_Ingreso_2026',
-        on_delete=models.CASCADE,
+    alumno = models.OneToOneField(
+        'evaluaciones_educativas.DatosCompleto',
+        on_delete=models.PROTECT,
         related_name='examenes_matematica',
-        null=True,
-        blank=True,
+    )
+    evaluacion = models.ForeignKey(
+        'evaluaciones_educativas.Evaluacion',
+        on_delete=models.PROTECT,
+        related_name='resultados_matematica',
     )
 
     # Metadatos del examen
     tipo_examen = models.CharField(
         max_length=12,
         choices=TIPOS_EXAMEN,
-        default='lengua',
+        default='matematica',
         db_index=True,
         help_text='Tipo de examen asociado a la lectura OMR',
     )
@@ -241,11 +319,8 @@ class ExamenMatematica(models.Model):
     # Indica si el docente revisó y confirmó los resultados manualmente
     revisado_manualmente = models.BooleanField(default=False)
 
-    # Observaciones opcionales del docente
-    observaciones = models.TextField(blank=True, default='')
-
     class Meta:
-        db_table = '"diagnostico_ingreso_2026"."examenes_matematica"'
+        db_table = '"datos_oficiales"."examen_matematica_diagnostico_ingreso_2026"'
         ordering = ['-fecha_lectura']
         verbose_name = 'Examen de Matemática'
         verbose_name_plural = 'Exámenes de Matemática'
@@ -362,12 +437,15 @@ class ExamenLengua(models.Model):
     }
 
     public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    alumno = models.ForeignKey(
-        'evaluaciones_educativas.AlumnoDiagnostico_Ingreso_2026',
-        on_delete=models.CASCADE,
+    alumno = models.OneToOneField(
+        'evaluaciones_educativas.DatosCompleto',
+        on_delete=models.PROTECT,
         related_name='examenes_lengua',
-        null=True,
-        blank=True,
+    )
+    evaluacion = models.ForeignKey(
+        'evaluaciones_educativas.Evaluacion',
+        on_delete=models.PROTECT,
+        related_name='resultados_lengua',
     )
     modelo_examen = models.CharField(max_length=1, choices=OPCIONES_MODELO)
     fecha_lectura = models.DateTimeField(auto_now_add=True)
@@ -413,10 +491,8 @@ class ExamenLengua(models.Model):
         default=Decimal('0'),
     )
     revisado_manualmente = models.BooleanField(default=False)
-    observaciones = models.TextField(blank=True, default='')
-
     class Meta:
-        db_table = '"diagnostico_ingreso_2026"."examenes_lengua"'
+        db_table = '"datos_oficiales"."examen_lengua_diagnostico_ingreso_2026"'
         ordering = ['-fecha_lectura']
         verbose_name = 'Examen de Lengua'
         verbose_name_plural = 'Exámenes de Lengua'
@@ -518,12 +594,15 @@ class ExamenContexto(models.Model):
     """Respuestas del cuestionario de Contexto (17 preguntas, sin puntaje)."""
 
     public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    alumno = models.ForeignKey(
-        'evaluaciones_educativas.AlumnoDiagnostico_Ingreso_2026',
-        on_delete=models.CASCADE,
+    alumno = models.OneToOneField(
+        'evaluaciones_educativas.DatosCompleto',
+        on_delete=models.PROTECT,
         related_name='examenes_contexto',
-        null=True,
-        blank=True,
+    )
+    evaluacion = models.ForeignKey(
+        'evaluaciones_educativas.Evaluacion',
+        on_delete=models.PROTECT,
+        related_name='resultados_contexto',
     )
     fecha_lectura = models.DateTimeField(auto_now_add=True)
     encargado_carga = models.CharField(
@@ -557,10 +636,8 @@ class ExamenContexto(models.Model):
         help_text='Nivel de confianza de la detección OMR por pregunta (0-100)',
     )
     revisado_manualmente = models.BooleanField(default=False)
-    observaciones = models.TextField(blank=True, default='')
-
     class Meta:
-        db_table = '"diagnostico_ingreso_2026"."examenes_contexto"'
+        db_table = '"datos_oficiales"."examen_contexto_diagnostico_ingreso_2026"'
         ordering = ['-fecha_lectura']
         verbose_name = 'Examen de Contexto'
         verbose_name_plural = 'Exámenes de Contexto'

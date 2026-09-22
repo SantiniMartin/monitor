@@ -18,9 +18,10 @@ from types import SimpleNamespace
 
 from PIL import Image, UnidentifiedImageError
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied, RequestDataTooBig
 from django.core.paginator import Paginator
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 from django.http import Http404, JsonResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
@@ -28,11 +29,11 @@ from django.db.models import CharField, Q, Value
 from django.urls import reverse
 
 from apps.evaluaciones_educativas.models.omr_lector import (
-    AlumnoDiagnostico_Ingreso_2026,
+    DatosCompleto,
+    Evaluacion,
     ExamenContexto,
     ExamenLengua,
     ExamenMatematica,
-    EstablecimientosDiagnostico_Ingreso_2026,
 )
 from apps.evaluaciones_educativas.services.omr_catalogo import (
     ITEMS_MULTIPLES_CONTEXTO,
@@ -48,7 +49,6 @@ from apps.evaluaciones_educativas.services.omr_catalogo import (
     ofertas_del_usuario,
 )
 
-
 logger = logging.getLogger(__name__)
 SAVE_PAYLOAD_KEYS = {
     'lecturas', 'modelo_examen',
@@ -60,7 +60,18 @@ MAX_IMAGE_PIXELS = 25_000_000
 ALLOWED_IMAGE_FORMATS = {'JPEG', 'PNG', 'WEBP'}
 ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
 FORMAT_CONTENT_TYPES = {'JPEG': 'image/jpeg', 'PNG': 'image/png', 'WEBP': 'image/webp'}
-LOGIN_URL = '/admin/login/'
+LOGIN_URL = '/evaluaciones_educativas/omr/login/'
+
+
+class OMRLoginView(LoginView):
+    """Acceso exclusivo de usuarios CUE/anexo al flujo del lector."""
+
+    template_name = 'omr_lector/login.html'
+    redirect_authenticated_user = True
+
+    def get_success_url(self):
+        # El destino es fijo para evitar redirecciones externas manipuladas.
+        return reverse('evaluaciones_educativas:omr_lector:seleccionar_alumno')
 
 
 def _session_key_examenes_guardados(id_alumno):
@@ -228,29 +239,20 @@ def _campos_lectura(payload, materia, items_por_hoja, username):
 
 
 # ─── 1. Oferta, establecimiento y selección provisoria de alumno ─────────────
-
-
-# @login_required()
+@login_required(login_url=LOGIN_URL)
 def seleccionar_alumno(request):
     """Lista únicamente establecimientos y alumnos habilitados al usuario."""
     username = request.user.get_username()
     ofertas = ofertas_del_usuario(username)
-    id_establecimiento = request.GET.get('establecimiento', '').strip()
     query_original = request.GET.get('q', '').strip()
     query = query_original.casefold()
-    oferta = None
-    alumnos = None
-
-    if id_establecimiento:
-        oferta = oferta_autorizada(username, id_establecimiento)
-        if oferta is None:
-            raise PermissionDenied('El establecimiento no pertenece a la oferta del usuario.')
-        alumnos = alumnos_de_oferta(username, id_establecimiento)
-        if query:
-            alumnos = tuple(
-                alumno for alumno in alumnos
-                if query in f'{alumno.apellido} {alumno.nombre} {alumno.dni}'.casefold()
-            )
+    oferta = ofertas[0] if ofertas else None
+    alumnos = alumnos_de_oferta(username, oferta.id_establecimiento) if oferta else ()
+    if query:
+        alumnos = tuple(
+            alumno for alumno in alumnos
+            if query in f'{alumno.apellido} {alumno.nombre} {alumno.dni}'.casefold()
+        )
 
     return render(request, 'omr_lector/flujo_alumnos.html', {
         'ofertas': ofertas,
@@ -261,12 +263,29 @@ def seleccionar_alumno(request):
     })
 
 
-# @login_required()
+@login_required(login_url=LOGIN_URL)
 def seleccionar_materia(request, id_alumno):
     alumno = alumno_autorizado(request.user.get_username(), id_alumno)
     if alumno is None:
         raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
     guardados = set(request.session.get(_session_key_examenes_guardados(id_alumno), []))
+    filtros_guardado = {
+        'alumno__id_uuid_alumno': id_alumno,
+        'evaluacion__operativo__tipo_operativo': 'diagnostico_ingreso_2026',
+        'evaluacion__operativo__anio': 2026,
+        'evaluacion__operativo__mes': 9,
+    }
+    modelos_por_materia = {
+        'lengua': ExamenLengua,
+        'matematica': ExamenMatematica,
+        'contexto': ExamenContexto,
+    }
+    for slug, model_class in modelos_por_materia.items():
+        if model_class.objects.using('Evaluacion').filter(
+            **filtros_guardado,
+            evaluacion__tipo_evaluacion=slug,
+        ).exists():
+            guardados.add(slug)
     examenes = [
         {
             'slug': slug,
@@ -286,7 +305,7 @@ def seleccionar_materia(request, id_alumno):
 
 # ─── 2. Lector OMR (captura, procesamiento o carga manual) ───────────────────
 
-# @login_required()
+@login_required(login_url=LOGIN_URL)
 def lector_omr(request, id_alumno, materia):
     """
     Página principal del lector OMR para un alumno específico.
@@ -302,6 +321,24 @@ def lector_omr(request, id_alumno, materia):
         raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
     if not materia_valida(materia):
         raise PermissionDenied('La materia seleccionada no es válida.')
+
+    model_class = {
+        'lengua': ExamenLengua,
+        'matematica': ExamenMatematica,
+        'contexto': ExamenContexto,
+    }[materia]
+    lectura_existente = (
+        model_class.objects.using('Evaluacion')
+        .filter(
+            alumno__id_uuid_alumno=id_alumno,
+            evaluacion__tipo_evaluacion=materia,
+            evaluacion__operativo__tipo_operativo='diagnostico_ingreso_2026',
+            evaluacion__operativo__anio=2026,
+            evaluacion__operativo__mes=9,
+        )
+        .order_by('-fecha_lectura')
+        .first()
+    )
 
     nombres_hojas = hojas_del_examen(materia)
     items_por_hoja = items_por_hoja_del_examen(materia)
@@ -329,7 +366,7 @@ def lector_omr(request, id_alumno, materia):
 
     contexto = {
         'alumno': alumno,
-        'lectura_existente': None,
+        'lectura_existente': lectura_existente,
         'materia': materia,
         'materia_nombre': MATERIAS[materia],
         'nombres_hojas': nombres_hojas,
@@ -346,8 +383,8 @@ def lector_omr(request, id_alumno, materia):
 
 # ─── 3. Guardar lectura ───────────────────────────────────────────────────────
 
+@login_required(login_url=LOGIN_URL)
 @require_POST
-# @login_required()
 def guardar_lectura(request, id_alumno, materia):
     """
     Recibe las respuestas OMR como JSON (desde el frontend) y las guarda
@@ -387,17 +424,14 @@ def guardar_lectura(request, id_alumno, materia):
     except (UnicodeDecodeError, ValueError) as exc:
         return _json_error(str(exc), 'INVALID_PAYLOAD')
 
-    if alumno_autorizado(request.user.get_username(), id_alumno) is None:
+    alumno_oferta = alumno_autorizado(request.user.get_username(), id_alumno)
+    if alumno_oferta is None:
         raise PermissionDenied('El alumno no pertenece a una oferta habilitada para el usuario.')
 
     # Mientras el catálogo usa alumnos ficticios no se crean registros huérfanos.
     # Al conectar la oferta real, se persiste siempre en la BD dedicada.
     lectura = None
     if not SIMULATION_MODE:
-        alumno = get_object_or_404(
-            AlumnoDiagnostico_Ingreso_2026.objects.using('Evaluacion'),
-            pk=id_alumno,
-        )
         defaults = _campos_lectura(
             payload,
             materia,
@@ -405,10 +439,44 @@ def guardar_lectura(request, id_alumno, materia):
             request.user.get_username(),
         )
         with transaction.atomic(using='Evaluacion'):
+            try:
+                evaluacion = (
+                    Evaluacion.objects.using('Evaluacion')
+                    .select_related('operativo')
+                    .get(
+                        operativo__tipo_operativo='diagnostico_ingreso_2026',
+                        operativo__anio=2026,
+                        operativo__mes=9,
+                        tipo_evaluacion=materia,
+                    )
+                )
+            except Evaluacion.DoesNotExist:
+                return _json_error(
+                    'La evaluación seleccionada no está configurada.',
+                    'EVALUATION_NOT_CONFIGURED',
+                    503,
+                )
+
+            alumno, alumno_creado = DatosCompleto.objects.using('Evaluacion').get_or_create(
+                id_uuid_alumno=alumno_oferta.id_alumno,
+                evaluacion=evaluacion,
+                defaults={
+                    'cueanexo_original': alumno_oferta.id_establecimiento,
+                    'cueanexo': None,
+                },
+            )
+            cueanexo_actual = alumno_oferta.id_establecimiento
+            if not alumno_creado and (
+                alumno.cueanexo_original != cueanexo_actual
+                or alumno.cueanexo is not None
+            ) and alumno.cueanexo != cueanexo_actual:
+                alumno.cueanexo = cueanexo_actual
+                alumno.save(using='Evaluacion', update_fields=['cueanexo'])
+
             if materia == 'contexto':
                 lectura = (
                     ExamenContexto.objects.using('Evaluacion')
-                    .filter(alumno=alumno)
+                    .filter(alumno=alumno, evaluacion=evaluacion)
                     .order_by('-fecha_lectura')
                     .first()
                 )
@@ -416,7 +484,7 @@ def guardar_lectura(request, id_alumno, materia):
             elif materia == 'lengua':
                 lectura = (
                     ExamenLengua.objects.using('Evaluacion')
-                    .filter(alumno=alumno)
+                    .filter(alumno=alumno, evaluacion=evaluacion)
                     .order_by('-fecha_lectura')
                     .first()
                 )
@@ -424,13 +492,21 @@ def guardar_lectura(request, id_alumno, materia):
             else:
                 lectura = (
                     ExamenMatematica.objects.using('Evaluacion')
-                    .filter(alumno=alumno, tipo_examen=materia)
+                    .filter(
+                        alumno=alumno,
+                        evaluacion=evaluacion,
+                        tipo_examen=materia,
+                    )
                     .order_by('-fecha_lectura')
                     .first()
                 )
                 model_class = ExamenMatematica
             if lectura is None:
-                lectura = model_class(alumno=alumno, **defaults)
+                lectura = model_class(
+                    alumno=alumno,
+                    evaluacion=evaluacion,
+                    **defaults,
+                )
             else:
                 for field, value in defaults.items():
                     setattr(lectura, field, value)
@@ -457,7 +533,7 @@ def guardar_lectura(request, id_alumno, materia):
 
 # ─── 4. Lista de lecturas ─────────────────────────────────────────────────────
 
-# @login_required()
+@login_required(login_url=LOGIN_URL)
 def lista_lecturas(request):
     """
     Historial de todas las lecturas OMR.
@@ -467,17 +543,33 @@ def lista_lecturas(request):
         raise PermissionDenied('El historial no está disponible durante la simulación.')
 
     query = request.GET.get('q', '').strip()
-    cueanexo = request.GET.get('cueanexo', '').strip()
+    ofertas = ofertas_del_usuario(request.user.get_username())
+    if not ofertas:
+        raise PermissionDenied('Tu usuario no tiene un CUE/anexo habilitado para 7mo Año/Grado.')
+    # No se toma el parámetro GET: evita consultar lecturas de otro CUE/anexo.
+    cueanexo = ofertas[0].cueanexo
+
+    alumnos_oferta = alumnos_de_oferta(request.user.get_username(), cueanexo)
+    alumnos_por_id = {alumno.id_alumno: alumno for alumno in alumnos_oferta}
+    ids_filtrados = None
+    if query:
+        texto = query.casefold()
+        ids_filtrados = [
+            alumno.id_alumno
+            for alumno in alumnos_oferta
+            if texto in f'{alumno.apellido} {alumno.nombre} {alumno.dni}'.casefold()
+        ]
 
     def aplicar_filtros(queryset):
-        if cueanexo:
-            queryset = queryset.filter(alumno__seccion__grado__cueanexo=cueanexo)
-        if query:
-            queryset = queryset.filter(
-                Q(alumno__nombre__icontains=query) |
-                Q(alumno__apellido__icontains=query) |
-                Q(alumno__dni__icontains=query)
+        queryset = queryset.filter(
+            Q(alumno__cueanexo=cueanexo)
+            | Q(
+                alumno__cueanexo__isnull=True,
+                alumno__cueanexo_original=cueanexo,
             )
+        )
+        if ids_filtrados is not None:
+            queryset = queryset.filter(alumno__id_uuid_alumno__in=ids_filtrados)
         return queryset
 
     matematica = aplicar_filtros(
@@ -503,10 +595,7 @@ def lista_lecturas(request):
     ids_matematica = [fila['public_id'] for fila in filas if fila['origen'] == 'matematica']
     ids_lengua = [fila['public_id'] for fila in filas if fila['origen'] == 'lengua']
     ids_contexto = [fila['public_id'] for fila in filas if fila['origen'] == 'contexto']
-    relaciones = (
-        'alumno', 'alumno__seccion', 'alumno__seccion__grado',
-        'alumno__seccion__grado__Establecimiento',
-    )
+    relaciones = ('alumno', 'evaluacion')
     objetos = {
         ('matematica', lectura.public_id): lectura
         for lectura in matematica.filter(public_id__in=ids_matematica).select_related(*relaciones)
@@ -524,17 +613,16 @@ def lista_lecturas(request):
         for fila in filas
         if (fila['origen'], fila['public_id']) in objetos
     ]
-
-    establecimientos = EstablecimientosDiagnostico_Ingreso_2026.objects.using(
-        'Evaluacion'
-    ).order_by('escuela')
+    for lectura in page_obj.object_list:
+        lectura.alumno_info = alumnos_por_id.get(lectura.alumno.id_uuid_alumno)
 
     contexto = {
         'lecturas': page_obj,
         'page_obj': page_obj,
         'query': query,
         'cueanexo': cueanexo,
-        'establecimientos': establecimientos,
+        'establecimientos': ofertas,
+        'oferta_seleccionada': ofertas[0],
         'total': paginator.count,
     }
     return render(request, 'omr_lector/lista_lecturas.html', contexto)
@@ -542,7 +630,7 @@ def lista_lecturas(request):
 
 # ─── 5. Detalle de lectura ────────────────────────────────────────────────────
 
-# @login_required()
+@login_required(login_url=LOGIN_URL)
 def detalle_lectura(request, public_id):
     """
     Muestra el detalle completo de una lectura OMR específica.
@@ -551,33 +639,44 @@ def detalle_lectura(request, public_id):
     if SIMULATION_MODE:
         raise PermissionDenied('El detalle no está disponible durante la simulación.')
 
-    relaciones = (
-        'alumno', 'alumno__seccion', 'alumno__seccion__grado',
-        'alumno__seccion__grado__Establecimiento',
+    relaciones = ('alumno', 'evaluacion')
+    ofertas = ofertas_del_usuario(request.user.get_username())
+    if not ofertas:
+        raise PermissionDenied('Tu usuario no tiene un CUE/anexo habilitado para 7mo Año/Grado.')
+    cueanexo = ofertas[0].cueanexo
+    filtro_cueanexo = (
+        Q(alumno__cueanexo=cueanexo)
+        | Q(alumno__cueanexo__isnull=True, alumno__cueanexo_original=cueanexo)
     )
     lectura = (
         ExamenMatematica.objects.using('Evaluacion')
         .exclude(tipo_examen='contexto')
         .select_related(*relaciones)
-        .filter(public_id=public_id)
+        .filter(filtro_cueanexo, public_id=public_id)
         .first()
     )
     if lectura is None:
         lectura = (
             ExamenLengua.objects.using('Evaluacion')
             .select_related(*relaciones)
-            .filter(public_id=public_id)
+            .filter(filtro_cueanexo, public_id=public_id)
             .first()
         )
     if lectura is None:
         lectura = (
             ExamenContexto.objects.using('Evaluacion')
             .select_related(*relaciones)
-            .filter(public_id=public_id)
+            .filter(filtro_cueanexo, public_id=public_id)
             .first()
         )
     if lectura is None:
         raise Http404('No se encontró el examen solicitado.')
+    lectura.alumno_info = alumno_autorizado(
+        request.user.get_username(),
+        lectura.alumno.id_uuid_alumno,
+    )
+    if lectura.alumno_info is None:
+        raise Http404('No se encontró el alumno asociado al examen.')
 
     # Construir lista de ítems con respuesta y confianza para el template
     items_detalle = []
@@ -618,8 +717,8 @@ def detalle_lectura(request, public_id):
 
 # ─── 6. Procesar imagen con OpenCV (backend) ──────────────────────────────────
 
+@login_required(login_url=LOGIN_URL)
 @require_POST
-# @login_required()
 def procesar_imagen_omr(request):
     """
     Endpoint de procesamiento OMR server-side.

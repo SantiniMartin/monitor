@@ -79,7 +79,7 @@
           <label class="omr-label" for="history-school">Establecimiento</label>
           <select class="omr-control" id="history-school" name="cueanexo">
             <option value="">Todos los establecimientos</option>
-            {% for est in establecimientos %}<option value="{{ est.cueanexo }}" {% if est.cueanexo == cueanexo %}selected{% endif %}>{{ est.escuela }}</option>{% endfor %}
+            {% for est in establecimientos %}<option value="{{ est.cueanexo }}" {% if est.cueanexo == cueanexo %}selected{% endif %}>{{ est.establecimiento }}</option>{% endfor %}
           </select>
         </div>
         <div>
@@ -104,9 +104,9 @@
             <tbody>
               {% for lectura in lecturas %}
                 <tr>
-                  <td class="student-cell" data-label="Alumno"><span class="person-name">{{ lectura.alumno.apellido }}, {{ lectura.alumno.nombre }}</span><span class="person-meta">DNI {{ lectura.alumno.dni|default:"—" }}</span></td>
-                  <td class="table-muted" data-label="Establecimiento">{% if lectura.alumno.seccion.grado.Establecimiento %}{{ lectura.alumno.seccion.grado.Establecimiento.escuela }}{% else %}—{% endif %}</td>
-                  <td class="table-muted" data-label="Curso">{% if lectura.alumno.seccion %}{{ lectura.alumno.seccion.grado.nombre_grado }} · Sección {{ lectura.alumno.seccion.seccion }}{% else %}—{% endif %}</td>
+                  <td class="student-cell" data-label="Alumno"><span class="person-name">{{ lectura.alumno_info.apellido }}, {{ lectura.alumno_info.nombre }}</span><span class="person-meta">DNI {{ lectura.alumno_info.dni|default:"—" }}</span></td>
+                  <td class="table-muted" data-label="Establecimiento">{{ oferta_seleccionada.establecimiento|default:"—" }}</td>
+                  <td class="table-muted" data-label="Curso">{{ lectura.alumno_info.grado }} · Sección {{ lectura.alumno_info.seccion }}</td>
                   <td data-label="Modelo">{% if lectura.modelo_examen %}<span class="model-pill">{{ lectura.modelo_examen }}</span>{% else %}—{% endif %}</td>
                   <td class="answers-cell" data-label="Respuestas"><div class="answers" aria-label="Respuestas registradas">{% for item_val in lectura.respuestas_dict.values %}<span class="answer {% if not item_val %}empty{% endif %}">{{ item_val|default:"—" }}</span>{% endfor %}</div></td>
                   <td data-label="Estado">{% if lectura.revisado_manualmente %}<span class="status-pill reviewed"><i class="bi bi-check-circle-fill"></i>Revisado</span>{% else %}<span class="status-pill auto"><i class="bi bi-lightning-fill"></i>Automático</span>{% endif %}</td>
