@@ -1,0 +1,440 @@
+{% extends 'dashboard/bodydirector.html' %}
+{% load static %}
+
+{% block head %}
+{{ block.super }}
+<title>Cargar Tabulador — Fluidez Octubre 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    .form-wrapper {
+        font-family: 'Inter', sans-serif;
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 30px 16px 80px;
+    }
+
+    /* Breadcrumb */
+    .form-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 24px;
+        font-size: 0.85rem;
+        color: #64748b;
+        animation: fadeIn 0.3s ease;
+    }
+    .form-breadcrumb a {
+        color: #f59e0b;
+        text-decoration: none;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s;
+    }
+    .form-breadcrumb a:hover { color: #d97706; text-decoration: none; }
+    .form-breadcrumb .sep { color: #cbd5e1; }
+
+    /* Hero */
+    .form-hero {
+        margin-bottom: 28px;
+        animation: fadeInUp 0.35s ease forwards;
+        opacity: 0;
+    }
+    .form-hero h1 {
+        font-size: clamp(1.3rem, 3vw, 1.8rem);
+        font-weight: 900;
+        color: #0a1628;
+        letter-spacing: -0.4px;
+        margin-bottom: 6px;
+    }
+    .form-hero h1 span { color: #f59e0b; }
+    .form-hero p { color: #64748b; font-size: 0.9rem; margin: 0; }
+
+    /* Info cupo */
+    .cupo-info-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(245,158,11,0.08);
+        border: 1px solid rgba(245,158,11,0.25);
+        border-radius: 10px;
+        padding: 10px 16px;
+        margin-bottom: 24px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #d97706;
+        animation: fadeInUp 0.35s ease 0.05s forwards;
+        opacity: 0;
+    }
+    .cupo-info-bar i { font-size: 1.1rem; }
+
+    /* Card del formulario */
+    .form-card {
+        background: #fff;
+        border-radius: 18px;
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.07);
+        overflow: hidden;
+        animation: fadeInUp 0.4s ease 0.1s forwards;
+        opacity: 0;
+    }
+    .form-card-header {
+        padding: 20px 28px;
+        background: linear-gradient(135deg, #0a1628, #1e293b);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .form-card-header i { font-size: 1.4rem; color: #f59e0b; }
+    .form-card-header h2 { color: #fff; font-size: 1rem; font-weight: 700; margin: 0; }
+
+    .form-card-body { padding: 28px; }
+
+    /* Campos */
+    .field-group { margin-bottom: 22px; }
+    .field-group label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 7px;
+    }
+    .field-group label .required-star { color: #ef4444; margin-left: 2px; }
+
+    .field-group input,
+    .field-group select {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.92rem;
+        color: #1e293b;
+        background: #f8fafc;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        outline: none;
+    }
+    .field-group input:focus,
+    .field-group select:focus {
+        border-color: #f59e0b;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+    }
+    .field-group input.has-error {
+        border-color: #ef4444;
+        background: #fef2f2;
+        box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+    }
+
+    /* Errores */
+    .field-errors {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .field-error-item {
+        font-size: 0.8rem;
+        color: #dc2626;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+    }
+    .field-error-item i { font-size: 0.75rem; flex-shrink: 0; }
+
+    /* Errores no field */
+    .non-field-errors {
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        color: #991b1b;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .non-field-errors i { flex-shrink: 0; margin-top: 1px; }
+
+    /* Separador */
+    .field-divider {
+        height: 1px;
+        background: #f1f5f9;
+        margin: 6px 0 22px;
+    }
+
+    /* Hint text */
+    .field-hint {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Botones */
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 6px;
+        flex-wrap: wrap;
+    }
+    .btn-submit {
+        flex: 1;
+        min-width: 160px;
+        padding: 13px 24px;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 14px rgba(245,158,11,0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245,158,11,0.45);
+    }
+    .btn-cancel {
+        padding: 13px 24px;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.2s, color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .btn-cancel:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+        text-decoration: none;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<div class="form-wrapper">
+
+    {# Breadcrumb #}
+    <div class="form-breadcrumb">
+        <a href="{% url 'evaluaciones_educativas:fluidez_octubre_2026:gestion_tabuladores' %}">
+            <i class="bi bi-arrow-left"></i> Volver a Gestión
+        </a>
+        <span class="sep">/</span>
+        <span>Cargar tabulador</span>
+    </div>
+
+    {# Hero #}
+    <div class="form-hero">
+        <h1>Nuevo <span>Tabulador</span></h1>
+        <p>Completá los datos del tabulador que querés agregar para la región <strong>{{ region }}</strong>.</p>
+    </div>
+
+    {# Cupo restante #}
+    <div class="cupo-info-bar">
+        <i class="bi bi-person-check-fill"></i>
+        Cupo disponible: {{ tabuladores_cargados }} de {{ tabuladores_permitidos }} utilizados
+        &mdash; podés cargar {{ tabuladores_permitidos|add:"-1"|add:tabuladores_cargados|add:"-1" }} más.
+    </div>
+
+    {# Card formulario #}
+    <div class="form-card">
+        <div class="form-card-header">
+            <i class="bi bi-person-plus-fill"></i>
+            <h2>Datos del tabulador</h2>
+        </div>
+
+        <div class="form-card-body">
+            <form method="post" id="form-carga-tabulador" novalidate>
+                {% csrf_token %}
+
+                {# Errores generales #}
+                {% if form.non_field_errors %}
+                <div class="non-field-errors">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {# CUIL #}
+                <div class="field-group">
+                    <label for="{{ form.cuil.id_for_label }}">
+                        CUIL <span class="required-star">*</span>
+                    </label>
+                    <input type="text"
+                           id="{{ form.cuil.id_for_label }}"
+                           name="{{ form.cuil.html_name }}"
+                           value="{{ form.cuil.value|default:'' }}"
+                           placeholder="Ej: 20123456789"
+                           maxlength="11"
+                           minlength="10"
+                           inputmode="numeric"
+                           pattern="[0-9]+"
+                           required
+                           {% if form.cuil.errors %}class="has-error"{% endif %}>
+                    <div class="field-hint">
+                        <i class="bi bi-info-circle"></i>
+                        Solo dígitos, sin guiones. Entre 10 y 11 caracteres.
+                    </div>
+                    {% if form.cuil.errors %}
+                    <div class="field-errors">
+                        {% for error in form.cuil.errors %}
+                        <div class="field-error-item">
+                            <i class="bi bi-x-circle-fill"></i>{{ error }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="field-divider"></div>
+
+                {# Apellido y Nombre en fila #}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="field-group" style="margin-bottom:0;">
+                        <label for="{{ form.apellido.id_for_label }}">
+                            Apellido <span class="required-star">*</span>
+                        </label>
+                        <input type="text"
+                               id="{{ form.apellido.id_for_label }}"
+                               name="{{ form.apellido.html_name }}"
+                               value="{{ form.apellido.value|default:'' }}"
+                               placeholder="Apellido del tabulador"
+                               required
+                               {% if form.apellido.errors %}class="has-error"{% endif %}>
+                        {% if form.apellido.errors %}
+                        <div class="field-errors">
+                            {% for error in form.apellido.errors %}
+                            <div class="field-error-item"><i class="bi bi-x-circle-fill"></i>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-group" style="margin-bottom:0;">
+                        <label for="{{ form.nombre.id_for_label }}">
+                            Nombre <span class="required-star">*</span>
+                        </label>
+                        <input type="text"
+                               id="{{ form.nombre.id_for_label }}"
+                               name="{{ form.nombre.html_name }}"
+                               value="{{ form.nombre.value|default:'' }}"
+                               placeholder="Nombre del tabulador"
+                               required
+                               {% if form.nombre.errors %}class="has-error"{% endif %}>
+                        {% if form.nombre.errors %}
+                        <div class="field-errors">
+                            {% for error in form.nombre.errors %}
+                            <div class="field-error-item"><i class="bi bi-x-circle-fill"></i>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="field-divider" style="margin-top:22px;"></div>
+
+                {# Correo #}
+                <div class="field-group">
+                    <label for="{{ form.correo.id_for_label }}">
+                        Correo electrónico
+                    </label>
+                    <input type="email"
+                           id="{{ form.correo.id_for_label }}"
+                           name="{{ form.correo.html_name }}"
+                           value="{{ form.correo.value|default:'' }}"
+                           placeholder="correo@ejemplo.com"
+                           {% if form.correo.errors %}class="has-error"{% endif %}>
+                    <div class="field-hint">
+                        <i class="bi bi-info-circle"></i>
+                        Opcional, pero si lo ingresás debe ser un correo válido.
+                    </div>
+                    {% if form.correo.errors %}
+                    <div class="field-errors">
+                        {% for error in form.correo.errors %}
+                        <div class="field-error-item"><i class="bi bi-x-circle-fill"></i>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {# Celular #}
+                <div class="field-group">
+                    <label for="{{ form.celular.id_for_label }}">
+                        Celular <span class="required-star">*</span>
+                    </label>
+                    <input type="text"
+                           id="{{ form.celular.id_for_label }}"
+                           name="{{ form.celular.html_name }}"
+                           value="{{ form.celular.value|default:'' }}"
+                           placeholder="Ej: 3804123456"
+                           required
+                           {% if form.celular.errors %}class="has-error"{% endif %}>
+                    {% if form.celular.errors %}
+                    <div class="field-errors">
+                        {% for error in form.celular.errors %}
+                        <div class="field-error-item"><i class="bi bi-x-circle-fill"></i>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {# Acciones #}
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit" id="btn-guardar-tabulador">
+                        <i class="bi bi-floppy-fill"></i>
+                        Guardar tabulador
+                    </button>
+                    <a href="{% url 'evaluaciones_educativas:fluidez_octubre_2026:gestion_tabuladores' %}"
+                       class="btn-cancel"
+                       id="btn-cancelar-carga">
+                        <i class="bi bi-x-lg"></i>
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Validación client-side del CUIL
+document.getElementById('{{ form.cuil.id_for_label }}').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends 'dashboard/bodydirector.html' %}
+{% load static %}
+
+{% block head %}
+{{ block.super }}
+<title>Gestión de Tabuladores — Fluidez Octubre 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    .tab-wrapper {
+        font-family: 'Inter', sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px 16px 80px;
+    }
+    .tab-hero { text-align: center; padding: 28px 20px 24px; margin-bottom: 8px; }
+    .tab-hero h1 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 900; color: #0a1628; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .tab-hero h1 span { color: #f59e0b; }
+    .tab-hero p { color: #64748b; font-size: 0.92rem; margin-bottom: 10px; }
+    .badge-region { display: inline-block; padding: 5px 18px; border-radius: 50px; background: rgba(245,158,11,0.12); color: #d97706; font-weight: 700; font-size: 0.82rem; border: 1px solid rgba(245,158,11,0.3); }
+    .tab-alert { border-radius: 12px; padding: 14px 18px; font-size: 0.9rem; font-weight: 500; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; animation: fadeIn 0.4s ease; }
+    .tab-alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .tab-alert-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    /* Selector de región */
+    .region-switcher { background: #fff; border-radius: 14px; border: 1px solid rgba(245,158,11,0.2); box-shadow: 0 3px 14px rgba(0,0,0,0.05); padding: 14px 20px; margin-bottom: 20px; animation: fadeInUp 0.38s ease forwards; opacity: 0; }
+    .region-switcher-label { font-size: 0.78rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+    .region-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .region-tab { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; text-decoration: none; border: 1.5px solid #e2e8f0; color: #475569; background: #f8fafc; transition: all 0.2s ease; }
+    .region-tab:hover { border-color: #f59e0b; color: #d97706; background: rgba(245,158,11,0.06); text-decoration: none; }
+    .region-tab.active { background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+    .region-tab.active:hover { color: #fff; text-decoration: none; }
+
+    /* Cupo */
+    .cupo-card { background: #fff; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.06); padding: 24px 28px; margin-bottom: 28px; animation: fadeInUp 0.4s ease forwards; opacity: 0; }
+    .cupo-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+    .cupo-title { font-size: 1rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+    .cupo-counter { font-size: 1.5rem; font-weight: 900; color: #f59e0b; }
+    .cupo-counter small { font-size: 1rem; color: #94a3b8; font-weight: 500; }
+    .progress-wrap { background: #f1f5f9; border-radius: 50px; height: 10px; overflow: hidden; margin-bottom: 8px; }
+    .progress-bar-inner { height: 100%; border-radius: 50px; background: linear-gradient(90deg, #f59e0b, #f97316); transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+    .progress-label { font-size: 0.8rem; color: #64748b; text-align: right; }
+
+    /* Sin cupo */
+    .no-cupo-state { text-align: center; padding: 40px 24px; background: #fff; border-radius: 16px; border: 1px solid rgba(245,158,11,0.2); box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 28px; animation: fadeInUp 0.45s ease forwards; opacity: 0; }
+    .no-cupo-icon { font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 14px; }
+    .no-cupo-state h3 { font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+    .no-cupo-state p { color: #64748b; font-size: 0.9rem; margin: 0; }
+
+    /* Acciones */
+    .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; animation: fadeInUp 0.5s ease 0.1s forwards; opacity: 0; }
+    @media (max-width: 600px) { .actions-grid { grid-template-columns: 1fr; } }
+    .action-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 28px 20px; border-radius: 16px; text-decoration: none; font-weight: 700; font-size: 0.95rem; transition: transform 0.25s ease, box-shadow 0.25s ease; border: 2px solid transparent; text-align: center; min-height: 130px; }
+    .action-btn i { font-size: 2rem; }
+    .action-btn-primary { background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff; box-shadow: 0 6px 20px rgba(245,158,11,0.35); }
+    .action-btn-primary:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(245,158,11,0.45); color: #fff; text-decoration: none; }
+    .action-btn-disabled { background: #f1f5f9; color: #94a3b8; border: 2px dashed #e2e8f0; box-shadow: none; cursor: not-allowed; pointer-events: none; }
+    .action-btn-secondary { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; box-shadow: 0 6px 20px rgba(99,102,241,0.3); opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+    .coming-soon-badge { font-size: 0.7rem; background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+
+    /* Tabla tabuladores */
+    .tabuladores-section { background: #fff; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; animation: fadeInUp 0.5s ease 0.2s forwards; opacity: 0; }
+    .tabuladores-section-header { padding: 18px 24px; background: linear-gradient(135deg, #0a1628, #1e293b); display: flex; align-items: center; gap: 10px; }
+    .tabuladores-section-header h4 { color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; }
+    .count-badge { margin-left: auto; background: rgba(245,158,11,0.2); color: #f59e0b; font-size: 0.8rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(245,158,11,0.3); }
+    .tabulador-row { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid rgba(0,0,0,0.05); transition: background 0.2s; }
+    .tabulador-row:last-child { border-bottom: none; }
+    .tabulador-row:hover { background: #f8fafc; }
+    .tabulador-avatar { width: 42px; height: 42px; border-radius: 10px; background: rgba(245,158,11,0.1); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #f59e0b; font-size: 1rem; flex-shrink: 0; border: 1px solid rgba(245,158,11,0.2); }
+    .tabulador-info { flex: 1; min-width: 0; }
+    .tabulador-nombre { font-weight: 700; color: #1e293b; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tabulador-cuil { font-size: 0.78rem; color: #64748b; font-family: monospace; }
+    .tabulador-meta { font-size: 0.78rem; color: #94a3b8; text-align: right; flex-shrink: 0; }
+    .btn-asignar-esc {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #fff;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+        flex-shrink: 0;
+    }
+    .btn-asignar-esc:hover { transform: translateY(-2px); box-shadow: 0 5px 14px rgba(99,102,241,0.4); color: #fff; text-decoration: none; }
+    .escuelas-chip { font-size: 0.75rem; background: rgba(99,102,241,0.1); color: #6366f1; padding: 2px 8px; border-radius: 20px; font-weight: 600; border: 1px solid rgba(99,102,241,0.2); }
+    .empty-tabuladores { padding: 36px 24px; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<div class="tab-wrapper">
+
+    {% for message in messages %}
+    <div class="tab-alert {% if message.tags == 'success' %}tab-alert-success{% else %}tab-alert-error{% endif %}">
+        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %}"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+
+    <div class="tab-hero">
+        <h1>Tabuladores <span>Octubre 2026</span></h1>
+        <p>Gestión y asignación de tabuladores para tu región</p>
+        <span class="badge-region"><i class="bi bi-geo-alt-fill me-1"></i>{{ region }}</span>
+    </div>
+
+    {% if multiples_regiones %}
+    <div class="region-switcher">
+        <div class="region-switcher-label"><i class="bi bi-geo-alt-fill"></i> Cambiá de región:</div>
+        <div class="region-tabs">
+            {% for r in regiones %}
+            <a href="?region={{ r }}" class="region-tab {% if r == region %}active{% endif %}" id="tab-region-{{ forloop.counter }}">
+                <i class="bi bi-map"></i>{{ r }}
+                {% if r == region %}<i class="bi bi-check-circle-fill" style="font-size:0.75rem;"></i>{% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="cupo-card">
+        <div class="cupo-header">
+            <div class="cupo-title"><i class="bi bi-people-fill" style="color:#f59e0b;"></i> Cupo de tabuladores</div>
+            <div class="cupo-counter">{{ tabuladores_cargados }}<small> / {{ tabuladores_permitidos }}</small></div>
+        </div>
+        {% if tabuladores_permitidos > 0 %}
+            {% widthratio tabuladores_cargados tabuladores_permitidos 100 as pct %}
+            <div class="progress-wrap"><div class="progress-bar-inner" style="width: {{ pct }};"></div></div>
+            <div class="progress-label">{{ tabuladores_cargados }} de {{ tabuladores_permitidos }} cargados</div>
+        {% else %}
+            <div class="progress-wrap"><div class="progress-bar-inner" style="width: 0%;"></div></div>
+            <div class="progress-label">Sin cupo asignado actualmente</div>
+        {% endif %}
+    </div>
+
+    {% if tabuladores_permitidos == 0 %}
+    <div class="no-cupo-state">
+        <i class="bi bi-slash-circle no-cupo-icon"></i>
+        <h3>Sin cupo disponible</h3>
+        <p>La región <strong>{{ region }}</strong> no tiene tabuladores habilitados por el momento.</p>
+    </div>
+    {% endif %}
+
+    <div class="actions-grid">
+        {% if puede_cargar %}
+        <a href="{% url 'evaluaciones_educativas:fluidez_octubre_2026:carga_tabulador' %}" class="action-btn action-btn-primary" id="btn-cargar-tabulador">
+            <i class="bi bi-person-plus-fill"></i>
+            Cargar datos de tabulador
+        </a>
+        {% else %}
+        <div class="action-btn action-btn-disabled" id="btn-cargar-tabulador-disabled">
+            <i class="bi bi-person-plus-fill"></i>
+            Cargar datos de tabulador
+            <span style="font-size:0.75rem; font-weight:500; color:#94a3b8;">{% if tabuladores_permitidos == 0 %}Sin cupo habilitado{% else %}Cupo completo{% endif %}</span>
+        </div>
+        {% endif %}
+
+        <div class="action-btn action-btn-secondary" id="btn-asignar-establecimiento">
+            <i class="bi bi-building-add"></i>
+            Asignar establecimiento a tabulador
+            <span class="coming-soon-badge">Ver tabla abajo</span>
+        </div>
+    </div>
+
+    <div class="tabuladores-section">
+        <div class="tabuladores-section-header">
+            <i class="bi bi-list-ul" style="color:#f59e0b;"></i>
+            <h4>Tabuladores cargados</h4>
+            <span class="count-badge">{{ tabuladores_cargados }}</span>
+        </div>
+        {% if tabuladores_list %}
+            {% for tab in tabuladores_list %}
+            <div class="tabulador-row">
+                <div class="tabulador-avatar">{{ tab.apellido|first|upper }}{{ tab.nombre|first|upper }}</div>
+                <div class="tabulador-info">
+                    <div class="tabulador-nombre">{{ tab.apellido }}, {{ tab.nombre }}</div>
+                    <div class="tabulador-cuil">CUIL: {{ tab.cuil }}</div>
+                </div>
+                <div class="tabulador-meta" style="display:flex; align-items:center; gap:10px;">
+                    {% with n=tab.lista_cueanexos|length %}
+                    {% if n > 0 %}
+                    <span class="escuelas-chip"><i class="bi bi-building"></i> {{ n }} escuela{{ n|pluralize }}</span>
+                    {% endif %}
+                    {% endwith %}
+                    <a href="{% url 'evaluaciones_educativas:fluidez_octubre_2026:asignacion_tabulador' tab.cuil %}"
+                       class="btn-asignar-esc"
+                       id="btn-asignar-{{ forloop.counter }}">
+                        <i class="bi bi-building-add"></i> Asignar escuelas
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-tabuladores">
+                <i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:8px;"></i>
+                Todavía no hay tabuladores cargados para esta región.
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<style>@keyframes spin-g { to { transform: rotate(360deg); } }</style>
+<script>
+(function () {
+    // Links/botones que navegan o que disparan acciones
+    var actionLinks = document.querySelectorAll('.btn-asignar-esc, .action-btn-primary');
+
+    actionLinks.forEach(function (el) {
+        el.addEventListener('click', function () {
+            var self = el;
+            actionLinks.forEach(function (other) {
+                if (other === self) {
+                    // El presionado: spinner en el ícono principal
+                    other.style.pointerEvents = 'none';
+                    var icon = other.querySelector('i.bi');
+                    if (icon) {
+                        icon.className = '';
+                        icon.style.cssText = 'display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin-g 0.6s linear infinite;vertical-align:middle;flex-shrink:0';
+                    }
+                } else {
+                    // Los demás: gris e inactivos
+                    other.style.pointerEvents = 'none';
+                    other.style.opacity       = '0.3';
+                    other.style.filter        = 'grayscale(1)';
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evaluación</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+      body {
+        background: linear-gradient(135deg, #eef3ff, #ffffff);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .card {
+        width: 550px;
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-header {
+        background: linear-gradient(90deg, #0084ff, #005fcc);
+        color: white;
+        text-align: center;
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .btn-custom {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100% !important;
+        min-height: 45px;
+        font-size: 1rem;
+      }
+
+      .card-body p input,
+      .card-body p select,
+      .card-body p textarea {
+        width: 100% !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <div class="card-header">
+        <h1>Evaluación de: {{ alumno.nombre }} — DNI {{ alumno.dni }}</h1>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="POST" id="form-evaluacion">
+          {% csrf_token %}
+
+          <div class="mb-3">{{ form.as_p }}</div>
+
+          <button type="submit" id="btn-submit" class="btn btn-success btn-custom w-100 mt-3">
+            Guardar Registro
+          </button>
+          
+          <div class="card-footer footer-bg p-4 px-md-5 mt-3">
+              <a href="{% url 'evaluaciones_educativas:fluidez_octubre_2026:lista_examen' fid_actual=fid_actual %}" id="btn-volver" class="btn btn-outline-secondary fw-semibold w-100 py-2" style="border-radius: 10px; font-size: 1.05rem;">
+                <i class="bi bi-arrow-left me-2"></i> Volver a la Lista de Exámenes
+              </a>
+          </div>
+          
+          {% if fid_actual %}
+              <input type="hidden" name="fid" value="{{ fid_actual }}">
+          {% endif %}
+        </form>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // --- 1. Lógica de Ocultar/Mostrar Campos ---
+        const asistenciaSelect = document.getElementById('id_asistencia');
+        const camposAdicionales = [
+          'id_cantidad_palabras_leidas',
+          'id_pregunta_1', 'id_pregunta_2', 'id_pregunta_3',
+          'id_pregunta_4', 'id_pregunta_5', 'id_pregunta_6'
+        ];
+
+        function toggleCampos() {
+          const esAusente = asistenciaSelect.value === 'AUSENTE';
+
+          camposAdicionales.forEach(function(id) {
+            const campo = document.getElementById(id);
+            if (campo) {
+              const pContainer = campo.closest('p');
+
+              if (esAusente) {
+                if (pContainer) pContainer.style.display = 'none';
+                campo.disabled = true;  
+              } else {
+                if (pContainer) pContainer.style.display = 'block';
+                campo.disabled = false; 
+                campo.setAttribute('required', 'true');
+              }
+            }
+          });
+        }
+
+        if (asistenciaSelect) {
+          toggleCampos();
+          asistenciaSelect.addEventListener('change', toggleCampos);
+        }
+
+        // --- 2. Funcionalidad de Loading y Bloqueo cruzado de botones ---
+        const form = document.getElementById("form-evaluacion");
+        const btnSubmit = document.getElementById("btn-submit");
+        const btnVolver = document.getElementById("btn-volver");
+
+        function activarLoading(elemento) {
+            if (elemento.dataset.htmlOriginal) return; 
+            elemento.dataset.htmlOriginal = elemento.innerHTML;
+            elemento.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Cargando...';
+            elemento.classList.add('disabled');
+            elemento.style.pointerEvents = 'none';
+            elemento.setAttribute('disabled', 'true');
+        }
+
+        // Nueva función: Bloquea el botón que NO se presionó para evitar doble acción
+        function bloquearBotonInactivo(elemento) {
+            if (elemento) {
+                elemento.classList.add('disabled');
+                elemento.style.pointerEvents = 'none';
+                elemento.setAttribute('disabled', 'true');
+            }
+        }
+
+        if (form) {
+            form.addEventListener("submit", function() {
+                activarLoading(btnSubmit);
+                bloquearBotonInactivo(btnVolver); // Bloquea el botón volver
+            });
+        }
+
+        if (btnVolver) {
+            btnVolver.addEventListener("click", function() {
+                activarLoading(btnVolver);
+                bloquearBotonInactivo(btnSubmit); // Bloquea el botón guardar
+            });
+        }
+
+        // Restaurar estado si el usuario usa el botón "Atrás" del navegador
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                [btnSubmit, btnVolver].forEach(btn => {
+                    if (btn) {
+                        // Restaura el HTML si era el botón con el "Cargando..."
+                        if (btn.dataset.htmlOriginal) {
+                            btn.innerHTML = btn.dataset.htmlOriginal;
+                            delete btn.dataset.htmlOriginal;
+                        }
+                        // Quita los bloqueos de TODOS los botones
+                        btn.classList.remove('disabled');
+                        btn.style.pointerEvents = 'auto';
+                        btn.removeAttribute('disabled');
+                    }
+                });
+            }
+        });
+
+      });
+    </script>
+  </body>
+</html>

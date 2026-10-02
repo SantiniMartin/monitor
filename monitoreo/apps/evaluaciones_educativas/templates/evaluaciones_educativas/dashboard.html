@@ -1,0 +1,554 @@
+{% extends 'dashboard/bodydirector.html' %}
+{% load static %}
+
+{% block head %}
+{{ block.super }}
+<title>Evaluaciones Educativas</title>
+<link rel="stylesheet" href="{% static 'evaluaciones_educativas/css/style.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    .dash-wrapper {
+        font-family: 'Inter', sans-serif;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 25px 15px 60px;
+    }
+
+    .dash-hero {
+        text-align: center;
+        padding: 25px 20px 20px;
+    }
+    .dash-hero h1 {
+        font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+        font-weight: 900;
+        color: #0a1628;
+        letter-spacing: -0.5px;
+        margin-bottom: 6px;
+    }
+    .dash-hero h1 span { color: #1565c0; }
+    .dash-hero p { color: #64748b; font-size: 0.95rem; margin-bottom: 8px; }
+
+    .badge-rol {
+        display: inline-block;
+        padding: 5px 16px;
+        border-radius: 50px;
+        background: rgba(21,101,192,0.1);
+        color: #1565c0;
+        font-weight: 600;
+        font-size: 0.82rem;
+        border: 1px solid rgba(21,101,192,0.2);
+    }
+
+    /* ─── TARJETAS DE OPERATIVOS ─── */
+    .op-card {
+        background: #ffffff;
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 16px;
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        position: relative;
+    }
+    .op-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        background: var(--card-color, #1565c0);
+        border-radius: 16px 0 0 16px;
+        pointer-events: none;
+    }
+    .op-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.10);
+    }
+
+    /* Header del Operativo */
+    .op-card-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 22px 24px 22px 28px;
+        cursor: pointer;
+        user-select: none;
+        border-radius: 16px;
+    }
+    .op-card-header:focus-visible {
+        outline: 2px solid var(--card-color, #1565c0);
+        outline-offset: -2px;
+    }
+    .op-icon {
+        font-size: 2.2rem;
+        color: var(--card-color, #1565c0);
+        flex-shrink: 0;
+    }
+    .op-info { flex: 1; min-width: 0; }
+    .op-info h3 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin: 0 0 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .op-info p {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin: 0 0 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .op-badges {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .badge-anio-mini {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+
+    .op-chevron {
+        font-size: 1.25rem;
+        color: #94a3b8;
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+    }
+    .op-card.is-open .op-chevron {
+        transform: rotate(180deg);
+        color: var(--card-color, #1565c0);
+    }
+
+    /* ─── CONTENEDOR DE AÑOS ─── */
+    .op-anios-wrap {
+        padding: 0 22px 22px 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .op-anios-wrap::before {
+        content: '';
+        display: block;
+        height: 1px;
+        background: rgba(0,0,0,0.07);
+        margin-bottom: 4px;
+    }
+
+    /* ─── BLOQUE DE AÑO ─── */
+    .anio-block {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    .anio-block:hover {
+        border-color: #cbd5e1;
+    }
+
+    .anio-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .anio-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .anio-badge {
+        font-size: 0.85rem;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 8px;
+        background: var(--card-color, #1565c0);
+        color: #ffffff;
+        letter-spacing: 0.5px;
+    }
+    .anio-title-text {
+        font-size: 0.88rem;
+        color: #334155;
+        font-weight: 600;
+    }
+    .anio-chevron {
+        font-size: 0.95rem;
+        color: #94a3b8;
+        transition: transform 0.25s ease;
+    }
+    .anio-block.is-open .anio-chevron {
+        transform: rotate(180deg);
+        color: var(--card-color, #1565c0);
+    }
+
+    /* ─── SECCIÓN DE MESES ─── */
+    .anio-content {
+        padding: 0 14px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .mes-section {
+        background: #ffffff;
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 10px;
+        padding: 12px 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .mes-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px dashed rgba(0,0,0,0.08);
+    }
+    .mes-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1e293b;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    .mes-desc {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-left: auto;
+    }
+
+    /* ─── LINKS / BOTONES ─── */
+    .mes-links {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .op-link-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: #f8fafc;
+        border: 1px solid rgba(0,0,0,0.06);
+        text-decoration: none;
+        color: #334155;
+        font-weight: 500;
+        font-size: 0.88rem;
+        transition: all 0.2s ease;
+    }
+    .op-link-btn:hover {
+        background: var(--card-color, #1565c0);
+        color: #ffffff !important;
+        text-decoration: none;
+        transform: translateX(4px);
+    }
+    .op-link-btn:hover .op-link-icon,
+    .op-link-btn:hover .link-arrow {
+        color: #ffffff !important;
+    }
+    .op-link-icon {
+        font-size: 1.05rem;
+        color: var(--card-color, #1565c0);
+        transition: color 0.2s ease;
+        flex-shrink: 0;
+    }
+    .link-arrow {
+        font-size: 0.82rem;
+        color: #94a3b8;
+        opacity: 0.7;
+        margin-left: auto;
+        flex-shrink: 0;
+        transition: color 0.2s ease;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .op-card-wrap {
+        animation: fadeInUp 0.45s ease-out forwards;
+        opacity: 0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 24px;
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        margin-top: 30px;
+    }
+    .empty-state .empty-icon { font-size: 3rem; color: #94a3b8; margin-bottom: 16px; display: block; }
+    .empty-state h3 { color: #475569; font-weight: 700; }
+    .empty-state p { color: #94a3b8; margin: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+
+<div class="dash-wrapper">
+
+    <div class="dash-hero">
+        <h1>Evaluacion <span>Educativa</span></h1>
+        <p>Panel centralizado de gestión y análisis</p>
+        <div class="badge-rol">
+            <i class="bi bi-person-badge me-1"></i>
+            {{ rol }}
+        </div>
+    </div>
+
+    {% if operativos %}
+    <div class="row g-4 mt-2">
+        {% for op in operativos %}
+        <div class="col-12 col-md-6 op-card-wrap"
+             style="animation-delay: {{ forloop.counter0 }}00ms;">
+
+            <!-- 1. Tarjeta Inicial: Operativo -->
+            <div class="op-card"
+                 id="card-{{ op.id }}"
+                 style="--card-color: {{ op.color }};">
+
+                <!-- Header del Operativo: al presionar lista los Años -->
+                <div class="op-card-header"
+                     role="button"
+                     tabindex="0"
+                     aria-expanded="false"
+                     aria-controls="collapse-op-{{ op.id }}"
+                     onclick="toggleOp(this, 'collapse-op-{{ op.id }}')"
+                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleOp(this, 'collapse-op-{{ op.id }}');}">
+                    <i class="bi {{ op.icono }} op-icon"></i>
+                    <div class="op-info">
+                        <h3>{{ op.titulo }}</h3>
+                        <p>{{ op.descripcion }}</p>
+                        <div class="op-badges">
+                            {% for anio_data in op.anios %}
+                            <span class="badge-anio-mini">Año {{ anio_data.anio }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-down op-chevron"></i>
+                </div>
+
+                <!-- Despliegue del Operativo: Lista de Años -->
+                <div class="collapse" id="collapse-op-{{ op.id }}">
+                    <div class="op-anios-wrap" onclick="event.stopPropagation();">
+
+                        {% for anio_data in op.anios %}
+                        <!-- 2. Tarjeta del Año -->
+                        <div class="anio-block {% if forloop.first %}is-open{% endif %}" id="block-{{ op.id }}-{{ anio_data.anio }}">
+                            
+                            <!-- Header del Año: al presionar lista los Meses / Links -->
+                            <div class="anio-header"
+                                 role="button"
+                                 tabindex="0"
+                                 aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                                 aria-controls="collapse-anio-{{ op.id }}-{{ anio_data.anio }}"
+                                 onclick="toggleAnio(this, 'collapse-anio-{{ op.id }}-{{ anio_data.anio }}')"
+                                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleAnio(this, 'collapse-anio-{{ op.id }}-{{ anio_data.anio }}');}">
+                                <div class="anio-title-wrap">
+                                    <span class="anio-badge">{{ anio_data.anio }}</span>
+                                    <span class="anio-title-text">Año {{ anio_data.anio }}</span>
+                                </div>
+                                <i class="bi bi-chevron-down anio-chevron"></i>
+                            </div>
+
+                            <!-- Contenido del Año: Lista de Meses -->
+                            <div class="collapse {% if forloop.first %}show{% endif %}" id="collapse-anio-{{ op.id }}-{{ anio_data.anio }}">
+                                <div class="anio-content">
+
+                                    {% for mes_data in anio_data.meses %}
+                                    <!-- 3. Sección del Mes del Operativo -->
+                                    <div class="mes-section">
+                                        <div class="mes-header">
+                                            <i class="bi {{ mes_data.icono }} text-primary"></i>
+                                            <span class="mes-title">{{ mes_data.mes }}</span>
+                                            {% if mes_data.descripcion %}
+                                            <span class="mes-desc">{{ mes_data.descripcion }}</span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- 4. Links dentro del Mes -->
+                                        <div class="mes-links">
+                                            {% for link in mes_data.links %}
+                                            <a href="{{ link.url }}"
+                                               class="op-link-btn"
+                                               onclick="event.stopPropagation();">
+                                                <i class="bi {{ link.icono }} op-link-icon"></i>
+                                                <span>{{ link.titulo }}</span>
+                                                <i class="bi bi-arrow-right link-arrow"></i>
+                                            </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+
+                                </div>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-info-circle empty-icon"></i>
+        <h3>Sin acceso</h3>
+        <p>No tenés módulos habilitados para tu rol actual.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+/**
+ * toggleOp: abre/cierra la tarjeta del operativo para mostrar sus años.
+ * Compatible con Bootstrap 4 (jQuery / AdminLTE 3), Bootstrap 5 y fallback vanilla JS.
+ */
+function toggleOp(headerEl, collapseId) {
+    var collapseEl = document.getElementById(collapseId);
+    if (!collapseEl) return;
+
+    var card = headerEl.closest('.op-card') || headerEl;
+
+    // 1. Bootstrap 5
+    if (window.bootstrap && window.bootstrap.Collapse && typeof window.bootstrap.Collapse.getOrCreateInstance === 'function') {
+        var bsCollapse = window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+        if (collapseEl.classList.contains('show')) {
+            bsCollapse.hide();
+            card.classList.remove('is-open');
+            headerEl.setAttribute('aria-expanded', 'false');
+        } else {
+            bsCollapse.show();
+            card.classList.add('is-open');
+            headerEl.setAttribute('aria-expanded', 'true');
+        }
+        return;
+    }
+
+    // 2. Bootstrap 4 (AdminLTE 3 / jQuery)
+    if (window.jQuery && typeof window.jQuery.fn.collapse === 'function') {
+        window.jQuery(collapseEl).collapse('toggle');
+        return;
+    }
+
+    // 3. Fallback Vanilla JS
+    if (collapseEl.classList.contains('show')) {
+        collapseEl.classList.remove('show');
+        collapseEl.style.display = 'none';
+        card.classList.remove('is-open');
+        headerEl.setAttribute('aria-expanded', 'false');
+    } else {
+        collapseEl.classList.add('show');
+        collapseEl.style.display = 'block';
+        card.classList.add('is-open');
+        headerEl.setAttribute('aria-expanded', 'true');
+    }
+}
+
+/**
+ * toggleAnio: abre/cierra la tarjeta del año para mostrar sus meses y links.
+ */
+function toggleAnio(headerEl, collapseId) {
+    var collapseEl = document.getElementById(collapseId);
+    if (!collapseEl) return;
+
+    var anioBlock = headerEl.closest('.anio-block') || headerEl;
+
+    // 1. Bootstrap 5
+    if (window.bootstrap && window.bootstrap.Collapse && typeof window.bootstrap.Collapse.getOrCreateInstance === 'function') {
+        var bsCollapse = window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+        if (collapseEl.classList.contains('show')) {
+            bsCollapse.hide();
+            anioBlock.classList.remove('is-open');
+            headerEl.setAttribute('aria-expanded', 'false');
+        } else {
+            bsCollapse.show();
+            anioBlock.classList.add('is-open');
+            headerEl.setAttribute('aria-expanded', 'true');
+        }
+        return;
+    }
+
+    // 2. Bootstrap 4 (AdminLTE 3 / jQuery)
+    if (window.jQuery && typeof window.jQuery.fn.collapse === 'function') {
+        window.jQuery(collapseEl).collapse('toggle');
+        return;
+    }
+
+    // 3. Fallback Vanilla JS
+    if (collapseEl.classList.contains('show')) {
+        collapseEl.classList.remove('show');
+        collapseEl.style.display = 'none';
+        anioBlock.classList.remove('is-open');
+        headerEl.setAttribute('aria-expanded', 'false');
+    } else {
+        collapseEl.classList.add('show');
+        collapseEl.style.display = 'block';
+        anioBlock.classList.add('is-open');
+        headerEl.setAttribute('aria-expanded', 'true');
+    }
+}
+
+// Sincronizar estados visuales con eventos de colapso de Bootstrap (BS4 / BS5)
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.jQuery) {
+        // Operativos
+        window.jQuery('.op-card > .collapse').on('show.bs.collapse', function () {
+            var card = this.closest('.op-card');
+            if (card) {
+                card.classList.add('is-open');
+                var header = card.querySelector('.op-card-header');
+                if (header) header.setAttribute('aria-expanded', 'true');
+            }
+        }).on('hide.bs.collapse', function () {
+            var card = this.closest('.op-card');
+            if (card) {
+                card.classList.remove('is-open');
+                var header = card.querySelector('.op-card-header');
+                if (header) header.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Años
+        window.jQuery('.anio-block > .collapse').on('show.bs.collapse', function () {
+            var block = this.closest('.anio-block');
+            if (block) {
+                block.classList.add('is-open');
+                var header = block.querySelector('.anio-header');
+                if (header) header.setAttribute('aria-expanded', 'true');
+            }
+        }).on('hide.bs.collapse', function () {
+            var block = this.closest('.anio-block');
+            if (block) {
+                block.classList.remove('is-open');
+                var header = block.querySelector('.anio-header');
+                if (header) header.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,392 @@
+{% extends 'dashboard/bodydirector.html' %}
+{% load static %}
+
+{% block head %}
+{{ block.super }}
+<title>Asignar Escuelas — {{ tabulador.apellido }} {{ tabulador.nombre }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+    .asig-wrapper {
+        font-family: 'Inter', sans-serif;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 28px 16px 80px;
+    }
+
+    /* Breadcrumb */
+    .asig-breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; font-size: 0.85rem; color: #64748b; }
+    .asig-breadcrumb a { color: #f59e0b; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: color 0.2s; }
+    .asig-breadcrumb a:hover { color: #d97706; text-decoration: none; }
+    .asig-breadcrumb .sep { color: #cbd5e1; }
+
+    /* Hero del tabulador */
+    .tabulador-hero {
+        background: linear-gradient(135deg, #0a1628, #1e3a5f);
+        border-radius: 16px;
+        padding: 24px 28px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        animation: fadeInUp 0.35s ease forwards;
+        opacity: 0;
+    }
+    .tabulador-hero-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: rgba(245,158,11,0.2);
+        border: 2px solid rgba(245,158,11,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: #f59e0b;
+        flex-shrink: 0;
+    }
+    .tabulador-hero-info { flex: 1; }
+    .tabulador-hero-nombre { font-size: 1.2rem; font-weight: 900; color: #fff; margin-bottom: 4px; }
+    .tabulador-hero-meta { font-size: 0.82rem; color: rgba(255,255,255,0.55); display: flex; gap: 16px; flex-wrap: wrap; }
+    .tabulador-hero-meta span { display: flex; align-items: center; gap: 4px; }
+    .tabulador-hero-stat {
+        text-align: center;
+        padding: 10px 20px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;
+    }
+    .tabulador-hero-stat .num { font-size: 1.6rem; font-weight: 900; color: #f59e0b; line-height: 1; }
+    .tabulador-hero-stat .lbl { font-size: 0.72rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; }
+
+    /* Alertas */
+    .asig-alert { border-radius: 10px; padding: 12px 16px; font-size: 0.88rem; font-weight: 500; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .asig-alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .asig-alert-error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .asig-alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+
+    /* Layout de dos columnas */
+    .asig-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        animation: fadeInUp 0.4s ease 0.1s forwards;
+        opacity: 0;
+    }
+    @media (max-width: 768px) { .asig-grid { grid-template-columns: 1fr; } }
+
+    /* Panel genérico */
+    .panel {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .panel-header {
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .panel-header.assigned { background: linear-gradient(135deg, #0a1628, #1e293b); }
+    .panel-header.available { background: linear-gradient(135deg, #1e3a5f, #1565c0); }
+    .panel-title { font-size: 0.9rem; font-weight: 700; color: #fff; margin: 0; }
+    .panel-count { margin-left: auto; font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+    .panel-count.orange { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .panel-count.blue   { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+
+    /* Buscador */
+    .search-wrap { padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .search-input {
+        width: 100%;
+        padding: 9px 14px 9px 36px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        color: #1e293b;
+        background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.867-3.834zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E") no-repeat 12px center;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); background-color: #fff; }
+
+    /* Lista de escuelas */
+    .school-list { flex: 1; overflow-y: auto; max-height: 440px; }
+    .school-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 16px;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        transition: background 0.15s;
+    }
+    .school-item:last-child { border-bottom: none; }
+    .school-item:hover { background: #f8fafc; }
+    .school-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .school-icon.assigned-icon { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+    .school-icon.available-icon { background: rgba(59,130,246,0.08); color: #3b82f6; border: 1px solid rgba(59,130,246,0.15); }
+    .school-data { flex: 1; min-width: 0; }
+    .school-nombre { font-size: 0.85rem; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .school-sub { font-size: 0.72rem; color: #94a3b8; display: flex; gap: 8px; margin-top: 2px; }
+    .school-cue { font-family: monospace; font-weight: 600; color: #64748b; }
+
+    /* Estado loading / deshabilitado en botones de escuela */
+    .btn-escuela.btn-loading {
+        opacity: 1 !important;
+        cursor: wait !important;
+        pointer-events: none;
+    }
+    .btn-escuela.btn-loading i { display: none; }
+    .btn-escuela.btn-loading::after {
+        content: '';
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+    .btn-escuela.btn-others-disabled {
+        opacity: 0.3 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+        filter: grayscale(1);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Botones de acción por escuela */
+    .btn-escuela {
+        flex-shrink: 0;
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-quitar { background: rgba(239,68,68,0.1); color: #dc2626; }
+    .btn-quitar:hover { background: #ef4444; color: #fff; transform: scale(1.1); }
+    .btn-agregar { background: rgba(34,197,94,0.1); color: #16a34a; }
+    .btn-agregar:hover { background: #22c55e; color: #fff; transform: scale(1.1); }
+
+    /* Estado vacío */
+    .empty-panel { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 0.88rem; }
+    .empty-panel i { font-size: 2.2rem; display: block; margin-bottom: 10px; opacity: 0.5; }
+
+    /* No encontrado en búsqueda */
+    .no-results { display: none; padding: 20px; text-align: center; color: #94a3b8; font-size: 0.85rem; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<div class="asig-wrapper">
+
+    {# Breadcrumb #}
+    <div class="asig-breadcrumb">
+        <a href="{% url 'evaluaciones_educativas:fluidez_octubre_2026:gestion_tabuladores' %}">
+            <i class="bi bi-arrow-left"></i> Volver a Gestión
+        </a>
+        <span class="sep">/</span>
+        <span>Asignar escuelas</span>
+    </div>
+
+    {# Mensajes #}
+    {% for message in messages %}
+    <div class="asig-alert {% if message.tags == 'success' %}asig-alert-success{% elif message.tags == 'warning' %}asig-alert-warning{% else %}asig-alert-error{% endif %}">
+        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+
+    {# Hero del tabulador #}
+    <div class="tabulador-hero">
+        <div class="tabulador-hero-avatar">
+            {{ tabulador.apellido|first|upper }}{{ tabulador.nombre|first|upper }}
+        </div>
+        <div class="tabulador-hero-info">
+            <div class="tabulador-hero-nombre">{{ tabulador.apellido }}, {{ tabulador.nombre }}</div>
+            <div class="tabulador-hero-meta">
+                <span><i class="bi bi-credit-card-2-front"></i> {{ tabulador.cuil }}</span>
+                {% if tabulador.correo %}<span><i class="bi bi-envelope"></i> {{ tabulador.correo }}</span>{% endif %}
+                {% if tabulador.celular %}<span><i class="bi bi-phone"></i> {{ tabulador.celular }}</span>{% endif %}
+                <span><i class="bi bi-geo-alt"></i> {{ region }}</span>
+            </div>
+        </div>
+        <div class="tabulador-hero-stat">
+            <div class="num">{{ total_asignadas }}</div>
+            <div class="lbl">Escuelas<br>asignadas</div>
+        </div>
+    </div>
+
+    {# Grid dos columnas #}
+    <div class="asig-grid">
+
+        {# ── Panel izquierdo: Escuelas asignadas ── #}
+        <div class="panel">
+            <div class="panel-header assigned">
+                <i class="bi bi-check-circle-fill" style="color:#f59e0b; font-size:1.05rem;"></i>
+                <span class="panel-title">Escuelas asignadas</span>
+                <span class="panel-count orange" id="count-asignadas">{{ total_asignadas }}</span>
+            </div>
+            <div class="school-list" id="list-asignadas">
+                {% if escuelas_asignadas %}
+                    {% for esc in escuelas_asignadas %}
+                    <div class="school-item">
+                        <div class="school-icon assigned-icon">
+                            <i class="bi bi-building-check"></i>
+                        </div>
+                        <div class="school-data">
+                            <div class="school-nombre">{{ esc.nom_est }}</div>
+                            <div class="school-sub">
+                                <span class="school-cue">{{ esc.cueanexo }}</span>
+                                {% if esc.localidad %}<span>{{ esc.localidad }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <form method="post" style="margin:0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="quitar">
+                            <input type="hidden" name="cueanexo" value="{{ esc.cueanexo }}">
+                            <button type="submit" class="btn-escuela btn-quitar" title="Quitar esta escuela">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-panel">
+                        <i class="bi bi-building-slash"></i>
+                        Este tabulador aún no tiene escuelas asignadas.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── Panel derecho: Escuelas disponibles ── #}
+        <div class="panel">
+            <div class="panel-header available">
+                <i class="bi bi-building" style="color:#93c5fd; font-size:1.05rem;"></i>
+                <span class="panel-title">Escuelas disponibles</span>
+                <span class="panel-count blue" id="count-disponibles">{{ total_disponibles }}</span>
+            </div>
+            <div class="search-wrap">
+                <input type="text"
+                       id="buscador-escuelas"
+                       class="search-input"
+                       placeholder="Buscar por nombre o cueanexo..."
+                       autocomplete="off">
+            </div>
+            <div class="school-list" id="list-disponibles">
+                {% if escuelas_disponibles %}
+                    {% for esc in escuelas_disponibles %}
+                    <div class="school-item school-disponible"
+                         data-search="{{ esc.nom_est|lower }} {{ esc.cueanexo }}">
+                        <div class="school-icon available-icon">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div class="school-data">
+                            <div class="school-nombre">{{ esc.nom_est }}</div>
+                            <div class="school-sub">
+                                <span class="school-cue">{{ esc.cueanexo }}</span>
+                                {% if esc.localidad %}<span>{{ esc.localidad }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <form method="post" style="margin:0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="accion" value="agregar">
+                            <input type="hidden" name="cueanexo" value="{{ esc.cueanexo }}">
+                            <button type="submit" class="btn-escuela btn-agregar" title="Asignar esta escuela">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                    <div class="no-results" id="no-results-msg">
+                        <i class="bi bi-search" style="display:block; font-size:1.8rem; margin-bottom:8px; opacity:0.4;"></i>
+                        No se encontraron escuelas con ese criterio.
+                    </div>
+                {% else %}
+                    <div class="empty-panel">
+                        <i class="bi bi-check2-all"></i>
+                        Todas las escuelas de la región ya están asignadas.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// Buscador client-side (filtra sin recargar)
+(function () {
+    var input = document.getElementById('buscador-escuelas');
+    if (!input) return;
+
+    input.addEventListener('input', function () {
+        var q = this.value.toLowerCase().trim();
+        var items = document.querySelectorAll('.school-disponible');
+        var visible = 0;
+
+        items.forEach(function (item) {
+            var txt = item.getAttribute('data-search') || '';
+            var match = !q || txt.includes(q);
+            item.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+
+        var noResults = document.getElementById('no-results-msg');
+        if (noResults) noResults.style.display = (visible === 0 && q) ? 'block' : 'none';
+    });
+})();
+
+// Loading state: al hacer submit de cualquier form de escuela,
+// deshabilita el botón presionado (spinner) y pone los demás en gris.
+(function () {
+    var allForms = document.querySelectorAll('form[data-escuela-form]');
+    if (!allForms.length) {
+        // Buscar todos los forms con btn-escuela
+        allForms = Array.from(document.querySelectorAll('.school-item form'));
+    }
+
+    // Obtener todos los botones de acción de escuela en la página
+    function getAllBtns() {
+        return document.querySelectorAll('.btn-escuela');
+    }
+
+    document.querySelectorAll('.school-item form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            var clickedBtn = form.querySelector('.btn-escuela');
+            var allBtns   = getAllBtns();
+
+            // Poner todos en gris excepto el presionado
+            allBtns.forEach(function (btn) {
+                if (btn === clickedBtn) {
+                    btn.classList.add('btn-loading');
+                } else {
+                    btn.classList.add('btn-others-disabled');
+                }
+            });
+
+            // También deshabilitar el buscador para evitar confusión
+            var buscador = document.getElementById('buscador-escuelas');
+            if (buscador) { buscador.disabled = true; buscador.style.opacity = '0.4'; }
+        });
+    });
+})();
+</script>
+{% endblock %}
